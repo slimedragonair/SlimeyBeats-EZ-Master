@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fix installer packaging on fresh runners by allowing locked Cargo metadata to fetch platform packages needed for the license inventory; include Cargo's error details on failure.
+- Make hosted installer verification explicitly command-line-only, retain full GUI verification by default locally, and include capture error output when it fails.
 
 ## 0.4.2 — 2026-11-12
 

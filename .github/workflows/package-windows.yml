@@ -15,11 +15,16 @@ jobs:
           cargo build --locked --release --bins --manifest-path rust/Cargo.toml
       - name: Assemble portable, source and installer
         run: python rust/tools/build_release.py --out dist
-      - name: Verify installer lifecycle
+      - name: Verify command-line installer lifecycle
         shell: pwsh
         run: |
           $setup = (Get-ChildItem dist/*-Setup.exe).FullName
-          python rust/tools/verify_installer.py --installer "$setup" --test-root "${{ runner.temp }}/SlimeyBeats Installer QA" --report "${{ runner.temp }}/SlimeyBeats-QA/installer-check.json"
+          python rust/tools/verify_installer.py --installer "$setup" --test-root "${{ runner.temp }}/SlimeyBeats Installer QA" --report "${{ runner.temp }}/SlimeyBeats-QA/installer-check.json" --skip-gui
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-installer-verification
+          path: ${{ runner.temp }}/SlimeyBeats-QA/installer-check.json
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         with:
           name: SlimeyBeats-Windows-release

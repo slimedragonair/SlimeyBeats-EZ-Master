@@ -10,6 +10,8 @@
 
 The included CI builds/tests native code on Windows. The manually triggered packaging workflow builds release artifacts; it does not automatically publish a GitHub release. Release tooling does not upload anything automatically. Verify the public README, release downloads and Actions checks after each publication.
 
+The hosted packaging workflow uses `verify_installer.py --skip-gui` to test installation, native CLI processing, upgrade and data-preserving uninstall. Its report explicitly marks GUI capture as untested. A hosted native GUI capture did not complete successfully; the workflow does not claim that coverage. Run the verifier without `--skip-gui` on an interactive Windows desktop for the GUI processing/capture check, which passed locally for v0.4.2.
+
 The public repository is [slimedragonair/SlimeyBeats-EZ-Master](https://github.com/slimedragonair/SlimeyBeats-EZ-Master). README download buttons point to the published versioned Windows installer; update their version together with Cargo metadata and release artifacts. The latest-release badge always follows the newest stable release.
 
 For a fork, update the repository metadata/download destination locally:

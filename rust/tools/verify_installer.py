@@ -35,6 +35,7 @@ def main():
     parser.add_argument('--installer', type=Path, required=True)
     parser.add_argument('--test-root', type=Path, required=True)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--skip-gui', action='store_true', help='Verify command-line lifecycle only; record GUI capture as untested')
     args = parser.parse_args()
     installer, root = args.installer.resolve(), args.test_root.resolve()
     if root.exists() or root == Path(root.anchor) or '"' in str(root):
@@ -68,11 +69,15 @@ def main():
         assert master.returncode == 0, master.stderr
         wave = next((root/'output').glob('*.wav'))
         record['native_wav_without_ffmpeg'] = True
-        screenshot = args.report.resolve().with_name('installed-app.png')
-        screenshot.parent.mkdir(parents=True, exist_ok=True)
-        capture = command([str(gui), str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
-        assert capture.returncode == 0 and screenshot.is_file(), 'Installed GUI processing failed'
-        record['installed_gui_processing_capture'] = True
+        if args.skip_gui:
+            record['installed_gui_processing_capture'] = False
+            record['gui_capture_skip_reason'] = 'Explicit --skip-gui: command-line installer lifecycle only'
+        else:
+            screenshot = args.report.resolve().with_name('installed-app.png')
+            screenshot.parent.mkdir(parents=True, exist_ok=True)
+            capture = command([str(gui), str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
+            assert capture.returncode == 0 and screenshot.is_file(), f'Installed GUI capture failed (exit {capture.returncode}):\n{capture.stdout}\n{capture.stderr}'
+            record['installed_gui_processing_capture'] = True
         settings = root/'user_data/rust-settings.json'
         settings.parent.mkdir(exist_ok=True)
         native_report = json.loads(next((root/'output').glob('*.report.json')).read_text())
