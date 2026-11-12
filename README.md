@@ -14,7 +14,11 @@ SlimeyBeats-EZ-Master is a native Rust desktop mastering app for Windows. Analyz
 
 [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
+**Installer note:** v0.4.2 is unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
+
 ![SlimeyBeats welcome screen, with Analyze at the top right and separate Master and Export actions](docs/images/welcome.png)
+
+**Analyze → Master → Export.** Analyze is at the top right. Master queue prepares a preview; the separate Export selected master button saves it when you are ready. You can tweak Manual EQ or re-master in between. [Open the welcome screen at full size](docs/images/welcome.png).
 
 ## What it does
 
@@ -28,7 +32,7 @@ SlimeyBeats-EZ-Master is a native Rust desktop mastering app for Windows. Analyz
 
 ![Closer view of the actual Manual EQ graph, numeric controls, waveform and playback controls](docs/images/manual-eq-detail.png)
 
-[Open the full Manual EQ screen](docs/images/manual-eq.png). The detail above is a crop of the native app capture; no controls or measurements were redrawn.
+**EQ while listening:** seven bands share a graph with the spectrum; the waveform and playback controls stay below. [Open the EQ detail at full size](docs/images/manual-eq-detail.png) or [the complete Manual EQ screen](docs/images/manual-eq.png). The detail above is a crop of the native app capture; no controls or measurements were redrawn.
 
 ## Get started
 
