@@ -1,0 +1,30 @@
+name: Package Windows release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build native binaries
+        run: |
+          rustup default stable
+          cargo build --locked --release --bins --manifest-path rust/Cargo.toml
+      - name: Assemble portable, source and installer
+        run: python rust/tools/build_release.py --out dist
+      - name: Verify installer lifecycle
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist/*-Setup.exe).FullName
+          python rust/tools/verify_installer.py --installer "$setup" --test-root "${{ runner.temp }}/SlimeyBeats Installer QA" --report "${{ runner.temp }}/SlimeyBeats-QA/installer-check.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-Windows-release
+          path: |
+            dist/*-Setup.exe
+            dist/*.zip
+            dist/*-SHA256SUMS.txt
+          if-no-files-found: error

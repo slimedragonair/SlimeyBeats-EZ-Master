@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and mastering discussion
+    url: https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions
+    about: Ask for help, compare workflows or discuss an idea before opening an issue.
+  - name: Report a security vulnerability privately
+    url: https://github.com/slimedragonair/SlimeyBeats-EZ-Master/security/advisories/new
+    about: Keep vulnerability details and sensitive material out of public issues.

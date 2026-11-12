@@ -1,0 +1,9 @@
+# Small installer icon
+
+Built-in ImageGen edit, using `slimeybeats-icon.png` as the edit target, produced the dedicated 16–32 px sibling `slimeybeats-small-icon.png`. The generated PNG bytes are unchanged. The approved main application icon remains unchanged.
+
+The ICO container uses the simplified sibling at 16/24/32 px and the approved original at 48/64/128/256 px. This is a technical multi-size export. Inspect it on light and dark surfaces at intended sizes; do not assume a detailed 64 px mark will remain clear at 32 px.
+
+## Exact prompt
+
+Use case: logo-brand. Edit target: the attached existing SlimeDragon head icon. Create a dedicated SMALL-SIZE companion variant for a Windows installer and Start menu at 16–32 pixels. Preserve its identity and right-facing head silhouette: ivory skeletal long dragon muzzle, exactly two swept-back horns, deep teal translucent slime outline, a single large violet eye framed by a simple antique-bronze monocle. Keep the same overall composition and purple/teal/bone color family. Simplify aggressively for 32px recognition: only a handful of broad clean graphic shapes, one clear bright ivory muzzle mass, a separated large violet eye/pupil, a continuous dark-teal outer mass and simple strong horn shapes. Remove the fine interior ridges, little sharp cheek flecks, tiny highlights, double outlines and texture fragments that merge when shrunk. Do NOT add new spikes, extra eyes, text, letters, sound waves, headphones, a badge, frame, drop shadow, glow fog, detached particles or a background. Sculptural simple premium fantasy logo rather than a cartoon sticker or detailed miniature painting. Nearly square art filling 88 percent of the square canvas with a clean transparent safe margin. TRUE transparent background and clean antialiased alpha edge. Clear recognition on both white and obsidian. Keep the main approved larger app icon untouched; this output is only its low-detail tiny-size sibling.

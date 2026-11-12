@@ -1,0 +1,8 @@
+# Master-Craft runtime dependencies (all permissive or LGPL-dynamic; see THIRD_PARTY_NOTICES.md)
+numpy
+scipy
+soundfile
+librosa
+pyloudnorm
+noisereduce
+PySide6

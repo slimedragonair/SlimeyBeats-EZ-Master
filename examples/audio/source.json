@@ -1,0 +1,32 @@
+{
+  "title": "Technological Messup",
+  "artist": "Bärghest",
+  "license": "CC0 1.0 Universal",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source_page": "https://opengameart.org/content/technological-messup",
+  "download_url": "https://opengameart.org/sites/default/files/tecnological_messup_v2_0.ogg",
+  "original_sha256": "d782c36a82cfdb02772001fb5830a8d4e0e82392dd157fe4410d07d11f01e45e",
+  "excerpt_start_s": 16,
+  "duration_s": 45,
+  "input_modification": "Decoded from Ogg, short fades, linear headroom adjustment to approximately -20 LUFS, WAV24.",
+  "master_modification": "SlimeyBeats Neutral/Gentler defaults; WAV24.",
+  "preview_modification": "Both previews linearly matched to approximately -20 LUFS, MP3 192 kbps.",
+  "input_gain_db": -4.699999999999999,
+  "levels": {
+    "input": {
+      "wav_lufs": -20.0,
+      "preview_lufs": -20.2
+    },
+    "master": {
+      "wav_lufs": -14.0,
+      "preview_lufs": -20.3
+    }
+  },
+  "app_version": "0.4.2",
+  "files": {
+    "demo-input.wav": "1d0aa4551c81f378228ad2fa46d8e6da77baae9c93ad00dac58ffe3978cdf1f0",
+    "demo-master.wav": "80f6a484362f0cc0044f71692b9ba2441777099baca524ca77084cb77cfe0c72",
+    "listen-input.mp3": "a039185981a7c56d1b3000d8a2aab70dd01a36782e720d992f6917a5fbcfdaf7",
+    "listen-master.mp3": "46c9274e91be2a3b60aff91f18a167c02855740c345214ae5e20a5690664b7fa"
+  }
+}

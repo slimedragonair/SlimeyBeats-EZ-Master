@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement to mastering, EQ or the app workflow.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would this help you do?
+      description: Describe the task or difficulty, with a concrete example.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested behavior
+      description: Explain the result you would like and any alternatives you tried.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Screenshots or settings can help. Only share material you have permission to publish.

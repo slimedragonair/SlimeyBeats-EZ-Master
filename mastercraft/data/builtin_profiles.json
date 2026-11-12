@@ -1,0 +1,1121 @@
+{
+  "schema": "master-craft.profiles.v1",
+  "band_centers_hz": [
+    31.5,
+    63,
+    125,
+    250,
+    500,
+    1000,
+    2000,
+    4000,
+    8000,
+    16000
+  ],
+  "tonal_correction": {
+    "tolerance_db": 2.0,
+    "correction_fraction": 0.6,
+    "max_db_per_band": 4.0
+  },
+  "modes": {
+    "streaming_safe": {
+      "default_tp_dbtp": -1.0
+    },
+    "loud": {
+      "default_tp_dbtp": -1.0,
+      "spotify_strict_tp_dbtp": -2.0,
+      "max_limiter_gr_db_abort": 6.0
+    }
+  },
+  "platforms_lufs": {
+    "spotify": -14,
+    "youtube": -14,
+    "apple_music": -16,
+    "amazon": -14,
+    "tidal": -14,
+    "deezer": -15
+  },
+  "profiles": {
+    "metal": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        1.0,
+        7.0,
+        6.5,
+        1.0,
+        -1.0,
+        0.0,
+        1.5,
+        0.5,
+        -3.0,
+        -12.0
+      ],
+      "glue": {
+        "ratio": 1.5,
+        "attack_ms": 30,
+        "release_ms": 150,
+        "target_gr_db": 1.5,
+        "auto_release": true
+      },
+      "multiband": {
+        "xover_hz": [
+          120,
+          2500
+        ],
+        "low": {
+          "ratio": 1.5,
+          "max_gr_db": 1.5,
+          "attack_ms": 40,
+          "release_ms": 150,
+          "auto_release": true,
+          "det_ms": 20
+        },
+        "high": {
+          "ratio": 1.5,
+          "max_gr_db": 1.5,
+          "attack_ms": 15,
+          "release_ms": 120,
+          "auto_release": true
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 5
+      },
+      "stereo": {
+        "corr_window": [
+          0.65,
+          0.8
+        ],
+        "max_side_gain_db": 4.0,
+        "side_hpf_hz": 80
+      },
+      "saturation": {
+        "drive_db": 2.0,
+        "mix": 0.12
+      },
+      "display_name": "Metal",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md) | punch-preserving retune 2026-11-11 (tonal toward MIXEA refs, see test/runecore, test/wftg)",
+      "punch": {
+        "max_lowmid_boost_db": 0.0,
+        "max_low_shelf_boost_db": 1.5,
+        "harsh_max_db": 2.0,
+        "deesser_max_db": 3.0,
+        "dyn_attack_min_ms": 5.0,
+        "mud_scale": 0.75,
+        "loud_max_limiter_gr_db": 4.0,
+        "fizz_max_db": 2.0,
+        "mud_static_scale": 0.75,
+        "mud_min_hz": 200.0,
+        "low_punch_attack_max_db": 3.0,
+        "low_punch_duck_max_db": 2.5
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 1.0
+      }
+    },
+    "rock": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        0.0,
+        6.0,
+        6.0,
+        1.5,
+        0.0,
+        0.0,
+        1.5,
+        0.5,
+        -3.0,
+        -13.0
+      ],
+      "glue": {
+        "ratio": 1.5,
+        "attack_ms": 30,
+        "release_ms": 150,
+        "target_gr_db": 1.5,
+        "auto_release": true
+      },
+      "multiband": {
+        "xover_hz": [
+          120
+        ],
+        "low": {
+          "ratio": 1.5,
+          "max_gr_db": 1.5,
+          "attack_ms": 40,
+          "release_ms": 150,
+          "auto_release": true,
+          "det_ms": 20
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.7,
+          0.85
+        ],
+        "max_side_gain_db": 3.0,
+        "side_hpf_hz": 80
+      },
+      "saturation": {
+        "drive_db": 2.0,
+        "mix": 0.12
+      },
+      "display_name": "Rock",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md) | punch-preserving retune 2026-11-11 (tonal toward MIXEA refs, see test/runecore, test/wftg)",
+      "punch": {
+        "max_lowmid_boost_db": 0.0,
+        "max_low_shelf_boost_db": 1.5,
+        "harsh_max_db": 2.0,
+        "deesser_max_db": 3.0,
+        "dyn_attack_min_ms": 5.0,
+        "mud_scale": 0.75,
+        "loud_max_limiter_gr_db": 4.0,
+        "fizz_max_db": 2.0,
+        "mud_static_scale": 0.75,
+        "mud_min_hz": 200.0,
+        "low_punch_attack_max_db": 3.0,
+        "low_punch_duck_max_db": 2.5
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 1.5
+      }
+    },
+    "pop": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -9.5
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        4,
+        9,
+        7.5,
+        4.5,
+        2,
+        0,
+        -2.5,
+        -5,
+        -8.5,
+        -15
+      ],
+      "glue": {
+        "ratio": 1.7,
+        "attack_ms": 30,
+        "release_ms": 150,
+        "target_gr_db": 1.5
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.75,
+          0.88
+        ],
+        "max_side_gain_db": 3.0,
+        "side_hpf_hz": 120
+      },
+      "saturation": {
+        "drive_db": 1.5,
+        "mix": 0.15
+      },
+      "display_name": "Pop",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "hiphop_trap": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -9.5
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        9,
+        12,
+        9,
+        5,
+        2,
+        0,
+        -3,
+        -6,
+        -10,
+        -17
+      ],
+      "glue": {
+        "ratio": 2.0,
+        "attack_ms": 40,
+        "release_ms": 100,
+        "target_gr_db": 1.5
+      },
+      "multiband": {
+        "xover_hz": [
+          120
+        ],
+        "low": {
+          "ratio": 2.0,
+          "attack_ms": 50,
+          "max_gr_db": 2
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.88,
+          0.96
+        ],
+        "max_side_gain_db": 1.5,
+        "side_hpf_hz": 150
+      },
+      "saturation": {
+        "drive_db": 2.5,
+        "mix": 0.2,
+        "band": "low"
+      },
+      "display_name": "Hip-Hop/Trap",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "edm": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -8.5
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        7,
+        11,
+        8.5,
+        4.5,
+        2,
+        0,
+        -2.5,
+        -5,
+        -8.5,
+        -14
+      ],
+      "glue": {
+        "ratio": 2.5,
+        "attack_ms": 20,
+        "release_ms": 75,
+        "target_gr_db": 2.5
+      },
+      "multiband": {
+        "xover_hz": [
+          150
+        ],
+        "low": {
+          "ratio": 3.0,
+          "max_gr_db": 3
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 5
+      },
+      "stereo": {
+        "corr_window": [
+          0.8,
+          0.92
+        ],
+        "max_side_gain_db": 3.0,
+        "side_hpf_hz": 150
+      },
+      "saturation": {
+        "drive_db": 3.5,
+        "mix": 0.25
+      },
+      "display_name": "EDM",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "acoustic_folk": {
+      "lufs": {
+        "streaming_safe": -15,
+        "loud": -11.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        -2,
+        4,
+        6,
+        5,
+        2.5,
+        0,
+        -2.5,
+        -5.5,
+        -10,
+        -18
+      ],
+      "glue": {
+        "ratio": 1.5,
+        "attack_ms": 40,
+        "release_ms": 200,
+        "target_gr_db": 1.0
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 1,
+        "loud": 3
+      },
+      "stereo": {
+        "corr_window": [
+          0.75,
+          0.88
+        ],
+        "max_side_gain_db": 2.0,
+        "side_hpf_hz": 100
+      },
+      "saturation": {
+        "drive_db": 0.5,
+        "mix": 0.1
+      },
+      "display_name": "Acoustic/Folk",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "country": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        1,
+        7,
+        7,
+        4.5,
+        2,
+        0,
+        -2,
+        -4.5,
+        -9,
+        -17
+      ],
+      "glue": {
+        "ratio": 1.7,
+        "attack_ms": 30,
+        "release_ms": 150,
+        "target_gr_db": 1.5
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.75,
+          0.88
+        ],
+        "max_side_gain_db": 2.5,
+        "side_hpf_hz": 120
+      },
+      "saturation": {
+        "drive_db": 1.5,
+        "mix": 0.15
+      },
+      "display_name": "Country",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "rnb_soul": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        6,
+        10,
+        8,
+        4.5,
+        2,
+        0,
+        -3,
+        -6,
+        -10,
+        -17
+      ],
+      "glue": {
+        "ratio": 1.7,
+        "attack_ms": 30,
+        "release_ms": 175,
+        "target_gr_db": 1.5
+      },
+      "multiband": {
+        "xover_hz": [
+          120
+        ],
+        "low": {
+          "ratio": 2.0,
+          "max_gr_db": 2
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.82,
+          0.92
+        ],
+        "max_side_gain_db": 2.0,
+        "side_hpf_hz": 120
+      },
+      "saturation": {
+        "drive_db": 2,
+        "mix": 0.2
+      },
+      "display_name": "R&B/Soul",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "lofi": {
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -11.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        3,
+        8,
+        8,
+        5.5,
+        3,
+        0,
+        -3.5,
+        -8,
+        -14,
+        -26
+      ],
+      "glue": {
+        "ratio": 2.5,
+        "attack_ms": 15,
+        "release_ms": 150,
+        "target_gr_db": 3.0
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 1,
+        "loud": 3
+      },
+      "stereo": {
+        "corr_window": [
+          0.7,
+          0.9
+        ],
+        "max_side_gain_db": 2.0,
+        "side_hpf_hz": 120
+      },
+      "saturation": {
+        "drive_db": 4,
+        "mix": 0.3,
+        "style_lpf_hz": 13000
+      },
+      "display_name": "Lo-fi",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "orchestral_cinematic": {
+      "lufs": {
+        "streaming_safe": -16,
+        "loud": -13.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        1,
+        5,
+        6,
+        5,
+        3,
+        0,
+        -3,
+        -6,
+        -11,
+        -20
+      ],
+      "glue": {
+        "ratio": 1.3,
+        "attack_ms": 50,
+        "release_ms": 300,
+        "target_gr_db": 0.5
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 1,
+        "loud": 2
+      },
+      "stereo": {
+        "corr_window": [
+          0.55,
+          0.8
+        ],
+        "max_side_gain_db": 2.0,
+        "side_hpf_hz": 80
+      },
+      "saturation": {
+        "drive_db": 0,
+        "mix": 0.0
+      },
+      "display_name": "Orchestral/Cinematic",
+      "source": "research brief 2.4 (tonal curves HEURISTIC, see docs/research.md)"
+    },
+    "neutral": {
+      "display_name": "Neutral",
+      "source": "Master-Craft default (average of Pop/Rock/Country curves), HEURISTIC | punch-preserving retune 2026-11-11 (tonal toward MIXEA refs, see test/runecore, test/wftg)",
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        1.5,
+        6.5,
+        6.5,
+        3.0,
+        1.0,
+        0.0,
+        0.5,
+        -1.0,
+        -5.0,
+        -14.0
+      ],
+      "glue": {
+        "ratio": 1.5,
+        "attack_ms": 30,
+        "release_ms": 150,
+        "target_gr_db": 1.0,
+        "auto_release": true
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.7,
+          0.9
+        ],
+        "max_side_gain_db": 2.0,
+        "side_hpf_hz": 100
+      },
+      "saturation": {
+        "drive_db": 1.0,
+        "mix": 0.1
+      },
+      "punch": {
+        "max_lowmid_boost_db": 2.0,
+        "harsh_max_db": 2.5,
+        "deesser_max_db": 4.0,
+        "loud_max_limiter_gr_db": 5.0,
+        "fizz_max_db": 2.0,
+        "mud_static_scale": 0.75,
+        "mud_min_hz": 200.0,
+        "low_punch_attack_max_db": 3.0,
+        "low_punch_duck_max_db": 2.5
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 1.0
+      }
+    },
+    "alt_rock": {
+      "display_name": "Alt Rock",
+      "source": "v0.3 addition: guitar-driven alt/indie rock (mid-forward, vocal presence 2-4 kHz, controlled air). Curves are HEURISTIC starting points; calibrate with --calibrate on your own references.",
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.5
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        1.0,
+        6.0,
+        5.5,
+        2.5,
+        0.5,
+        0.0,
+        1.5,
+        1.0,
+        -2.5,
+        -12.5
+      ],
+      "glue": {
+        "ratio": 1.6,
+        "attack_ms": 30,
+        "release_ms": 160,
+        "target_gr_db": 1.5,
+        "auto_release": true
+      },
+      "multiband": {
+        "xover_hz": [
+          120,
+          2600
+        ],
+        "low": {
+          "ratio": 1.5,
+          "max_gr_db": 1.5,
+          "attack_ms": 40,
+          "release_ms": 150,
+          "auto_release": true,
+          "det_ms": 20
+        },
+        "high": {
+          "ratio": 1.4,
+          "max_gr_db": 1.2,
+          "attack_ms": 15,
+          "release_ms": 120,
+          "auto_release": true
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.7,
+          0.85
+        ],
+        "max_side_gain_db": 3.0,
+        "side_hpf_hz": 90
+      },
+      "saturation": {
+        "drive_db": 2.0,
+        "mix": 0.14
+      },
+      "punch": {
+        "max_lowmid_boost_db": 0.5,
+        "max_low_shelf_boost_db": 1.5,
+        "harsh_max_db": 2.2,
+        "deesser_max_db": 3.5,
+        "dyn_attack_min_ms": 5.0,
+        "mud_scale": 0.8,
+        "mud_static_scale": 0.8,
+        "mud_min_hz": 200.0,
+        "low_punch_attack_max_db": 3.0,
+        "low_punch_duck_max_db": 2.5,
+        "loud_max_limiter_gr_db": 4.0,
+        "fizz_max_db": 2.0
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 1.5
+      }
+    },
+    "metalcore_djent": {
+      "display_name": "Metalcore / Djent",
+      "source": "v0.3 addition: modern down-tuned metal (tight kick 50-100 Hz, scooped 250-500, presence 3-4 kHz, dark above 10 kHz). Curves are HEURISTIC; the low end is deliberately kept tight rather than loud.",
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -9.5
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        0.5,
+        6.5,
+        6.0,
+        0.0,
+        -1.5,
+        0.0,
+        2.0,
+        1.0,
+        -3.5,
+        -14.0
+      ],
+      "glue": {
+        "ratio": 1.5,
+        "attack_ms": 25,
+        "release_ms": 140,
+        "target_gr_db": 1.5,
+        "auto_release": true
+      },
+      "multiband": {
+        "xover_hz": [
+          100,
+          2200
+        ],
+        "low": {
+          "ratio": 2.0,
+          "max_gr_db": 2.0,
+          "attack_ms": 35,
+          "release_ms": 140,
+          "auto_release": true,
+          "det_ms": 20
+        },
+        "high": {
+          "ratio": 1.5,
+          "max_gr_db": 1.2,
+          "attack_ms": 12,
+          "release_ms": 100,
+          "auto_release": true
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.7,
+          0.85
+        ],
+        "max_side_gain_db": 3.0,
+        "side_hpf_hz": 70
+      },
+      "saturation": {
+        "drive_db": 1.5,
+        "mix": 0.1
+      },
+      "punch": {
+        "max_lowmid_boost_db": 0.0,
+        "max_low_shelf_boost_db": 1.5,
+        "harsh_max_db": 2.0,
+        "deesser_max_db": 3.0,
+        "dyn_attack_min_ms": 5.0,
+        "mud_scale": 0.7,
+        "mud_static_scale": 0.7,
+        "mud_min_hz": 220.0,
+        "low_punch_attack_max_db": 3.2,
+        "low_punch_duck_max_db": 2.5,
+        "loud_max_limiter_gr_db": 3.5,
+        "fizz_max_db": 2.0
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 2.0
+      }
+    },
+    "pop_punk": {
+      "display_name": "Pop-Punk",
+      "source": "v0.3 addition: fast, bright guitars with a strong 2-4 kHz presence and controlled low end. Curves are HEURISTIC.",
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        1.0,
+        5.5,
+        5.0,
+        2.0,
+        0.5,
+        0.0,
+        2.0,
+        1.5,
+        -2.0,
+        -11.0
+      ],
+      "glue": {
+        "ratio": 1.7,
+        "attack_ms": 25,
+        "release_ms": 130,
+        "target_gr_db": 1.5
+      },
+      "multiband": {
+        "xover_hz": [
+          120
+        ],
+        "low": {
+          "ratio": 1.6,
+          "max_gr_db": 1.2,
+          "attack_ms": 35,
+          "release_ms": 140
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.72,
+          0.86
+        ],
+        "max_side_gain_db": 3.0,
+        "side_hpf_hz": 100
+      },
+      "saturation": {
+        "drive_db": 2.0,
+        "mix": 0.15
+      },
+      "punch": {
+        "max_lowmid_boost_db": 0.5,
+        "max_low_shelf_boost_db": 1.5,
+        "harsh_max_db": 2.2,
+        "deesser_max_db": 3.5,
+        "dyn_attack_min_ms": 4.0,
+        "mud_scale": 0.8,
+        "mud_static_scale": 0.8,
+        "mud_min_hz": 200.0,
+        "low_punch_attack_max_db": 3.0,
+        "low_punch_duck_max_db": 2.5,
+        "loud_max_limiter_gr_db": 4.0,
+        "fizz_max_db": 2.0
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 1.5
+      }
+    },
+    "synthwave_retro": {
+      "display_name": "Synthwave / Retro",
+      "source": "v0.3 addition: 80s-styled synth music (deep but tight sub, wide sides, silky top, no harsh air). Curves are HEURISTIC.",
+      "lufs": {
+        "streaming_safe": -14,
+        "loud": -10.0
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        3.0,
+        8.0,
+        6.0,
+        2.5,
+        1.0,
+        0.0,
+        0.5,
+        0.0,
+        -2.0,
+        -9.0
+      ],
+      "glue": {
+        "ratio": 1.8,
+        "attack_ms": 25,
+        "release_ms": 140,
+        "target_gr_db": 1.5,
+        "auto_release": true
+      },
+      "multiband": {
+        "xover_hz": [
+          110
+        ],
+        "low": {
+          "ratio": 2.0,
+          "max_gr_db": 2.0,
+          "attack_ms": 35,
+          "release_ms": 160,
+          "auto_release": true,
+          "det_ms": 20
+        }
+      },
+      "limiter_max_gr_db": {
+        "streaming_safe": 2,
+        "loud": 4
+      },
+      "stereo": {
+        "corr_window": [
+          0.6,
+          0.8
+        ],
+        "max_side_gain_db": 4.0,
+        "side_hpf_hz": 70
+      },
+      "saturation": {
+        "drive_db": 2.5,
+        "mix": 0.18
+      },
+      "punch": {
+        "max_lowmid_boost_db": 1.0,
+        "max_low_shelf_boost_db": 2.0,
+        "harsh_max_db": 2.5,
+        "deesser_max_db": 4.0,
+        "dyn_attack_min_ms": 4.0,
+        "mud_scale": 0.85,
+        "mud_static_scale": 0.9,
+        "mud_min_hz": 180.0,
+        "low_punch_attack_max_db": 3.0,
+        "low_punch_duck_max_db": 3.0,
+        "loud_max_limiter_gr_db": 4.5,
+        "fizz_max_db": 2.5
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 1.2
+      }
+    },
+    "game_ost": {
+      "display_name": "Game / Instrumental Score",
+      "source": "v0.3 addition: game tracks and instrumental hybrids (orchestral + electronic), loop/level-safe and dynamic rather than loud: deep floor, restrained top, gentle dynamics. Curves are HEURISTIC.",
+      "lufs": {
+        "streaming_safe": -16,
+        "loud": -13.5
+      },
+      "tp_dbtp": -1.0,
+      "tonal_db": [
+        2.0,
+        5.0,
+        4.5,
+        3.0,
+        1.5,
+        0.0,
+        -1.0,
+        -1.5,
+        -4.0,
+        -13.0
+      ],
+      "glue": {
+        "ratio": 1.3,
+        "attack_ms": 45,
+        "release_ms": 250,
+        "target_gr_db": 0.8
+      },
+      "multiband": null,
+      "limiter_max_gr_db": {
+        "streaming_safe": 1,
+        "loud": 2
+      },
+      "stereo": {
+        "corr_window": [
+          0.55,
+          0.8
+        ],
+        "max_side_gain_db": 2.5,
+        "side_hpf_hz": 80
+      },
+      "saturation": {
+        "drive_db": 0.5,
+        "mix": 0.08
+      },
+      "punch": {
+        "max_lowmid_boost_db": 2.0,
+        "max_low_shelf_boost_db": 2.0,
+        "harsh_max_db": 2.5,
+        "deesser_max_db": 4.0,
+        "dyn_attack_min_ms": 6.0,
+        "mud_scale": 0.9,
+        "mud_static_scale": 0.9,
+        "mud_min_hz": 170.0,
+        "low_punch_attack_max_db": 1.5,
+        "low_punch_duck_max_db": 1.0,
+        "loud_max_limiter_gr_db": 2.0,
+        "fizz_max_db": 2.0
+      },
+      "clipper_db": {
+        "streaming_safe": 0.0,
+        "loud": 0.0
+      }
+    }
+  },
+  "detectors": {
+    "mud": {
+      "band_hz": [
+        200,
+        500
+      ],
+      "flag_excess_db": 2.0,
+      "severe_db": 4.0,
+      "max_cut_db": 4.0,
+      "q": [
+        0.8,
+        1.2
+      ]
+    },
+    "harsh": {
+      "band_hz": [
+        2000,
+        5000
+      ],
+      "frame_over_median_db": 4.0,
+      "flag_frame_fraction": 0.1,
+      "max_cut_db": 3.0,
+      "attack_ms": 4,
+      "release_ms": 80
+    },
+    "fizz": {
+      "band_hz": [
+        8000,
+        16000
+      ],
+      "flatness_flag": 0.5,
+      "frame_over_median_db": 4.0,
+      "max_cut_db": 3.0
+    },
+    "resonance": {
+      "search_hz": [
+        2000,
+        8000
+      ],
+      "peak_over_db": 3.0,
+      "persistence": 0.5,
+      "q": [
+        4,
+        8
+      ],
+      "cut_db": [
+        -2,
+        -4
+      ],
+      "max_notches": 4
+    },
+    "hiss": {
+      "band_hz": [
+        4000,
+        16000
+      ],
+      "floor_flag_dbfs_per_third_oct": -75,
+      "flatness_flag": 0.6,
+      "prop_decrease": [
+        0.3,
+        0.5
+      ]
+    },
+    "cutoff": {
+      "ref_band_hz": [
+        10000,
+        14000
+      ],
+      "drop_db": 30,
+      "min_run_hz": 1000,
+      "lossy_below_hz": 17500
+    },
+    "spectral_holes": {
+      "depth_db": 40,
+      "flag_ratio": 0.03
+    },
+    "pre_echo": {
+      "pre_window_ms": [
+        5,
+        20
+      ],
+      "ratio_db": 6,
+      "flag_onset_fraction": 0.2
+    },
+    "clipping": {
+      "abs_threshold": 0.999,
+      "min_run": 3,
+      "flag_runs_per_s": 1.0,
+      "flag_max_run": 10,
+      "tp_flag_dbtp": -1.0
+    },
+    "stereo": {
+      "narrow_sm_db": -14,
+      "anti_phase_corr": 0.0,
+      "polarity_flip_corr": -0.7,
+      "mono_loss_lu": 3.0,
+      "bass_mono_corr": 0.9,
+      "bass_band_hz": 150
+    },
+    "low_end": {
+      "deficit_flag_db": 3.0,
+      "max_shelf_db": 3.0,
+      "shelf_hz": [
+        80,
+        100
+      ],
+      "hpf_hz": 22
+    }
+  }
+}

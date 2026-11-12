@@ -1,0 +1,65 @@
+//! Opt-in renderer captures for repeatable visual QA, without desktop input automation.
+use eframe::egui;
+use image::ImageEncoder;
+use std::{path::PathBuf, sync::mpsc, time::Duration};
+
+pub(super) struct UiCapture {
+    destination: Option<PathBuf>,
+    settled_frames: usize,
+    receiver: Option<mpsc::Receiver<Result<(), String>>>,
+}
+impl UiCapture {
+    pub fn new(destination: PathBuf) -> Self {
+        Self {
+            destination: Some(destination),
+            settled_frames: 0,
+            receiver: None,
+        }
+    }
+    pub fn update(&mut self, ctx: &egui::Context, ready: bool) -> Option<Result<(), String>> {
+        if let Some(receiver) = &self.receiver {
+            return match receiver.try_recv() {
+                Ok(result) => Some(result),
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    Some(Err("Renderer capture callback disconnected".into()))
+                }
+                Err(mpsc::TryRecvError::Empty) => None,
+            };
+        }
+        self.settled_frames = if ready { self.settled_frames + 1 } else { 0 };
+        ctx.request_repaint_after(Duration::from_millis(40));
+        if self.settled_frames < 5 {
+            return None;
+        }
+        let destination = self.destination.take()?;
+        let (sender, receiver) = mpsc::channel();
+        self.receiver = Some(receiver);
+        let repaint = ctx.clone();
+        ctx.request_screenshot(move |image| {
+            let result = save_png(&destination, &image)
+                .map_err(|error| format!("UI capture {}: {error:#}", destination.display()));
+            let _ = sender.send(result);
+            repaint.request_repaint();
+        });
+        None
+    }
+}
+
+fn save_png(destination: &std::path::Path, image: &egui::ColorImage) -> anyhow::Result<()> {
+    let file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(destination)?;
+    let bytes: Vec<_> = image
+        .pixels
+        .iter()
+        .flat_map(|pixel| pixel.to_array())
+        .collect();
+    image::codecs::png::PngEncoder::new(file).write_image(
+        &bytes,
+        image.width() as u32,
+        image.height() as u32,
+        image::ExtendedColorType::Rgba8,
+    )?;
+    Ok(())
+}
