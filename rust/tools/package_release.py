@@ -11,9 +11,11 @@ from release_packaging.public_source import copy_public_source, GUIDES, DEMO_FIL
 
 def dependency_notices(project, destination):
     result = subprocess.run(
-        ["cargo", "metadata", "--offline", "--locked", "--format-version", "1"],
-        cwd=project, capture_output=True, text=True, check=True,
+        ["cargo", "metadata", "--locked", "--format-version", "1"],
+        cwd=project, capture_output=True, text=True,
     )
+    if result.returncode:
+        raise RuntimeError(f"Locked Cargo license inventory failed:\n{result.stderr.strip()}")
     packages = json.loads(result.stdout)["packages"]
     records = []
     for package in sorted(packages, key=lambda item: (item["name"], item["version"])):

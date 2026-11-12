@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix installer packaging on fresh runners by allowing locked Cargo metadata to fetch platform packages needed for the license inventory; include Cargo's error details on failure.
+
 ## 0.4.2 — 2026-11-12
 
 - Add MIT licensing for original project code/docs/artwork and an explicit no-ownership/no-royalty audio-output policy.

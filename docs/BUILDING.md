@@ -28,6 +28,8 @@ This creates a portable ZIP/folder, a clean GitHub source ZIP/folder, and a Wind
 
 The installer is per-user, uses HKCU registration and does not require administrator rights. Program-file removal is generated from its actual payload. It does not recursively delete the installation root or the user's settings, exports, custom profiles or Examples folder. See [release verification](RELEASING.md).
 
+The license inventory resolves locked Cargo metadata for all platforms, including packages a Windows build may not have cached. First-time packaging therefore needs network access. When packaging the original `v0.4.2` tag, prefetch these packages with `cargo fetch --locked --manifest-path rust/Cargo.toml`; current tooling fetches missing metadata automatically and reports its errors.
+
 FFmpeg is not bundled or silently installed. It is optional at application runtime for compressed formats/resampling and is needed by the separate export-validation tool:
 
 ```powershell
