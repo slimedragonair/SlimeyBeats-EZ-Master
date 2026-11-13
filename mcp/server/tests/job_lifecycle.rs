@@ -16,6 +16,8 @@ fn engine(dir: &std::path::Path) -> Arc<Engine> {
         max_decoded_mib: 8,
         decode_timeout_seconds: 5,
         desktop_exe: None,
+        studio_data: None,
+        plugin_root: vec![],
         print_config: false,
     })
     .unwrap()

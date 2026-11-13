@@ -5,6 +5,7 @@ use std::{collections::BTreeSet, sync::Arc};
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub enum StemKind {
     Vocals,
     Instrumental,
@@ -63,6 +64,16 @@ impl StemSet {
             .find(|s| s.kind == kind)
             .context("This stem is not present in the current set")
     }
+    pub fn replace(&self, kind: StemKind, audio: Arc<Audio>) -> Result<Self> {
+        self.track(kind)?;
+        let mut tracks = self.tracks.clone();
+        tracks
+            .iter_mut()
+            .find(|s| s.kind == kind)
+            .expect("validated stem kind")
+            .audio = audio;
+        Self::new(tracks)
+    }
     pub fn defaults(&self) -> MixSettings {
         MixSettings {
             tracks: self
@@ -83,6 +94,7 @@ impl StemSet {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub struct StemControl {
     pub kind: StemKind,
     pub gain_db: f64,
@@ -93,6 +105,7 @@ pub struct StemControl {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub struct MixSettings {
     pub tracks: Vec<StemControl>,
     pub output_gain_db: f64,
@@ -236,24 +249,23 @@ pub fn consistent(original: &Audio, mut estimates: Vec<Stem>, two_stems: bool) -
         ]);
     }
     let set = StemSet::new(estimates.clone())?;
-    for kind in [
-        StemKind::Vocals,
-        StemKind::Drums,
-        StemKind::Bass,
-        StemKind::Other,
-    ] {
+    for kind in [StemKind::Vocals, StemKind::Drums, StemKind::Bass] {
         set.track(kind)?;
     }
+    ensure!(
+        !set.tracks.iter().any(|s| s.kind == StemKind::Instrumental),
+        "Four-stem mode expects vocals, drums and bass estimates"
+    );
     let mut residual = original.clone();
     for stem in set.tracks.iter().filter(|s| s.kind != StemKind::Other) {
         for (sample, &value) in residual.samples.iter_mut().zip(&stem.audio.samples) {
             *sample -= value;
         }
     }
-    estimates
-        .iter_mut()
-        .find(|s| s.kind == StemKind::Other)
-        .expect("validated other")
-        .audio = Arc::new(residual);
+    estimates.retain(|s| s.kind != StemKind::Other);
+    estimates.push(Stem {
+        kind: StemKind::Other,
+        audio: Arc::new(residual),
+    });
     StemSet::new(estimates)
 }

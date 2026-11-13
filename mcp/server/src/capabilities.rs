@@ -19,8 +19,9 @@ pub fn describe(engine: &Engine) -> Value {
         "libraries":engine.policy.inputs.iter().enumerate().map(|(index,path)|json!({"index":index,"name":path.file_name().unwrap_or_default().to_string_lossy()})).collect::<Vec<_>>(),
         "max_decoded_input_mib":engine.max_decoded_bytes / (1024*1024),"decode_timeout_seconds":engine.decode_timeout.as_secs(),
         "concurrent_audio_jobs":1,"desktop_configured":engine.desktop.is_some(),
+        "studio":{"voice_cleanup":true,"spectral_repair":true,"stem_mixing":true,"stem_engine":engine.stem_runtime.status(),"vst3_hosting":engine.plugin_host.is_some()&&!engine.plugin_roots.is_empty(),"plugin_libraries":engine.plugin_roots.iter().enumerate().map(|(index,path)|json!({"index":index,"name":path.file_name().unwrap_or_default().to_string_lossy()})).collect::<Vec<_>>(),"start":"get_help with topic stems/voice/repair/studio_export/plugins; get_studio_session lists current IDs"},
         "privacy":"Local stdio only. This companion does not upload audio. Your AI client may send tool requests, measurements and filenames to its model provider. No audio is sent through tool results.",
         "memory":"The input limit is decoded PCM, not total process memory. Mastering holds several working buffers. One source and one master per session; longer tracks depend on RAM.",
         "workflow":["get_help for complete examples and units","list_audio_files","load_audio and poll for source_id","analyze_audio","master_preview and poll for preview_id","optional suggest_eq then apply_eq",audition,"export_audio only when requested"],
-        "help_topics":["quick_start","mastering","eq","export","troubleshooting","privacy"]})
+        "help_topics":["quick_start","mastering","eq","export","troubleshooting","privacy","stems","voice","repair","studio_export","plugins"]})
 }

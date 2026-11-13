@@ -10,6 +10,8 @@ fn closing_the_connection_waits_for_the_cancelled_worker_checkpoint() {
         max_decoded_mib: 8,
         decode_timeout_seconds: 5,
         desktop_exe: None,
+        studio_data: None,
+        plugin_root: vec![],
         print_config: false,
     })
     .unwrap();

@@ -237,3 +237,32 @@ fn spectrogram_is_bounded_and_places_a_known_tone_at_the_correct_frequency() {
     assert!((image.frequencies_hz[peak] / 1500.).log2().abs() < 0.12);
     assert!(image.levels_dbfs.iter().all(|v| v.is_finite()));
 }
+
+#[test]
+fn full_band_full_file_repair_covers_dc_nyquist_and_short_boundaries() {
+    let input = Audio::new(
+        (0..127)
+            .map(|i| 0.125 + if i % 2 == 0 { 0.1 } else { -0.1 })
+            .collect(),
+        48000,
+        1,
+    )
+    .unwrap();
+    let selection = RepairSelection {
+        start_seconds: 0.,
+        end_seconds: input.duration(),
+        low_hz: 0.,
+        high_hz: 24000.,
+        reduction_db: -6.,
+        mode: RepairMode::Attenuate,
+    };
+    let output = spectral_repair::render(&input, &selection, &|| false).unwrap();
+    let gain = 10_f32.powf(-6. / 20.);
+    assert!(
+        input
+            .samples
+            .iter()
+            .zip(&output.samples)
+            .all(|(&a, &b)| (a * gain - b).abs() < 1e-6)
+    );
+}

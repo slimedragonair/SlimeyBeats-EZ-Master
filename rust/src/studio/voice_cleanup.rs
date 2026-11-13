@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub struct NoiseRegion {
     pub start_seconds: f64,
     pub end_seconds: f64,
@@ -20,6 +21,7 @@ pub struct NoiseRegion {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub struct VoiceSettings {
     pub highpass_hz: f64,
     pub noise_reduction: f64,

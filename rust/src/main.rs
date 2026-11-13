@@ -11,8 +11,12 @@ struct Arguments {
     files: Vec<PathBuf>,
     #[arg(long)]
     auto_master: bool,
-    #[arg(long,default_value="overview",value_parser=["overview","eq","report"])]
+    #[arg(long,default_value="overview",value_parser=["overview","eq","report","stems","voice","repair","plugins"])]
     view: String,
+    #[arg(long)]
+    studio_data: Option<PathBuf>,
+    #[arg(long,hide=true,value_parser=["separate","voice","spectrogram","repair"])]
+    studio_action: Option<String>,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
     #[arg(long, hide = true, requires = "capture_ui")]
@@ -50,6 +54,7 @@ fn main() -> eframe::Result {
     } else {
         [1480., 940.]
     };
+    let studio_source = files.first().cloned();
     eframe::run_native(
         mastercraft::branding::APP_NAME,
         eframe::NativeOptions {
@@ -70,8 +75,30 @@ fn main() -> eframe::Result {
             app.tab = match args.view.as_str() {
                 "eq" => 1,
                 "report" => 2,
+                "stems" | "voice" | "repair" | "plugins" => 3,
                 _ => 0,
             };
+            if let Some(base) = args.studio_data {
+                app.studio.runtime = mastercraft::studio_native::runtime::RuntimePaths { base };
+            }
+            if app.tab == 3 {
+                use mastercraft::gui::studio::state::{AutoAction, Page};
+                app.studio.page = match args.view.as_str() {
+                    "voice" => Page::Voice,
+                    "repair" => Page::Repair,
+                    "plugins" => Page::Plugins,
+                    _ => Page::Stems,
+                };
+                app.studio.auto_action = args.studio_action.map(|action| match action.as_str() {
+                    "voice" => AutoAction::Voice,
+                    "spectrogram" => AutoAction::Spectrogram,
+                    "repair" => AutoAction::Repair,
+                    _ => AutoAction::Separate,
+                });
+                if let Some(path) = studio_source {
+                    app.studio.load(path, &cc.egui_ctx);
+                }
+            }
             if args.capture_save_settings {
                 app.save_settings();
             }

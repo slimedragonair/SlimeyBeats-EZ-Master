@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Companion {
-    engine: Arc<Engine>,
+    pub(crate) engine: Arc<Engine>,
     tool_router: ToolRouter<Self>,
 }
 
@@ -87,7 +87,7 @@ fn enabled() -> bool {
 }
 
 impl Companion {
-    fn response(&self, value: anyhow::Result<Value>) -> Result<Json<Value>, String> {
+    pub(crate) fn response(&self, value: anyhow::Result<Value>) -> Result<Json<Value>, String> {
         value
             .map(Json)
             .map_err(|e| self.engine.policy.redact(&format!("{e:#}")))
@@ -99,7 +99,10 @@ impl Companion {
     pub fn new(engine: Arc<Engine>) -> Self {
         Self {
             engine,
-            tool_router: Self::tool_router(),
+            tool_router: Self::tool_router()
+                + Self::studio_router()
+                + Self::plugin_router()
+                + Self::stem_router(),
         }
     }
 

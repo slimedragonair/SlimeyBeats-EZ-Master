@@ -49,3 +49,4 @@ web/dist/
 web/site/pkg/
 web/site/assets/
 mcp/server/target/
+plugins/host/target/

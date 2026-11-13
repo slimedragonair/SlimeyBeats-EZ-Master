@@ -64,6 +64,7 @@ pub enum Change {
     Source(Arc<Input>),
     Reference(Option<Arc<Reference>>),
     Master(Arc<Master>),
+    Studio(crate::studio_state::StudioState),
 }
 pub struct Product {
     pub result: Value,
@@ -100,7 +101,7 @@ impl Engine {
             }
         }
         store.sequence += 1;
-        let id = format!("job-{}", store.sequence);
+        let id = format!("job-{}-{}", self.connection_id, store.sequence);
         let cancel = Arc::new(AtomicBool::new(false));
         let generation = store.generation;
         let context = ContextData {
@@ -158,6 +159,7 @@ impl Engine {
                                     reference: None,
                                     master: None,
                                     settings,
+                                    studio: Default::default(),
                                 };
                             }
                             Change::Reference(reference) => {
@@ -173,6 +175,7 @@ impl Engine {
                                 store.session.settings = master.settings.clone();
                                 store.session.master = Some(master);
                             }
+                            Change::Studio(studio) => store.session.studio = studio,
                         }
                     }
                     ("completed", Some(product.result), None)

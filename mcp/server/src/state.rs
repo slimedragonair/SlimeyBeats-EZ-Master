@@ -39,6 +39,7 @@ pub struct Snapshot {
     pub reference: Option<Arc<Reference>>,
     pub master: Option<Arc<Master>>,
     pub settings: Settings,
+    pub studio: crate::studio_state::StudioState,
 }
 impl Snapshot {
     pub fn source(&self, id: &str) -> Result<Arc<Input>> {
@@ -77,6 +78,10 @@ pub struct Engine {
     pub decode_timeout: Duration,
     pub cache: TempDir,
     pub desktop: Option<PathBuf>,
+    pub stem_runtime: mastercraft::studio_native::runtime::RuntimePaths,
+    pub connection_id: String,
+    pub plugin_host: Option<mastercraft::studio_native::plugins::VstHost>,
+    pub plugin_roots: Vec<PathBuf>,
     pub(crate) store: Mutex<Store>,
 }
 
@@ -109,6 +114,22 @@ impl Engine {
             out_dir: policy.output.clone(),
             ..Default::default()
         };
+        let connection_id = cache
+            .path()
+            .file_name()
+            .expect("private cache name")
+            .to_string_lossy()
+            .trim_start_matches(".slimeybeats-mcp-")
+            .to_string();
+        let plugin_roots = args
+            .plugin_root
+            .iter()
+            .map(|path| {
+                let path = path.canonicalize()?;
+                ensure!(path.is_dir(), "Plugin roots must be directories");
+                Ok(path)
+            })
+            .collect::<Result<Vec<_>>>()?;
         Ok(Arc::new(Self {
             max_decoded_bytes: (args.max_decoded_mib as usize)
                 .checked_mul(1024 * 1024)
@@ -117,12 +138,25 @@ impl Engine {
             policy,
             cache,
             desktop,
+            stem_runtime: args
+                .studio_data
+                .as_ref()
+                .map(|base| mastercraft::studio_native::runtime::RuntimePaths {
+                    base: std::path::absolute(base).expect("absolute configured cache path"),
+                })
+                .unwrap_or_else(
+                    mastercraft::studio_native::runtime::RuntimePaths::default_location,
+                ),
+            connection_id,
+            plugin_host: mastercraft::studio_native::plugins::VstHost::find(),
+            plugin_roots,
             store: Mutex::new(Store {
                 session: Snapshot {
                     source: None,
                     reference: None,
                     master: None,
                     settings,
+                    studio: Default::default(),
                 },
                 generation: 0,
                 sequence: 0,
@@ -145,7 +179,7 @@ impl Engine {
         let source = s.source.as_ref().map(|source| json!({"source_id":source.id,"file":self.locator(&source.source.path),"duration_seconds":source.audio.duration(),"sample_rate":source.audio.sample_rate,"channels":source.audio.channels}));
         let master = s.master.as_ref().map(|master| Ok::<_,anyhow::Error>(json!({"preview_id":master.id,"relative_preview_path":self.policy.relative_output(master.file.as_ref())?,"measurements":master.preview.report.output.metrics,"settings":public_settings(&master.settings),"target_lufs":master.preview.report.target_lufs}))).transpose()?;
         Ok(
-            json!({"source":source,"reference_loaded":s.reference.is_some(),"master":master,"active_job_id":store.active.as_ref().map(|j| &j.id),"settings":public_settings(&s.settings)}),
+            json!({"connection_id":self.connection_id,"source":source,"reference_loaded":s.reference.is_some(),"master":master,"active_job_id":store.active.as_ref().map(|j| &j.id),"settings":public_settings(&s.settings),"studio":s.studio.summary(self,s)?}),
         )
     }
 
@@ -178,6 +212,7 @@ impl Engine {
             reference: None,
             master: None,
             settings,
+            studio: Default::default(),
         };
         Ok(json!({"cleared":true,"active_job_cancellation_requested":store.active.is_some()}))
     }

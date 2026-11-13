@@ -43,7 +43,7 @@ def verify(server, fixture, codecs):
         client = Client(command)
         try:
             tools = client.request("tools/list", {})["result"]["tools"]
-            assert len(tools) == 16, len(tools)
+            assert len(tools) >= 16, len(tools)
             assert all("inputSchema" in tool and "annotations" in tool for tool in tools)
             caps = client.call("get_capabilities")
             assert caps["concurrent_audio_jobs"] == 1

@@ -15,6 +15,11 @@ pub enum Topic {
     Export,
     Troubleshooting,
     Privacy,
+    Stems,
+    Voice,
+    Repair,
+    StudioExport,
+    Plugins,
 }
 
 #[derive(Deserialize, JsonSchema)]
@@ -26,6 +31,11 @@ pub struct HelpRequest {
 
 pub fn get(topic: Topic) -> Value {
     match topic {
+        Topic::Stems => crate::studio_help::get("stems"),
+        Topic::Voice => crate::studio_help::get("voice"),
+        Topic::Repair => crate::studio_help::get("repair"),
+        Topic::StudioExport => crate::studio_help::get("studio_export"),
+        Topic::Plugins => crate::studio_help::get("plugins"),
         Topic::QuickStart => json!({
             "purpose":"Analyze and master local mono/stereo music, let the user audition/refine it in the desktop app, then export explicitly. No prior SlimeyBeats knowledge is required.",
             "steps":[

@@ -8,6 +8,7 @@ const EDGE_FADE_SECONDS: f64 = 0.02;
 
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub enum RepairMode {
     #[default]
     Attenuate,
@@ -16,6 +17,7 @@ pub enum RepairMode {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
 pub struct RepairSelection {
     pub start_seconds: f64,
     pub end_seconds: f64,
@@ -122,9 +124,17 @@ pub fn render(
             if frequency < selection.low_hz || frequency > selection.high_hz {
                 continue;
             }
-            let edge = ((frequency - selection.low_hz) / feather)
-                .min((selection.high_hz - frequency) / feather)
-                .clamp(0., 1.) as f32;
+            let low_edge = if selection.low_hz == 0. {
+                1.
+            } else {
+                (frequency - selection.low_hz) / feather
+            };
+            let high_edge = if selection.high_hz == input.sample_rate as f64 / 2. {
+                1.
+            } else {
+                (selection.high_hz - frequency) / feather
+            };
+            let edge = low_edge.min(high_edge).clamp(0., 1.) as f32;
             let target = if selection.mode == RepairMode::Attenuate {
                 gain
             } else {
@@ -144,9 +154,17 @@ pub fn render(
         } else if end - start <= 2 {
             1.
         } else {
-            let edge = ((frame - start) as f32 / fade as f32)
-                .min((end - 1 - frame) as f32 / fade as f32)
-                .clamp(0., 1.);
+            let left = if start == 0 {
+                1.
+            } else {
+                (frame - start) as f32 / fade as f32
+            };
+            let right = if end == input.frames() {
+                1.
+            } else {
+                (end - 1 - frame) as f32 / fade as f32
+            };
+            let edge = left.min(right).clamp(0., 1.);
             0.5 - 0.5 * (std::f32::consts::PI * edge).cos()
         };
         for ch in 0..input.channels {

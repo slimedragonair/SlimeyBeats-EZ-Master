@@ -24,7 +24,8 @@ pub(super) fn reduce(
     let mut centers = if region.is_some() {
         ensure!(
             end - first >= FFT_SIZE,
-            "Noise-only selection must be at least one analysis window (about 43 ms at 48 kHz)"
+            "Noise-only selection must be at least {:.0} ms at this sample rate",
+            1000. * FFT_SIZE as f64 / input.sample_rate as f64
         );
         (first + FFT_SIZE / 2..=end - FFT_SIZE / 2)
             .step_by(step)

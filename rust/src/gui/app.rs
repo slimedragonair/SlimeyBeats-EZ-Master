@@ -32,6 +32,7 @@ pub(super) enum JobKind {
     Suggest,
 }
 pub struct MasterCraftApp {
+    pub studio: super::studio::Studio,
     pub brand: super::brand_art::BrandArt,
     pub settings: Settings,
     pub root: PathBuf,
@@ -95,7 +96,9 @@ impl MasterCraftApp {
             settings.out_dir = root.join("output");
         }
         let (tx, rx) = mpsc::channel();
+        let studio = super::studio::Studio::new(settings.out_dir.clone());
         let mut app = Self {
+            studio,
             brand: super::brand_art::BrandArt::new(&cc.egui_ctx),
             settings,
             root,

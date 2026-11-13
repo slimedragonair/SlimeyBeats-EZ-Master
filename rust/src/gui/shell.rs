@@ -11,7 +11,8 @@ impl eframe::App for MasterCraftApp {
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
         self.poll();
         let ctx = ui.ctx().clone();
-        if !self.busy {
+        self.studio.poll(&ctx);
+        if !self.busy && !self.studio.busy() {
             let files = ctx.input(|i| {
                 i.raw
                     .dropped_files
@@ -20,14 +21,23 @@ impl eframe::App for MasterCraftApp {
                     .collect::<Vec<_>>()
             });
             if !files.is_empty() {
-                self.add_paths(files);
+                if self.tab == 3 {
+                    if let Some(path) = files.into_iter().next() {
+                        self.studio.load(path, &ctx);
+                    }
+                } else {
+                    self.add_paths(files);
+                }
             }
         }
-        if ctx.input(|i| i.key_pressed(egui::Key::Space))
-            && !ctx.egui_wants_keyboard_input()
-            && self.current().is_some()
-        {
-            self.player.toggle();
+        if ctx.input(|i| i.key_pressed(egui::Key::Space)) && !ctx.egui_wants_keyboard_input() {
+            if self.tab == 3 {
+                if self.studio.current.is_some() {
+                    self.studio.player.toggle();
+                }
+            } else if self.current().is_some() {
+                self.player.toggle();
+            }
         }
         let root = ui.available_rect_before_wrap();
         ui.painter().rect_filled(root, 0., theme::CANVAS);
@@ -42,9 +52,9 @@ impl eframe::App for MasterCraftApp {
             .max_size(queue_max)
             .resizable(true)
             .show(ui, |ui| {
-                egui::Frame::new()
-                    .inner_margin(12)
-                    .show(ui, |ui| super::queue_panel::show(self, ui));
+                egui::Frame::new().inner_margin(12).show(ui, |ui| {
+                    ui.add_enabled_ui(!self.studio.busy(), |ui| super::queue_panel::show(self, ui));
+                });
             })
             .response
             .rect;
@@ -55,9 +65,17 @@ impl eframe::App for MasterCraftApp {
             .max_size(settings_max)
             .resizable(true)
             .show(ui, |ui| {
-                egui::Frame::new()
-                    .inner_margin(12)
-                    .show(ui, |ui| settings_panel::show(self, ui, &ctx));
+                egui::Frame::new().inner_margin(12).show(ui, |ui| {
+                    if self.tab == 3 {
+                        let selected = self
+                            .selected
+                            .and_then(|i| self.tracks.get(i))
+                            .map(|t| t.path.clone());
+                        super::studio::controls::show(&mut self.studio, ui, selected, &ctx);
+                    } else {
+                        settings_panel::show(self, ui, &ctx);
+                    }
+                });
             })
             .response
             .rect;
@@ -96,12 +114,24 @@ impl eframe::App for MasterCraftApp {
             .paint_crest(&ornament, pos2(root.center().x, root.top() + 32.), 180.);
         self.brand.paint_crest(&ornament, footer.center(), 144.);
         self.sync_live_eq(&ctx);
-        let ready = !self.busy && !self.eq_dirty;
+        let ready = !self.busy && !self.eq_dirty && !self.studio.busy();
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {
-                error: self.error.clone(),
-                preview_ready: self.current().is_some(),
-                playback_ready: self.player.duration > 0.,
+                error: if self.tab == 3 {
+                    self.studio.error.clone()
+                } else {
+                    self.error.clone()
+                },
+                preview_ready: if self.tab == 3 {
+                    self.studio.current.is_some()
+                } else {
+                    self.current().is_some()
+                },
+                playback_ready: if self.tab == 3 {
+                    self.studio.player.duration > 0.
+                } else {
+                    self.player.duration > 0.
+                },
             };
             let result = self
                 .capture
@@ -118,7 +148,11 @@ impl eframe::App for MasterCraftApp {
                 }
             }
         }
-        if self.busy || self.player.controls.playing.load(Ordering::Relaxed) {
+        if self.busy
+            || self.studio.busy()
+            || self.player.controls.playing.load(Ordering::Relaxed)
+            || self.studio.player.controls.playing.load(Ordering::Relaxed)
+        {
             ctx.request_repaint_after(Duration::from_millis(33));
         }
     }
@@ -157,14 +191,24 @@ impl MasterCraftApp {
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             let analyze = ui
                                 .add_enabled(
-                                    !self.busy && !self.tracks.is_empty(),
+                                    !self.busy
+                                        && !self.studio.busy()
+                                        && if self.tab == 3 {
+                                            self.studio.audio_target().is_ok()
+                                        } else {
+                                            !self.tracks.is_empty()
+                                        },
                                     crystal_button::primary("Analyze")
                                         .icon(Icon::Analyze)
                                         .min_size(vec2(140., 42.)),
                                 )
                                 .on_hover_text(help::ANALYZE);
                             if analyze.clicked() {
-                                self.start(true, ctx);
+                                if self.tab == 3 {
+                                    self.studio.analyze(ctx);
+                                } else {
+                                    self.start(true, ctx);
+                                }
                             }
                             let version = ui.label(
                                 RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
@@ -285,7 +329,7 @@ impl MasterCraftApp {
         if !compact_height {
             ui.add_space(4.);
         }
-        let full_tab_labels = ["Overview", "Manual EQ", "Processing report"];
+        let full_tab_labels = ["Overview", "Manual EQ", "Processing report", "Studio"];
         let font = egui::TextStyle::Button.resolve(ui.style());
         let full_tabs_width: f32 = full_tab_labels
             .iter()
@@ -310,6 +354,7 @@ impl MasterCraftApp {
                 (0, "Overview", Icon::Home),
                 (1, "Manual EQ", Icon::Sliders),
                 (2, report_label, Icon::Report),
+                (3, "Studio", Icon::Layers),
             ] {
                 if ui
                     .add(
@@ -320,11 +365,32 @@ impl MasterCraftApp {
                     )
                     .clicked()
                 {
+                    if tab == 3 {
+                        self.player.stop();
+                    } else {
+                        self.studio.player.stop();
+                    }
                     self.tab = tab;
                 }
             }
         });
         ui.separator();
+        if self.tab == 3 {
+            if super::studio::workspace::show(&mut self.studio, ui, &ui.ctx().clone()) {
+                match self.studio.working_copy() {
+                    Ok(path) => {
+                        self.studio.player.stop();
+                        self.add_paths(vec![path]);
+                        self.selected = self.tracks.len().checked_sub(1);
+                        self.tab = 0;
+                        self.status =
+                            "Studio working copy added · Analyze or Master when ready".into();
+                    }
+                    Err(error) => self.studio.error = Some(format!("{error:#}")),
+                }
+            }
+            return;
+        }
         let timeline = (self.tab == 0 || self.tab == 1) && self.current().is_some();
         let reserve = (if ui.available_width() >= 820. {
             65.
