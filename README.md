@@ -15,9 +15,11 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Studio Preview 0.5.0-beta.1:** local vocal/instrumental and four-stem separation, imported-stem rebalancing, voice cleanup, spectral repair, self-contained projects and optional isolated VST3 effects. The included MCP companion exposes 36 self-describing tools. Browser Studio supports imported stems, mixing, cleanup and repair using shared Rust DSP. The Preview installs separately from stable; these additions are **not included in the v0.4.2 installer**. See the [Studio guide and validation](docs/STUDIO.md).
 
+[Studio Preview build and review #8](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/pull/8) · [Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.1). The stable download below remains v0.4.2.
+
 [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
-**Installer note:** v0.4.2 is unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
+**Installer note:** these Windows builds are unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
 
 ![SlimeyBeats welcome screen, with Analyze at the top right and separate Master and Export actions](docs/images/welcome.png)
 
@@ -127,7 +129,7 @@ Audio and measurements stay in tab memory until you download them. There are no 
 | Browser matrix | Chromium, Firefox and Linux WebKit integration in [Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml). Required together with Windows/Linux checks before merging. |
 | Appearance | Actual Studio beta captures—four native views and desktop/phone browser repair—passed independent review **≥9/10** for look, polish and readability. Earlier mastering/EQ states passed separately. Static review does not certify interaction or sound. |
 
-Read the [browser validation record](docs/WEB_VALIDATION.md) and [Linux validation guide](docs/LINUX.md) for environments, fixtures, measured results, reproduction commands and remaining gaps. The CI badges and linked artifacts show the latest commit's status. **Physical iPhone/Android playback is still unqualified.** Linux-server build, export and GUI checks passed; audible playback awaits a connected output device, and the file-picker portal still needs testing. A responsive layout or synthetic audio sink does not establish device acceptance.
+Read the [browser validation record](docs/WEB_VALIDATION.md) and [Linux validation guide](docs/LINUX.md) for environments, fixtures, measured results, reproduction commands and remaining gaps. Badges track main; preview checks and artifacts are attached to PR #8. **Physical iPhone/Android playback is still unqualified.** Linux-server build, export and GUI checks passed; audible playback awaits a connected output device, and the file-picker portal still needs testing. A responsive layout or synthetic audio sink does not establish device acceptance.
 
 The following evidence concerns the published native release, rather than the larger current-source suite:
 

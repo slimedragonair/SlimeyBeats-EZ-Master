@@ -5,6 +5,31 @@ const colors = [
     [112, 220, 207],
     [242, 245, 220],
 ];
+const envelopes = new WeakMap();
+function peaks(buffer, width) {
+    const cached = envelopes.get(buffer);
+    if (cached?.width === width) return cached.values;
+    const channels = Array.from(
+        { length: buffer.numberOfChannels },
+        (_, channel) => buffer.getChannelData(channel),
+    );
+    const values = new Float32Array(width);
+    for (let x = 0; x < width; x++) {
+        const start = Math.floor((x / width) * buffer.length),
+            end = Math.min(
+                buffer.length,
+                Math.max(
+                    start + 1,
+                    Math.floor(((x + 1) / width) * buffer.length),
+                ),
+            );
+        for (const samples of channels)
+            for (let i = start; i < end; i++)
+                values[x] = Math.max(values[x], Math.abs(samples[i]));
+    }
+    envelopes.set(buffer, { width, values });
+    return values;
+}
 function color(db) {
     const position = Math.max(0, Math.min(4, ((db + 100) / 85) * 4)),
         i = Math.min(3, Math.floor(position)),
@@ -36,22 +61,14 @@ export function waveform(canvas, playback) {
     ctx.font = "11px system-ui";
     for (const [index, buffer] of [playback.before, playback.after].entries()) {
         if (!buffer) continue;
-        const samples = buffer.getChannelData(0),
+        const envelope = peaks(buffer, width),
             lane = height / 2,
             center = lane * (index + 0.5),
-            stride = Math.max(1, Math.floor(samples.length / width));
+            traceHeight = lane / 2 - 8;
         ctx.strokeStyle = index ? "#78dbd0" : "#bcb0c8";
         ctx.beginPath();
         for (let x = 0; x < width; x++) {
-            let peak = 0;
-            const start = Math.floor((x / width) * samples.length);
-            for (
-                let i = start;
-                i < Math.min(start + stride, samples.length);
-                i++
-            )
-                peak = Math.max(peak, Math.abs(samples[i]));
-            const size = Math.min(peak, 1) * (lane / 2 - 8);
+            const size = Math.min(envelope[x], 1) * traceHeight;
             ctx.moveTo(x, center - size);
             ctx.lineTo(x, center + size);
         }

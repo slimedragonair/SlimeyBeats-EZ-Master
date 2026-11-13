@@ -9,6 +9,7 @@
 - Add optional isolated VST3 effect rendering with generic controls, mono/stereo handling, reported-latency compensation, bounded process supervision and separate plugin logs. Vendor editors/MIDI and universal plugin compatibility are outside this initial host.
 - Expand MCP to 36 self-describing tools, including editing analysis, stem operations, projects, native effects and mastering promotion. Preserve immutable Studio origins/IDs across promotion and exact direct-stem lineage after project reload.
 - Add private browser Studio for imported stems, rebalancing, cleanup, repair, A/B and WAV/ZIP saving. Enforce a separate 128 MiB combined decoded-input budget; desktop remains the flagship for neural extraction, plugins and longer projects.
+- Show right-only stereo audio correctly in Studio waveforms and cache peak envelopes for playback redraws. Keep capture-verification artifacts distinct for each report and reject collisions before installing.
 - Bundle the MCP companion, VST3 worker and connection helper in the Studio Preview installer. Use separate preview folders/registration/shortcuts, retaining stable v0.4.2 and preserving user audio/projects on upgrade/uninstall.
 - Validate the beta source with 94 Windows / 96 Linux native tests, MCP regressions and real stdio/model/plugin workflows. Browser Studio passes Chromium, Firefox and Linux WebKit; physical mobile playback and broad third-party effect qualification remain separate.
 

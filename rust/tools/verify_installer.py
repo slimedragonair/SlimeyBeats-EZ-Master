@@ -54,6 +54,9 @@ def main():
     parser.add_argument('--skip-gui', action='store_true', help='Verify command-line lifecycle only; record GUI capture as untested')
     parser.add_argument('--channel', choices=['stable', 'studio-preview'], default='stable')
     args = parser.parse_args()
+    captures = {name:args.report.resolve().with_name(args.report.stem+'-'+name+'.png') for name in ['app','studio']}
+    for path in [args.report.resolve(),*captures.values(),*(path.with_suffix('.state.json') for path in captures.values())]:
+        if path.exists(): raise FileExistsError('Choose a fresh verification report: '+str(path))
     installer, root = args.installer.resolve(), args.test_root.resolve()
     if root.exists() or root == Path(root.anchor) or '"' in str(root):
         raise ValueError('Test root must be a new dedicated folder')
@@ -121,12 +124,12 @@ def main():
             record['installed_gui_processing_capture'] = False
             record['gui_capture_skip_reason'] = 'Explicit --skip-gui: command-line installer lifecycle only'
         else:
-            screenshot = args.report.resolve().with_name('installed-app.png')
+            screenshot = captures['app']
             screenshot.parent.mkdir(parents=True, exist_ok=True)
             capture = command([str(gui), str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
             assert capture.returncode == 0 and screenshot.is_file(), f'Installed GUI capture failed (exit {capture.returncode}):\n{capture.stdout}\n{capture.stderr}'
             record['installed_gui_processing_capture'] = True
-            studio_capture = args.report.resolve().with_name('installed-studio.png')
+            studio_capture = captures['studio']
             checked = command([str(gui),'--studio-session',str(studio_document),'--capture-ui',str(studio_capture)],cwd=root)
             assert checked.returncode == 0, checked.stderr
             state = json.loads(studio_capture.with_suffix('.state.json').read_text())

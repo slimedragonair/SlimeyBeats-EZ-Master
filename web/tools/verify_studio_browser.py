@@ -13,6 +13,7 @@ import zipfile
 
 from playwright.sync_api import sync_playwright, expect
 from browser_capture import BrowserDiagnostics
+from studio_waveform_checks import verify_waveform
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,6 +50,7 @@ def run(args):
                 page.locator('#tab-studio-tools').click()
                 expect(page.locator('#studio-tools')).to_be_visible()
                 expect(page.locator('.playback')).to_be_hidden()
+                result['waveform'] = verify_waveform(page)
                 page.locator('#s-file').set_input_files(fixture('voice.wav'))
 
                 def ready():
