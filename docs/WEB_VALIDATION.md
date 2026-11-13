@@ -63,6 +63,8 @@ An engine-only 15-minute run also preserved 43,200,000 frames and finite output,
 
 The reduced-copy input/preview/reference paths, browser convolution destination and reserved export buffers avoid unnecessary full-track allocations. This does **not** make a 15-minute job safe on every phone: the measured full workflow still used multiple GiB. The iPhone tester must retry the deployed fix, and actual mobile memory/playback qualification remains open. Supporting longer browser tracks reliably would require incremental decoding and processing/export with bounded memory.
 
+A 15-minute constant-sine reference exceeded the initial **180-second measurement deadline in Firefox**, after all four WAV/MP3 mix imports had passed. The isolated reproduction remained CPU-active until that test deadline, without a reported application error. Sustained signals can force the offline reconstructed-peak detector through its expensive path across the track; this is a performance boundary, not a codec or duration rejection. The maintained import integration uses varying-level synthetic audio, still checks the complete 15-minute reference analysis, records its elapsed time and allows a longer measurement deadline. It does not skip peak verification or claim worst-case processing speed. The interface now identifies reference decoding and measurement rather than leaving the previous “Track ready” status visible.
+
 An independent review opened the actual new 390 × 844 limit/error screenshots and scored look, polish and readability **9/10 each**. This covers those two states only.
 
 ## Limits and reproduction

@@ -467,9 +467,11 @@ $("reference-file").onchange = () =>
             throw new Error("Add your mix before choosing a reference.");
         const file = $("reference-file").files[0];
         if (!file) return;
+        status("Decoding the reference locally…");
         const buffer = await player.decode(file);
         ensureCurrent();
         const samples = interleave(buffer);
+        status("Measuring the reference locally. Long tracks can take a while…");
         await dsp.call(
             "reference",
             {

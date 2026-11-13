@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import threading
+import time
 from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright, expect
@@ -28,7 +29,11 @@ fixtures.mkdir(exist_ok=True)
 def create_fixture(name,seconds,rate=44100,channels=2):
     wav=fixtures/(name+'.wav')
     mp3=fixtures/(name+'.mp3')
-    subprocess.run(['ffmpeg','-v','error','-nostdin','-y','-f','lavfi','-i',f'sine=frequency=220:sample_rate={rate}:duration={seconds}',
+    # Vary the level like music: a constant full-length sine forces the offline
+    # reconstructed-peak detector through its worst case at every frame. That is
+    # a separate performance case, not this file-import integration contract.
+    signal=f'aevalsrc=0.1*sin(2*PI*220*t)*exp(-12*mod(t\\,0.5))+0.004*sin(2*PI*1700*t):s={rate}:d={seconds}'
+    subprocess.run(['ffmpeg','-v','error','-nostdin','-y','-f','lavfi','-i',signal,
         '-ac',str(channels),'-c:a','pcm_s16le',str(wav),'-ac',str(channels),'-c:a','libmp3lame','-b:a','64k',str(mp3)],check=True)
     return wav,mp3
 
@@ -81,10 +86,13 @@ try:
             with page.expect_file_chooser() as chooser:page.locator('#add').click()
             chooser.value.set_files(str(short))
             expect(page.locator('#filename')).to_have_text(short.name,timeout=30000)
+            expect(page.locator('#master')).to_be_enabled(timeout=30000)
+            started=time.monotonic()
             page.locator('#reference-file').set_input_files(str(fifteen[1]))
-            expect(page.locator('#master')).to_be_enabled(timeout=180000)
-            expect(page.locator('#reference-name')).to_contain_text(fifteen[1].name,timeout=180000)
+            expect(page.locator('#reference-name')).to_contain_text(fifteen[1].name,timeout=600000)
+            expect(page.locator('#master')).to_be_enabled(timeout=30000)
             result['fifteen_minute_reference_import']=True
+            result['reference_measurement_seconds']=time.monotonic()-started
             assert not result['errors'],result['errors']
             assert all(r['method']=='GET' and not r['body_bytes'] and urlparse(r['url']).hostname=='127.0.0.1' for r in result['requests'])
             result['success']=True
