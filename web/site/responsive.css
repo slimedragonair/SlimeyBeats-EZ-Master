@@ -1,0 +1,913 @@
+@media (min-width: 1550px) {
+    body {
+        font-size: 15px;
+    }
+    .workspace {
+        grid-template-columns: 260px minmax(0, 1fr) 330px;
+    }
+    .hero {
+        min-height: 290px;
+    }
+    .hero img {
+        width: 260px;
+    }
+    .hero h2 {
+        font-size: 40px;
+    }
+    .studio {
+        padding: 26px 30px 18px;
+    }
+    .steps li {
+        padding: 16px 22px;
+    }
+    .transport button {
+        font-size: 14px;
+    }
+    .transport-extra {
+        font-size: 12px;
+    }
+    .band label,
+    .band input[type="number"],
+    .band select {
+        font-size: 12px;
+    }
+}
+@media (max-width: 1190px) {
+    .workspace {
+        grid-template-columns: 185px minmax(0, 1fr) 265px;
+    }
+    .panel {
+        padding: 18px 12px;
+    }
+    .brand strong {
+        font-size: 25px;
+    }
+    .brand-detail,
+    .privacy-badge {
+        display: none;
+    }
+    .masthead {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .crest {
+        width: 220px;
+        left: 58%;
+    }
+    .hero {
+        gap: 12px;
+    }
+    .hero h2 {
+        font-size: 29px;
+    }
+    .hero img {
+        width: 170px;
+    }
+    .hero .small {
+        font-size: 10px;
+    }
+    .studio-heading {
+        gap: 6px;
+    }
+    h1 {
+        font-size: 26px;
+    }
+    .engine-tag {
+        font-size: 8px;
+    }
+    .steps li {
+        padding: 10px;
+        gap: 10px;
+    }
+    .steps p {
+        font-size: 11px;
+    }
+    .steps h3 {
+        font-size: 17px;
+    }
+    .library-art img {
+        width: 145px;
+    }
+    .tabs button {
+        font-size: 16px;
+        padding: 7px;
+    }
+    .metrics {
+        gap: 5px;
+    }
+    .metric {
+        padding: 10px 8px;
+    }
+    .metric strong {
+        font-size: 21px;
+    }
+    .band {
+        padding: 8px 3px;
+    }
+    .plot-legend {
+        font-size: 9px;
+        left: 35px;
+        gap: 10px;
+    }
+    .direction > button {
+        font-size: 17px;
+    }
+    .direction label {
+        font-size: 12px;
+    }
+    .bands {
+        gap: 3px;
+    }
+    .output-control {
+        gap: 6px;
+    }
+}
+@media (max-width: 940px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 280px;
+    }
+    .library {
+        grid-column: 1/-1;
+        display: grid;
+        grid-template-columns: 1fr 170px 170px;
+        align-items: center;
+        padding: 12px 18px;
+        gap: 12px;
+    }
+    .library > .eyebrow {
+        display: none;
+    }
+    .library h2 {
+        font-size: 18px;
+        margin: 0;
+    }
+    .library h2 br {
+        display: none;
+    }
+    .library > .muted,
+    .library-art,
+    .drop-zone,
+    .library > #privacy {
+        display: none;
+    }
+    .library #add {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    .library #demo {
+        grid-column: 3;
+        grid-row: 1;
+    }
+    .track-card {
+        grid-column: 1/-1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+    }
+    .track-card strong {
+        margin: 0;
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+    }
+    .track-card p {
+        margin: 0;
+        font-size: 11px;
+    }
+    .track-card .eyebrow {
+        display: none;
+    }
+    .track-card button {
+        min-height: 32px;
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+    .studio {
+        padding: 20px 15px 15px;
+    }
+    .hero {
+        min-height: 230px;
+    }
+    .hero h2 {
+        font-size: 29px;
+    }
+    .studio-heading {
+        margin-bottom: 18px;
+    }
+    .crest {
+        display: none;
+    }
+    .transport-extra {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .section-heading h2 {
+        font-size: 19px;
+    }
+    .section-heading .small {
+        font-size: 11px;
+    }
+}
+@media (max-width: 680px) {
+    body {
+        font-size: 14px;
+    }
+    .app-shell {
+        border-width: 4px;
+        padding: 3px;
+        border-image-width: 20px;
+    }
+    .masthead {
+        min-height: 86px;
+        padding: 9px 7px 14px;
+        gap: 8px;
+    }
+    .brand {
+        gap: 6px;
+    }
+    .brand img {
+        width: 42px;
+        height: 42px;
+    }
+    .brand strong {
+        font-size: 20px;
+        letter-spacing: 0;
+    }
+    .brand small {
+        font-size: 11px;
+        letter-spacing: 0.15em;
+    }
+    .header-actions button {
+        min-width: 94px;
+        font-size: 16px;
+        min-height: 44px;
+        padding: 7px 10px;
+    }
+    .workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .library {
+        grid-template-columns: 1fr 1fr;
+        padding: 13px 12px;
+        gap: 8px;
+    }
+    .library h2 {
+        grid-column: 1/-1;
+        font-size: 16px;
+        color: #d6bee3;
+    }
+    .library #add {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    .library #demo {
+        grid-column: 2;
+        grid-row: 2;
+        font-size: 11px;
+        padding: 8px;
+    }
+    .track-card {
+        flex-wrap: wrap;
+        gap: 4px 12px;
+    }
+    .track-card strong {
+        flex-basis: 65%;
+        font-size: 12px;
+    }
+    .track-card p {
+        order: 3;
+        flex-basis: 100%;
+        font-size: 10px;
+    }
+    .track-card button {
+        font-size: 10px;
+    }
+    .studio {
+        padding: 18px 12px 14px;
+        order: 1;
+    }
+    .direction {
+        order: 2;
+        padding: 20px 18px;
+        display: block;
+    }
+    .direction > button {
+        min-height: 48px;
+    }
+    .studio-heading {
+        margin-bottom: 18px;
+    }
+    h1 {
+        font-size: 26px;
+    }
+    .studio-heading .eyebrow {
+        font-size: 8px;
+        letter-spacing: 0.12em;
+    }
+    .engine-tag {
+        font-size: 8px;
+        padding: 5px 6px;
+        max-width: 88px;
+        white-space: normal;
+        text-align: center;
+    }
+    .tabs {
+        gap: 3px;
+        margin-bottom: 18px;
+    }
+    .tabs button {
+        font-size: 15px;
+        min-height: 44px;
+        padding: 6px 4px;
+    }
+    .hero {
+        gap: 10px;
+        min-height: 210px;
+        margin-bottom: 13px;
+    }
+    .hero img {
+        width: 120px;
+        max-width: 34%;
+    }
+    .hero h2 {
+        font-size: 26px;
+        margin: 10px 0;
+    }
+    .hero .eyebrow {
+        font-size: 8px;
+        letter-spacing: 0.08em;
+    }
+    .hero p {
+        font-size: 14px;
+    }
+    .hero .small {
+        font-size: 10px;
+    }
+    .steps {
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .steps li {
+        padding: 13px 10px;
+        gap: 12px;
+    }
+    .steps h3 {
+        font-size: 18px;
+    }
+    .steps p {
+        font-size: 12px;
+    }
+    .steps b {
+        font-size: 20px;
+        min-width: 30px;
+    }
+    .local-note {
+        font-size: 11px;
+        margin-bottom: 5px;
+    }
+    .transport {
+        gap: 9px;
+    }
+    .transport-main {
+        width: 100%;
+        gap: 6px;
+        justify-content: space-between;
+    }
+    .transport button {
+        min-height: 44px;
+        padding: 8px 11px;
+        font-size: 12px;
+    }
+    .transport-extra {
+        font-size: 10px;
+        gap: 5px;
+    }
+    .transport-extra .check {
+        gap: 4px;
+    }
+    .volume input {
+        width: 50px;
+    }
+    .transport-extra .help {
+        width: 20px;
+        height: 20px;
+    }
+    .waveform {
+        height: 62px;
+    }
+    .section-heading {
+        align-items: flex-start;
+    }
+    .section-heading h2 {
+        font-size: 21px;
+    }
+    .section-heading .small {
+        font-size: 11px;
+    }
+    .metrics {
+        gap: 5px;
+        margin-bottom: 20px;
+    }
+    .metric {
+        padding: 12px 8px;
+    }
+    .metric strong {
+        font-size: 23px;
+    }
+    .metric span {
+        font-size: 10px;
+    }
+    .metric small {
+        font-size: 9px;
+    }
+    .insight {
+        font-size: 12px;
+        padding: 12px;
+    }
+    .plot-wrap {
+        height: 230px;
+    }
+    .plot-legend {
+        font-size: 9px;
+        left: 35px;
+        gap: 12px;
+    }
+    .eq-actions {
+        gap: 7px;
+    }
+    .eq-actions .check {
+        margin-left: 0;
+        font-size: 11px;
+    }
+    .eq-actions > button {
+        padding: 8px 10px;
+        font-size: 11px;
+        min-height: 44px;
+    }
+    .live-badge {
+        max-width: 85px;
+        font-size: 9px;
+    }
+    .bands {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .band {
+        display: grid;
+        grid-template-columns: 65px 1fr 55px 62px;
+        align-items: center;
+        gap: 7px;
+        padding: 10px;
+        text-align: left;
+    }
+    .band .band-name {
+        font-size: 11px;
+        text-align: left;
+        grid-row: 1;
+        grid-column: 1;
+        min-height: 44px;
+        margin: 0;
+    }
+    .band .on-label {
+        grid-column: 4;
+        grid-row: 1;
+        font-size: 11px;
+    }
+    .band .gain-label {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 10px;
+    }
+    .band input[type="range"] {
+        height: 30px;
+        writing-mode: horizontal-tb;
+        direction: ltr;
+        margin: 0;
+    }
+    .band output {
+        grid-column: 3;
+        grid-row: 1;
+        font-size: 11px;
+        text-align: center;
+    }
+    .band .frequency-label {
+        grid-column: 1/3;
+        grid-row: 2;
+    }
+    .band .q-label {
+        grid-column: 3/5;
+        grid-row: 2;
+    }
+    .band .type-label {
+        grid-column: 1/5;
+        grid-row: 3;
+    }
+    .band label {
+        margin: 0;
+        font-size: 10px;
+    }
+    .band input[type="number"],
+    .band select {
+        font-size: 12px;
+        padding: 5px;
+        min-height: 36px;
+        margin-top: 4px;
+    }
+    .band .type-label select {
+        display: inline-block;
+        margin-left: 8px;
+        width: calc(100% - 37px);
+        margin-top: 0;
+    }
+    .band .on-label {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    .output-control {
+        font-size: 11px;
+        gap: 7px;
+    }
+    .output-control output {
+        width: 48px;
+    }
+    .statusbar {
+        padding: 9px 10px;
+        align-items: flex-start;
+        font-size: 10px;
+    }
+    .statusbar .small {
+        font-size: 9px;
+    }
+    .help {
+        width: 24px;
+        height: 24px;
+        min-height: 24px;
+    }
+    .direction label {
+        font-size: 14px;
+    }
+    .direction .check {
+        font-size: 13px;
+    }
+    .direction label output {
+        font-size: 12px;
+    }
+    .direction .small {
+        font-size: 12px;
+    }
+    .direction .eyebrow {
+        font-size: 12px;
+    }
+    .direction select {
+        min-height: 44px;
+    }
+    .direction .segmented button {
+        min-height: 46px;
+    }
+    .direction details {
+        font-size: 13px;
+    }
+    .direction summary {
+        min-height: 40px;
+        padding-top: 8px;
+    }
+    .direction input[type="range"] {
+        min-height: 36px;
+    }
+    .action-note {
+        font-size: 12px;
+    }
+    .divider {
+        margin-top: 22px;
+    }
+    .section-heading button {
+        font-size: 11px;
+    }
+    .report-notes {
+        font-size: 12px;
+    }
+    .report-stage p {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 940px) {
+    .slime-crown {
+        display: none;
+    }
+}
+@media (max-width: 680px) {
+    .brand strong {
+        font-size: 19px;
+    }
+    .brand small {
+        font-size: 10px;
+    }
+    .library h2 {
+        word-spacing: 0.12em;
+    }
+    .tabs button {
+        font-size: 14px;
+        white-space: nowrap;
+        min-height: 44px;
+    }
+    .mobile-actions {
+        display: flex;
+        gap: 8px;
+        margin: -4px 0 18px;
+    }
+    .mobile-actions button {
+        flex: 1;
+        min-height: 44px;
+        font-size: 12px;
+    }
+    .direction > button,
+    .direction > .action-note {
+        display: none;
+    }
+    .band-picker {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+        margin-top: 15px;
+    }
+    .band-picker button {
+        font-size: 10px;
+        line-height: 1.25;
+        padding: 6px 3px;
+        min-height: 44px;
+    }
+    .bands {
+        margin-top: 8px;
+    }
+    .band:not(.active) {
+        display: none;
+    }
+    .band {
+        grid-template-columns: 75px 1fr 48px 49px;
+        gap: 6px;
+    }
+    .band .band-name {
+        font-size: 11px;
+    }
+    .band .q-label {
+        grid-column: 3/5;
+    }
+    .band .frequency-label {
+        grid-column: 1/3;
+    }
+    .playback {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        background: #15101e;
+        padding-bottom: 8px;
+    }
+    .direction > #reference {
+        display: block;
+    }
+    .eq-actions .check {
+        font-size: 10px;
+    }
+    .plot-legend {
+        font-size: 9px;
+    }
+    .studio > .page {
+        overflow: visible;
+    }
+}
+
+@media (min-width: 681px) and (max-width: 1190px) {
+    .band-picker {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+    .band-picker button {
+        font-size: 11px;
+        min-height: 42px;
+        padding: 7px 3px;
+    }
+    .bands {
+        display: block;
+    }
+    .band:not(.active) {
+        display: none;
+    }
+    .band.active {
+        display: grid;
+        grid-template-columns: 80px 1fr 65px 65px;
+        gap: 10px;
+        text-align: left;
+        padding: 12px;
+    }
+    .band .band-name {
+        grid-column: 1;
+        grid-row: 1;
+        font-size: 12px;
+    }
+    .band .on-label {
+        grid-column: 4;
+        grid-row: 1;
+    }
+    .band .gain-label {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    .band input[type="range"] {
+        height: 30px;
+        writing-mode: horizontal-tb;
+        direction: ltr;
+        margin: 0;
+    }
+    .band output {
+        grid-column: 3;
+        grid-row: 1;
+    }
+    .band .frequency-label {
+        grid-column: 1/3;
+        grid-row: 2;
+    }
+    .band .q-label {
+        grid-column: 3/5;
+        grid-row: 2;
+    }
+    .band .type-label {
+        grid-column: 1/5;
+        grid-row: 3;
+    }
+    .band .type-label select {
+        width: calc(100% - 50px);
+        margin-left: 15px;
+    }
+    .band .on-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .plot-legend {
+        font-size: 11px;
+    }
+}
+@media (max-width: 680px) {
+    .band label {
+        font-size: 11px;
+    }
+    .band .band-name {
+        font-size: 12px;
+        white-space: normal;
+    }
+    .band input[type="number"],
+    .band select {
+        font-size: 14px;
+        min-height: 40px;
+    }
+    .band output {
+        font-size: 12px;
+    }
+    .plot-legend {
+        font-size: 10px;
+        gap: 10px;
+    }
+    .small {
+        font-size: 12px;
+    }
+    .eq-actions .check {
+        font-size: 12px;
+    }
+    .direction .eyebrow {
+        font-size: 12px;
+    }
+    .section-heading .small {
+        font-size: 12px;
+    }
+    .hero .small {
+        font-size: 11px;
+    }
+    .hero .eyebrow {
+        font-size: 9px;
+    }
+    .statusbar {
+        font-size: 11px;
+    }
+    .studio-heading .eyebrow {
+        font-size: 9px;
+    }
+    .engine-tag {
+        font-size: 9px;
+    }
+    .transport-extra {
+        font-size: 11px;
+    }
+    .transport button {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 1190px) {
+    .band-shape {
+        display: none;
+    }
+}
+@media (max-width: 680px) {
+    .playback {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 0;
+        z-index: 5;
+        border: 1px solid #8b5ca4;
+        border-radius: 10px 10px 0 0;
+        padding: 10px;
+        background: #15101ef5;
+        box-shadow: 0 -6px 24px #0009;
+        margin: 0;
+    }
+    .app-shell {
+        padding-bottom: 165px;
+    }
+    .library:has(.track-card:not([hidden])) > h2,
+    .library:has(.track-card:not([hidden])) > #add,
+    .library:has(.track-card:not([hidden])) > #demo {
+        display: none;
+    }
+    .library:has(.track-card:not([hidden])) {
+        display: block;
+        padding: 9px 12px;
+    }
+    .studio > .page {
+        flex: 0;
+    }
+    .studio-heading {
+        margin-bottom: 12px;
+    }
+    .tabs {
+        margin-bottom: 14px;
+    }
+    .studio {
+        padding-top: 15px;
+    }
+    .direction {
+        padding-top: 8px;
+    }
+    .studio-heading .eyebrow {
+        font-size: 8px;
+    }
+    .studio-heading h1 {
+        font-size: 24px;
+    }
+    .band input[type="range"] {
+        height: 30px;
+    }
+    .band .gain-label {
+        font-size: 11px;
+    }
+    .band label {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 680px) {
+    .playback {
+        background: #15101e;
+    }
+    h1 {
+        overflow-wrap: anywhere;
+    }
+    .studio-heading > div {
+        min-width: 0;
+    }
+}
+@media (max-width: 380px) {
+    .brand img {
+        width: 32px;
+        height: 32px;
+    }
+    .brand strong {
+        font-size: 17px;
+    }
+    .header-actions button {
+        min-width: 80px;
+        font-size: 14px;
+        padding: 7px 8px;
+    }
+    .brand small {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 680px) {
+    .band {
+        grid-template-columns: 90px minmax(40px, 1fr) 45px 42px;
+    }
+    .band .band-name {
+        font-size: 11.5px;
+        white-space: nowrap;
+    }
+}

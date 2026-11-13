@@ -41,3 +41,7 @@ python rust/tools/verify_exports.py --input YOUR-STEREO-WAV
 ## Public source boundary
 
 `rust/tools/release_packaging/public_source.py` owns the clean source allowlist. It includes native source/tests, the shared profiles, reference Python source, selected guides, licensed assets and the published example files. It excludes `.git`, virtual environments, build output, personal settings, private tests/reports, recordings and unrelated scratch folders. Use the clean source export for a new public repository rather than archiving the development directory.
+
+## Browser preview
+
+See [WEB.md](WEB.md) for the locked Rust/WebAssembly build, local static-server command, privacy model, browser checks and GitHub Pages workflow. The browser build needs no server DSP or FFmpeg at runtime.

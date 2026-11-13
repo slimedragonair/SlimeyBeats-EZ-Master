@@ -3,16 +3,17 @@
 # SlimeyBeats-EZ-Master
 
 [![Native checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml)
+[![Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml/badge.svg?branch=main)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml)
 [![Latest release](https://img.shields.io/github/v/release/slimedragonair/SlimeyBeats-EZ-Master?color=8b5cf6)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-14b8a6)](LICENSE)
 
 **Local song mastering. Real-time EQ. Your music stays yours.**
 
-SlimeyBeats-EZ-Master is a native Rust desktop mastering app for Windows. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
+SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Linux source support, and a private browser preview. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
 
-**Windows x64 · MIT licensed · No account or subscription · Local processing**
+**Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-[Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+[Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
 **Installer note:** v0.4.2 is unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
 
@@ -73,11 +74,37 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 | Processing | Local; full tracks are held in memory |
 | Installer data | Settings and exports are kept on your computer and preserved by uninstall |
 
-The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. Web, Android and iPhone versions are future work.
+The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. The [browser preview](docs/WEB.md) processes audio locally with Rust/WebAssembly, including real-time EQ and WAV export. It has a responsive phone layout; physical iPhone and Android devices still need qualification. Native Android/iOS apps are future work.
 
 Ubuntu 24.04 x86_64 source-build and runtime validation is available separately; see the [Linux validation guide](docs/LINUX.md). The downloadable v0.4.2 installer above is for Windows. Linux physical playback and portal dialogs still require desktop-device qualification.
 
+## Browser preview
+
+Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV. The preview supports one mono/stereo track up to five minutes **and 96 MiB decoded PCM** (whichever limit is reached first), with a 100 MiB source-file limit. It uses a 48 kHz decoded sample rate and exports 16/24-bit PCM or 32-bit float WAV. The desktop app remains the choice for longer files, source-rate handling, batch queues and compressed exports. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
+
+![The real browser preview with live spectrum and EQ, separate Master and Export, and local Rust processing](docs/images/web-preview.png)
+
+The browser screenshot above is from the running app. [Open it at full size](docs/images/web-preview.png). On phones, select one of seven bands and keep the playback dock available while editing.
+
+<img src="docs/images/web-phone-eq.png" width="300" alt="Actual responsive browser EQ page with readable gain and spectrum scales above the playback dock">
+
+**Phone layout:** the EQ and spectrum share a graph, and playback stays available while scrolling. [Open the phone capture at full size](docs/images/web-phone-eq.png). This is a responsive browser capture, not physical iPhone/Android qualification.
+
+Audio and measurements stay in tab memory until you download them. There are no uploads, accounts, analytics or server DSP. The host still serves ordinary static files. Reloading/closing the tab discards the session; save your WAV first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
+
 ## Evidence and limits
+
+| Current source scope | Verified behavior / maintained checks |
+|---|---|
+| Windows / Linux native | **77 Windows / 79 Linux tests**, format checks, Clippy with warnings denied and release builds. Linux also checks exports, XDG paths, GUI captures and a CLI without desktop features. |
+| Browser audio | Actual worker mastering and AudioWorklet PCM comparison with the shared Rust processor; deterministic EQ suggestions; mono/stereo/silence; three decoded and independently measured WAV formats. |
+| Browser session safety | Same-name reference replacement invalidates the old master; cancellation and late decode results preserve the current track/job; invalid imports preserve the session; processing works offline after loading; listening volume leaves exported samples unchanged. |
+| Browser matrix | Chromium, Firefox and Linux WebKit integration in [Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml). Required together with Windows/Linux checks before merging. |
+| Appearance | Independent review of actual desktop and responsive phone captures: all principal states **≥9/10** for look, polish and readability. Scope and limits are documented. |
+
+Read the [browser validation record](docs/WEB_VALIDATION.md) for exact environments, fixtures, measured results, reproduction commands and remaining gaps. The CI badges and linked artifacts show the latest commit's status. **Physical iPhone/Android playback is still unqualified**, as are Linux physical audio and portal dialogs. A responsive layout or synthetic audio sink does not establish device acceptance.
+
+The following evidence concerns the published native release, rather than the larger current-source suite:
 
 The v0.4.2 release passed **73 automated regression tests**. The 0.4.1 real-music retest covered 12 songs and 24 full-song renders, with independent peak/integrity checks, six export formats and additional EQ/mono/sample-rate cases. Version 0.4.2 packages the same DSP with documentation, licensing, demo audio and an installer.
 

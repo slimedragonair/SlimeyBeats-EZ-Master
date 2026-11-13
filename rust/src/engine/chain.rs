@@ -1,4 +1,5 @@
 use super::{planning, tonal_correction};
+use crate::clock::Instant;
 use crate::{
     analysis::Analysis,
     audio::Audio,
@@ -14,7 +15,6 @@ use crate::{
 };
 use anyhow::{Result, ensure};
 use serde_json::{Value, json};
-use std::time::Instant;
 
 pub struct ChainContext<'a> {
     pub settings: &'a Settings,

@@ -6,7 +6,7 @@ ROOT_FILES = ('README.md', 'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICE
               'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', '.gitignore', '.gitattributes', '.editorconfig',
               'run-slimeybeats.bat', 'run-rust.bat', 'cli-rust.bat',
               'run.bat', 'cli.bat', 'setup.bat', 'requirements.txt')
-GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md')
+GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md')
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')
 
@@ -27,7 +27,7 @@ def copy_public_source(repository, destination):
     for name in GUIDES:
         copy(Path('docs') / name)
     for name in ('welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
-                 'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png'):
+                 'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png', 'web-preview.png', 'web-phone-eq.png'):
         copy(Path('docs/images') / name)
     for name in ('python-guide.md', 'python-third-party-notices.md', 'python-changelog.md'):
         copy(Path('docs/legacy') / name)
@@ -45,6 +45,15 @@ def copy_public_source(repository, destination):
         copy(Path('rust') / name)
     for name in DEMO_FILES:
         copy(Path('examples/audio') / name)
+    for directory in ('site', 'tools'):
+        for path in sorted((repository / 'web' / directory).rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
+                copy(path.relative_to(repository))
+    for name in ('Cargo.toml', 'Cargo.lock'):
+        copy(Path('web/dsp') / name)
+    for path in sorted((repository / 'web/dsp/src').rglob('*')):
+        if path.is_file():
+            copy(path.relative_to(repository))
     for path in sorted((repository / '.github').rglob('*')):
         if path.is_file():
             copy(path.relative_to(repository))

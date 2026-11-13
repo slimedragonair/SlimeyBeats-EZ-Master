@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod audio;
 pub mod branding;
+mod clock;
 pub mod config;
 #[cfg(feature = "gui")]
 pub mod desktop_integration;
@@ -13,3 +14,5 @@ pub mod meters;
 pub mod paths;
 pub mod profiles;
 pub mod report;
+
+pub mod wav_encoding;
