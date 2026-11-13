@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Raise the private browser preview to 15 minutes per track, with coordinated 384 MiB source/decoded bounds and visible mobile import errors. Reduce redundant input/reference/preview/convolution allocations and reserve export buffers. Keep one active mix rather than a growing queue.
+- Version connected browser runtime assets together to prevent cached JS/WASM API mismatches. Add duration/byte boundary regressions, real long WAV/MP3 imports and repeat-use/master/export memory checks.
 - Add a private static browser preview using the shared Rust engine in WebAssembly: local decoding/analysis/mastering, AudioWorklet live EQ, overlaid spectrum, deterministic EQ suggestions, matched A/B audition, reference profiles, three verified WAV formats and touch-friendly help.
 - Discard late browser decode/fetch completions after cancellation and preserve control ownership across overlapping job completions.
 - Invalidate both the stored master and its export when reference audio is replaced, even under the same filename.

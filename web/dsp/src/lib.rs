@@ -1,3 +1,4 @@
+mod import_limits;
 mod live_eq;
 mod session;
 mod wav_output;
@@ -27,5 +28,9 @@ pub(crate) fn profile(name: &str) -> anyhow::Result<serde_json::Value> {
 
 #[wasm_bindgen]
 pub fn defaults() -> String {
-    serde_json::json!({"settings":Settings::default(),"profiles":profiles::builtin()}).to_string()
+    serde_json::json!({"settings":Settings::default(),"profiles":profiles::builtin(),"import_limits":{
+        "max_seconds":import_limits::MAX_SECONDS,
+        "max_decoded_bytes":import_limits::MAX_DECODED_BYTES,
+        "max_file_bytes":import_limits::MAX_FILE_BYTES
+    }}).to_string()
 }

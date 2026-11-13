@@ -30,6 +30,8 @@ jobs:
         run: |
           cargo fmt --manifest-path web/dsp/Cargo.toml -- --check
           cargo clippy --locked --manifest-path web/dsp/Cargo.toml --target wasm32-unknown-unknown -- -D warnings
+          cargo test --locked --manifest-path web/dsp/Cargo.toml --lib
+          python3 -m unittest discover -s web/tools -p 'test_*.py'
       - name: Build static site and license inventory
         run: python3 web/tools/build.py
       - name: Install browser test tools
@@ -46,6 +48,13 @@ jobs:
         run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'
       - name: Verify WebKit
         run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
+      - name: Verify long WAV and MP3 imports in three engines
+        run: |
+          python3 web/tools/verify_imports.py --out '${{ runner.temp }}/browser-checks/imports-chromium'
+          python3 web/tools/verify_imports.py --browser firefox --out '${{ runner.temp }}/browser-checks/imports-firefox'
+          python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
+      - name: Verify repeated track replacement and export
+        run: python3 web/tools/verify_memory.py --tracks 4 --seconds 10 --out '${{ runner.temp }}/browser-checks/replacement'
       - uses: actions/upload-artifact@v7
         if: always()
         with:

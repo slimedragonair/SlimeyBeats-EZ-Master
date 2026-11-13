@@ -79,13 +79,24 @@
                     <button id="demo" class="quiet wide">
                         Try the example track ↗
                     </button>
+                    <p id="import-limits" class="import-limits">
+                        Up to 15 minutes per track. Large tracks need sufficient
+                        device memory.
+                    </p>
+                    <div
+                        id="import-error"
+                        class="import-error"
+                        role="alert"
+                        tabindex="-1"
+                        hidden
+                    ></div>
                     <button id="drop" class="drop-zone">
                         <span class="drop-icon">⇩</span
                         ><strong>Drop your mix here</strong
                         ><span
                             >WAV, MP3, FLAC, M4A<br />and browser-supported
                             audio</span
-                        ><small>Mono / stereo · Up to 5 min</small>
+                        ><small>Mono / stereo · Up to 15 min</small>
                     </button>
                     <div id="track-card" class="track-card" hidden>
                         <span class="eyebrow">Current track</span
@@ -529,7 +540,7 @@
                 <div class="footer-tools">
                     <button class="text-button" data-help="privacy">
                         Privacy</button
-                    ><span class="small">Web preview · v0.1</span>
+                    ><span class="small">Web preview · v0.2</span>
                 </div>
             </footer>
         </div>

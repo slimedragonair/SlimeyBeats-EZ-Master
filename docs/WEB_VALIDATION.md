@@ -1,6 +1,6 @@
 # Browser preview validation
 
-Validation date: November 12, 2026 (America/New_York). GitHub Actions may show November 13 in UTC.
+Latest local validation: November 13, 2026 (America/New_York). Earlier three-engine and appearance qualification was recorded November 12; GitHub Actions may use the following UTC date.
 
 This record separates measured behavior, automated integration coverage, appearance review, and physical-device work that remains open. The maintained [browser workflow](../.github/workflows/web.yml) runs against each pull request and main; [its current results and artifacts](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml) are the source of truth for the latest commit. Windows, Linux and browser checks are all required before merging.
 
@@ -8,14 +8,14 @@ This record separates measured behavior, automated integration coverage, appeara
 
 | Environment | Evidence and scope |
 | --- | --- |
-| Windows native source | 77 regression tests, formatting, Clippy with warnings denied, and release builds passed in CI. |
-| Ubuntu 24.04 native source | 79 regression tests plus actual exports, XDG paths, native GUI captures and a CLI build without desktop features. Virtual display/audio backends do not establish hardware playback. |
+| Windows native source | 78 regression tests, formatting, Clippy with warnings denied, and release builds are enforced in CI. |
+| Ubuntu 24.04 native source | 80 regression tests plus actual exports, XDG paths, native GUI captures and a CLI build without desktop features. Virtual display/audio backends do not establish hardware playback. |
 | Additional maintainer-reported Linux-server run | All 79 tests and lint passed; mastering, all six export formats and GUI launch/import/mastering/EQ were verified. Desktop/menu launchers were installed, with no application source changes needed. The host reported Dummy Output with no headphones/speakers; audible hardware playback and the file-picker portal remain unverified. [Server-check scope and local report location](LINUX.md#additional-linux-server-check). |
 | Chrome 156.0.8078.80 on the development PC | Actual application flows, worker DSP, AudioWorklet rendering, exports, recovery and responsive-layout checks. |
 | Chromium 143.0.7499.4, Firefox 144.0.2, WebKit 26.0 on Ubuntu CI | Three-engine integration matrix using a synthetic audio sink. Initial complete three-engine qualification: [run 43354121252](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43354121252). Later state regressions are enforced by the maintained workflow. |
 | iPhone / Android hardware | **Not qualified yet.** Responsive desktop-engine captures are not physical-device acceptance. |
 
-The 77/79 counts describe current native source, including platform-specific tests. They do not replace the **73-test historical record for the published v0.4.2 installer**. The release tag, installer and portable archive were not rebuilt or overwritten for the browser preview.
+The 78/80 counts describe current native source, including platform-specific tests and a new exact-output convolution regression. Three binding-crate tests cover duration/decoded-size boundaries and deterministic export allocation changes. Two Python tests cover connected runtime cache versions. These do not replace the **73-test historical record for the published v0.4.2 installer** or the separate maintainer-reported 79-test server run. The release tag, installer and portable archive were not rebuilt or overwritten for the browser preview.
 
 ## Audio and export checks
 
@@ -25,7 +25,7 @@ The 77/79 counts describe current native source, including platform-specific tes
 - WAV 16-bit PCM, 24-bit PCM and 32-bit float are decoded and peak-checked before download. Exported fixtures are independently measured with FFmpeg. Mono, stereo, silence and duration preservation are covered.
 - Listening-volume changes produce byte-identical exports. Rapid EQ edits do not invoke full-track mastering/export or interrupt the audition. The full-track export resolves loudness compensation rather than assuming the live estimate is exact.
 
-The browser uses the native Rust analysis/mastering and streaming EQ code. A target-specific monotonic clock and a shared memory/file WAV writer adapt it for WebAssembly; the native DSP was not retuned.
+The browser uses the native Rust analysis/mastering and streaming EQ code. A target-specific monotonic clock, a shared memory/file WAV writer and direct interleaved convolution output adapt it for WebAssembly; the native DSP was not retuned. The browser convolution path is required to match native channel-plane output exactly for mono/stereo and partial FFT blocks.
 
 ## Session, cancellation and privacy checks
 
@@ -43,10 +43,32 @@ Actual 1480 × 1000 desktop captures and 390 × 844 responsive viewport captures
 
 A three-minute synthetic stereo fixture at 48 kHz (65.92 MiB decoded) preserved **8,640,000 frames** and exported finite, peak-safe audio in Chrome. On that development-PC run, mastering including worker loading took about 25.6 seconds; total mastering plus WAV export took about 32.1 seconds. File decoding and UI interaction were not part of that measurement. One synthetic desktop case is not a cross-device speed promise or a competitor benchmark.
 
+## Long tracks and repeated use
+
+The reported iPhone rejection was an explicit **over-duration error**, not evidence that WAV/MP3 decoding or the file chooser failed. Browser preview v0.2 raises the old five-minute/96 MiB guards together, to **15 minutes and 384 MiB decoded**, with a **384 MiB source-file limit**. Bounds come from the Rust binding and are displayed near Add audio file. A real 15:01 file is rejected with a visible, focused explanation above the phone playback dock. Unit tests accept exactly 15:00 at 48 kHz mono/stereo and reject one extra frame; the independent decoded-byte bound is also tested.
+
+The following development-PC runs used **Chrome 156.0.8078.80**, actual Rust WASM, synthetic stereo sources, no audio uploads and no forced garbage collection:
+
+| Test | Observed result |
+| --- | --- |
+| Real file chooser and decoding | 6-minute and 15-minute WAV **and** MP3 files accepted; 15-minute MP3 reference accepted. Sources were 44.1 kHz, decoded at 48 kHz. |
+| Full 15-minute UI workflow | Imported a stereo WAV, mastered, played through the real AudioWorklet, adjusted EQ, stopped, and downloaded 24-bit WAV. All passed. 43,200,000 output frames; FFmpeg independently decoded 15:00 and measured −18.1 LUFS / −6.9 dBTP for this synthetic case. |
+| 15-minute UI memory | Peak sampled private committed memory for the isolated browser process group: **3,731.25 MiB (3.64 GiB)**. WASM heap capacity: **2,146.25 MiB**. These are different measurements; PCM size alone is not the total memory cost. |
+| Repeat-use soak | **40 consecutive 30-second tracks**, 20 minutes cumulatively, each replacing the previous mix without Clear. Every cycle mastered, played, changed EQ and exported. No failure or memory-limit rejection occurred. |
+| Repeat-use memory | WASM heap stayed at **69.75 MiB** for all 40 cycles. Sampled browser private-commit peak: **689.59 MiB**; post-cycle values settled around 635–664 MiB after warm-up. No continuing growth was observed over the tested range. |
+
+The app has **one active mix plus an optional reference**, so there is no queue whose combined duration reaches a fixed memory threshold. These 40 completed operations establish a tested lower bound on repeat use, **not a universal maximum track count**. Private committed bytes are sampled every 250 ms across the test browser's discovered processes; brief peaks can be missed. Audio buffers, JS, WASM and browser overhead are included, and freed allocation capacity may remain reserved until GC or tab/worker teardown. The UI run fell to about 1,623 MiB after Clear; that is not a promise of immediate memory return on phones.
+
+An engine-only 15-minute run also preserved 43,200,000 frames and finite output, then rendered final EQ and exported 259,200,068 bytes of 24-bit WAV. Its WASM high-water was 2,146.25 MiB; this excludes the main page's A/B AudioBuffers. Timing was about 125 seconds for worker loading/mastering and 157 seconds including export on that run. Timing is illustrative, not a cross-device benchmark.
+
+The reduced-copy input/preview/reference paths, browser convolution destination and reserved export buffers avoid unnecessary full-track allocations. This does **not** make a 15-minute job safe on every phone: the measured full workflow still used multiple GiB. The iPhone tester must retry the deployed fix, and actual mobile memory/playback qualification remains open. Supporting longer browser tracks reliably would require incremental decoding and processing/export with bounded memory.
+
+An independent review opened the actual new 390 × 844 limit/error screenshots and scored look, polish and readability **9/10 each**. This covers those two states only.
+
 ## Limits and reproduction
 
-The preview accepts one mono/stereo track at a time, up to five minutes **and** 96 MiB of decoded PCM, with a 100 MiB source-file limit. The decoded-PCM limit can be reached before five minutes. Browser decoding uses a 48 kHz context; input codec support varies. Export is WAV only. Full files are held in memory, so actual device capacity may be lower and decoding very long compressed files can fail before the decoded-size check.
+The preview accepts one mono/stereo mix plus an optional reference, **up to 15:00 per file**, within **384 MiB decoded PCM and 384 MiB source size**. All three bounds apply independently. Browser decoding uses a 48 kHz context; input codec support varies. Export is WAV only. Full files are held in memory, so actual device capacity may be lower and decoding very long compressed files can fail before the decoded-size check. There is no combined-duration/song-count quota.
 
 Physical iPhone/Android audio, headphones/Bluetooth routing, background/lock-screen interruptions, thermal behavior and full-song memory use remain open. The additional Linux-server check confirms the native desktop workflow and exports; audible hardware playback still needs a connected output device, and the file-picker portal remains unverified. Automated tests do not establish commercial-mastering equivalence or replace listening.
 
-Build, serve and reproduce the checks using [WEB.md](WEB.md). Test entry points are [verify_browser.py](../web/tools/verify_browser.py), [browser_audit.js](../web/tools/browser_audit.js), and the [Linux verifier](../rust/tools/verify_linux.py). Runtime browser use does not require FFmpeg or Python; those are development/verification tools.
+Build, serve and reproduce the checks using [WEB.md](WEB.md). Test entry points are [verify_browser.py](../web/tools/verify_browser.py), [browser_audit.js](../web/tools/browser_audit.js), [verify_imports.py](../web/tools/verify_imports.py), [verify_memory.py](../web/tools/verify_memory.py), and the [Linux verifier](../rust/tools/verify_linux.py). The maintained browser workflow runs actual long imports in Chromium/Firefox/Linux WebKit and a short replacement smoke; the 40-cycle and full 15-minute workflow measurements above are separate local Chrome runs. Runtime browser use does not require FFmpeg or Python; those are development/verification tools.

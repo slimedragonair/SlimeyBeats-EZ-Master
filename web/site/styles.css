@@ -1055,3 +1055,26 @@ dialog a {
 h1 {
     overflow-wrap: anywhere;
 }
+
+.import-limits {
+    font-size: 12px;
+    color: #c9bdd4;
+    grid-column: 1/-1;
+    margin: 0;
+    line-height: 1.5;
+}
+.import-error {
+    grid-column: 1/-1;
+    padding: 12px;
+    border: 1px solid #d7a1b5;
+    border-radius: 8px;
+    background: #3b1c32;
+    color: #ffe5ed;
+    font-size: 13px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+.import-error:focus {
+    outline: 2px solid #e5bfd6;
+    outline-offset: 3px;
+}
