@@ -23,12 +23,16 @@ Run `target/release/slimeybeats-ez-master-live.exe` or the batch CLI `target/rel
 Packaging requires Python 3.11+ and the already built release binaries. No Python packages are needed to assemble a release. The committed example WAVs/screenshots/icon are reused; regenerating those assets is a separate development step.
 
 ```powershell
+cargo build --locked --release --manifest-path mcp/server/Cargo.toml
+cargo build --locked --release --manifest-path plugins/host/Cargo.toml
 python rust/tools/build_release.py --out dist
 ```
 
 This creates a portable ZIP/folder, a clean GitHub source ZIP/folder, and a Windows Setup.exe. Output destinations must be new; earlier releases are not overwritten. The tool downloads a pinned portable NSIS 3.13 compiler from its official SourceForge project, verifies its SHA-256 and keeps it under `rust/target/release-tools/`. An existing compiler can be passed with `--nsis PATH-TO-makensis.exe`.
 
 The installer is per-user, uses HKCU registration and does not require administrator rights. Program-file removal is generated from its actual payload. It does not recursively delete the installation root or the user's settings, exports, custom profiles or Examples folder. See [release verification](RELEASING.md).
+
+The full Studio distribution includes the MCP companion, isolated VST3 worker, connection helper and separate dependency inventories. Neural model/runtime downloads remain optional and outside the installer. Prerelease Cargo versions use the **Studio Preview** installation identity, with separate program folders, registry entries and shortcuts from stable builds. Windows numeric version resources are derived from the numeric core of the SemVer version.
 
 The license inventory resolves locked Cargo metadata for all platforms, including packages a Windows build may not have cached. First-time packaging therefore needs network access. When packaging the original `v0.4.2` tag, prefetch these packages with `cargo fetch --locked --manifest-path rust/Cargo.toml`; current tooling fetches missing metadata automatically and reports its errors.
 
@@ -40,7 +44,7 @@ python rust/tools/verify_exports.py --input YOUR-STEREO-WAV
 
 ## MCP companion preview
 
-Build both native binaries as above, then run `cargo build --locked --release --manifest-path mcp/server/Cargo.toml` from the repository root. On Windows, `python mcp/tools/package_companion.py --out dist/MCP` produces a separate companion preview ZIP containing the server, matching desktop build, folder-selection setup helper, docs, CC0 input example and dependency notices. Destinations must be new. This does not modify or publish the v0.4.2 installer. See [MCP setup and privacy](MCP.md) and [validation](MCP_VALIDATION.md).
+Build the desktop, MCP and VST3 worker as above. On Windows, `python mcp/tools/package_companion.py --out dist/MCP` produces a separate companion ZIP containing the server, matching desktop, worker, folder-selection setup helper, docs, CC0 input example and dependency notices. Destinations must be new. This does not modify or publish the v0.4.2 installer. See [MCP setup and privacy](MCP.md) and [validation](MCP_VALIDATION.md).
 
 ## Public source boundary
 

@@ -35,6 +35,7 @@ jobs:
       - name: Verify Studio DSP routes and model-cache handling
         run: |
           python tools/test_stem_model_install.py
+          python tools/test_installation_identity.py
           python ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Build and check isolated VST3 worker
@@ -76,6 +77,7 @@ jobs:
       - name: Verify Studio DSP routes and model-cache handling
         run: |
           python3 tools/test_stem_model_install.py
+          python3 tools/test_installation_identity.py
           python3 ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Build and check isolated VST3 worker

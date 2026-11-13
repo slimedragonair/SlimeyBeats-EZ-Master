@@ -1,6 +1,6 @@
 # Studio editing preview
 
-Studio extends the desktop mastering workflow with separate editing stages. It is development source, undergoing qualification; the published v0.4.2 installer does not contain these tools. Existing mastering and real-time Manual EQ remain available. Processing a preview and exporting a delivery file remain separate actions.
+Studio Preview **0.5.0-beta.1** extends the desktop mastering workflow with separate editing stages. Its installer uses a separate Preview identity and can coexist with stable v0.4.2. The stable installer does not contain these tools. Existing mastering and real-time Manual EQ remain available. Processing a preview and exporting a delivery file remain separate actions.
 
 ## Desktop workflow
 
@@ -20,11 +20,17 @@ The engine maintenance disclosure offers **Verify installed model** and **Repair
 
 ## Optional VST3 effects
 
+![The actual four-stem workspace](images/studio-stems.png)
+
+[Open the stem workspace at full size](images/studio-stems.png). The figures illustrate the running app; the instructions above carry the workflow.
+
 Build/install the `plugins/host` helper beside the desktop/MCP binaries. Choose a trusted VST3 file or x64 bundle, probe its audio-effect classes, adjust discovered generic parameters and **Preview plugin effect**. Values use each plugin's normalized 0–1 mapping. Compare before exporting.
 
 The initial host supports compatible mono/stereo float32 audio effects and offline preview rendering. It compensates reported latency and trims the result to the source duration. Native vendor editors, MIDI/instrument sequencing, arbitrary plugin compatibility and persistent vendor state are outside this initial scope. Plugins run native code in a separate process for crash/cancellation containment; this is not an OS security sandbox. Plugins may have their own network/licensing behavior.
 
 ## Browser Studio
+
+[Native repair view](images/studio-repair.png) · [Native effect controls](images/studio-plugins.png) · [Responsive browser repair view](images/studio-web-phone.png).
 
 The browser **Studio** tab supports a recording or imported vocal/instrumental/four-stem set, rebalancing, voice cleanup, a selectable spectrogram, repair, A/B playback, undo/redo, WAV export and a raw stem ZIP. **Use preview for mastering** loads a working copy into the existing browser mastering workflow while retaining Studio. **Close Studio** releases its workspace. Reloading/closing the page discards unsaved audio.
 
@@ -49,16 +55,17 @@ Plugin execution additionally requires owner-configured `--plugin-root` folders;
 | Shared audio DSP | Eight focused regressions passed for stem reconstruction/mixing, cleanup, spectrogram behavior and localized repair. Samples outside the selected repair time remain unchanged before later export stages. |
 | Local model | Real CPU separation passed in two/four modes, including a multi-chunk fixture and a 45-second source-rate adapter test. Aligned finite stems and neutral reconstruction were checked. This is not a listening-quality benchmark. |
 | Native/MCP | Real stdio tests passed editing, stale-ID rejection, undo/redo, explicit exports, imported stems, direct stem replacement, mastering promotion, self-contained projects and desktop handoff. Source hashes were retained. |
-| Current native regression | 93 Windows native tests and eight MCP regressions passed; Windows/Linux shared-source Clippy passed with warnings denied. The original stdio workflow passed all six export formats. New project regressions preserve direct stem-edit lineage after reopening. |
+| Current native regression | **94 Windows / 96 Linux native tests**, eight Windows / nine Linux MCP regressions, strict Clippy and release builds passed on the beta source. The original stdio workflow passed all six export formats. Project regressions preserve direct stem-edit lineage after reopening. |
 | Runtime recovery | A real installed test cache passed verification, detected same-size model-index corruption, then completed explicit repair, reinstallation and inference self-test with the original index hash restored. Four extraction/cache regressions passed, including preserving malformed provenance in a backup. |
 | VST3 | External gain fixtures passed mono/stereo processing, generic gain changes and a fixed 137-frame latency case, with sample-exact expected gain after compensation and source duration retained. Existing files were preserved. A native fault module passed null-factory failure, plugin-initiated worker exit and cancellation of a stalled factory; the MCP parent retained its source and could analyze again. This covers compatible fixture effects, not arbitrary third-party plugins. |
 | Browser Studio | Chrome 156, Firefox 144.0.2 and Linux WebKit 26.0 passed real UI/worker workflows: two/four imports, gain/mix, cleanup applied to one stem while preserving others exactly, repair, A/B, undo/redo, WAV/ZIP export and mastering handoff. Failed/cancelled edits and misaligned imports retained the previous preview. 390px layout/reachable export checks passed. |
 | Browser regression | The original Chrome mastering/EQ suite passed, including AudioWorklet samples matching shared Rust exactly, three WAV formats, reference invalidation, cancellation/late decode safety, offline analysis and unchanged exports at different listening volumes. |
 | Fresh-agent MCP | An agent with no project/chat history imported four stems, cleaned and applied the vocal edit, retained other stems, rebalanced and prepared a preview using only live instructions/schemas/help. It did not export until a later explicit save instruction, then saved WAV/report, raw stems and a self-contained project and closed cleanly. A missing returned bank ID it reported was fixed. This qualifies the tested protocol harness, not every AI client/model. |
-| Browser visual review | Independent inspection of actual desktop/390px repair captures scored theme 9.2, polish 9.0 and readability 9.1 after fixing overflow, annotation size, selection contrast and active-workspace status. Native Studio screen review remains separate. |
+| Visual review | Final actual beta captures passed independent review in all six supplied native/browser views, each ≥9 for look, polish and readability. The compact native repair view scored 9.2 / 9.1 / 9.1. Review establishes appearance in those regions, not hearing or pointer precision. |
 | Import bounds | Actual WASM staging accepted 128 MiB combined and rejected one frame over. A 900-second 8 kHz mono binding input was accepted and one frame over duration rejected; a rejected load preserved the prior source. This tests binding guards, not full-length physical-phone processing. |
 | Studio replacement soak | Chrome completed 60 × 10-second source replacement/cleanup/undo/redo/download cycles without Close or forced GC. Studio WASM capacity remained 12.5 MiB; isolated browser private memory peaked at about 745 MiB. Private memory grew during the run, including retained download/engine allocations, so this is a bounded successful soak, not proof of a total-memory plateau or a phone maximum. |
-| Remaining qualification | New native screen review, additional plugin/process fault cases, final Windows/Linux/package checks, unfamiliar-agent MCP review, release packaging and physical mobile playback remain open. Windows WebKit stalled; the maintained Linux WebKit environment completed the suite. |
+| Installer | The beta candidate passed install, actual GUI/MCP/worker use, self-contained project reopening, upgrade without repeating its custom directory, and uninstall. Settings, profiles, exports, an edited example and Studio projects remained intact. The existing stable channel was unchanged. |
+| Platform scope | Linux validation used a private Xvfb display and synthetic ALSA null output. Physical iPhone/Android playback, mobile memory/thermal limits and broad third-party plugin compatibility remain unqualified. Windows WebKit stalled; the maintained Linux WebKit environment completed the suite. |
 
 Reproduce browser checks with `python web/tools/verify_studio_browser.py --out PATH`, selecting `--browser firefox` or `--browser webkit` as needed. `verify_studio_memory.py` exercises repeated replacement, cleanup, undo/redo and downloaded export without forcing garbage collection; `--check-limits` additionally stages the actual boundary buffers. Existing `verify_browser.py` remains the mastering/live-EQ check. CI runs the Studio suites separately. A desktop browser engine or a synthetic audio sink does not qualify a physical iPhone/Android device.
 

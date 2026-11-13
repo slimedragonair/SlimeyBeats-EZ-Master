@@ -13,7 +13,7 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-**Studio development preview:** current development adds local vocal/instrumental and four-stem separation, imported-stem rebalancing, voice cleanup, spectral repair, self-contained projects and an optional isolated VST3 effect host. The MCP exposes the editing workflows too. Browser Studio supports imported stems, mixing, cleanup and repair using the shared Rust DSP. These additions are under qualification and are **not included in the published v0.4.2 installer**. See the [Studio guide and validation status](docs/STUDIO.md).
+**Studio Preview 0.5.0-beta.1:** local vocal/instrumental and four-stem separation, imported-stem rebalancing, voice cleanup, spectral repair, self-contained projects and optional isolated VST3 effects. The included MCP companion exposes 36 self-describing tools. Browser Studio supports imported stems, mixing, cleanup and repair using shared Rust DSP. The Preview installs separately from stable; these additions are **not included in the v0.4.2 installer**. See the [Studio guide and validation](docs/STUDIO.md).
 
 [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
@@ -49,7 +49,19 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 WAV input and output work immediately, without Python or FFmpeg. Compressed formats and sample-rate conversion require FFmpeg/ffprobe installed separately. See [installation and codec setup](docs/INSTALLATION.md).
 
+## Studio Preview
+
+Separate vocals/instrumental or four stems, or import your own aligned parts. Rebalance, clean a voice or repair a selected region, then compare and undo before saving. **Use for mastering** sends the prepared mix into the familiar mastering workflow; Export remains a separate action.
+
+![Actual Studio Preview spectral repair screen, with time/frequency selection and pinned listening controls](docs/images/studio-repair.png)
+
+[Open the native capture at full size](docs/images/studio-repair.png) · [Stem Studio capture](docs/images/studio-stems.png) · [VST3 controls capture](docs/images/studio-plugins.png). These are renderer captures of the running beta, using the credited example audio. [Workflow, model setup, limits and validation](docs/STUDIO.md).
+
+The Preview installer includes the desktop, MCP companion and effect worker and uses separate folders/shortcuts from stable. Model setup is optional; imported stems, cleanup and repair work without it. The browser's editing subset keeps audio private and uses a separate 128 MiB combined-input budget.
+
 ## Try the example track
+
+The same example can also be used to explore Studio's nondestructive preview workflow. See [Studio Preview](#studio-preview).
 
 The repository includes a 45-second electronic-music example based on **Technological Messup** by **Bärghest**, released under **CC0**. The input is a faded, headroom-adjusted excerpt of an existing recording, not an untouched studio premaster.
 
@@ -104,7 +116,7 @@ Audio and measurements stay in tab memory until you download them. There are no 
 
 | Current source scope | Verified behavior / maintained checks |
 |---|---|
-| Windows / Linux native | Current Studio development passed **93 Windows tests** and Windows/Linux strict Clippy. Full Linux Studio/package qualification is in progress; the earlier source baseline passed 84 Linux tests plus exports, XDG paths and GUI checks. [Studio status](docs/STUDIO.md). |
+| Windows / Linux native | Studio beta passed **94 Windows / 96 Linux native tests**, strict Clippy and release builds. Real local model setup, two/four separation, projects, exports and native Studio render checks passed. Linux used a synthetic audio sink. [Scope](docs/STUDIO.md). |
 | Local MCP source preview | **36 tools**, eight current Windows companion regressions, real stdio workflows and six verified export formats. Studio adds model/imported stems, cleanup, repair, plugins, projects and mastering handoff. A fresh agent completed imported-stem editing using only live discovery/help. [Setup](docs/MCP.md) · [Studio validation](docs/STUDIO.md). Published v0.4.2 installers do not include this companion. |
 | Linux-server integration | Maintainer-reported pass: **79 tests and lint**, mastering, six export formats, GUI launch/import/mastering/EQ, and installed desktop/menu launchers, without application source changes. Hardware playback and the file-picker portal remain unverified. |
 | Browser audio | Actual worker mastering and AudioWorklet PCM comparison with the shared Rust processor; deterministic EQ suggestions; mono/stereo/silence; three decoded and independently measured WAV formats. |
@@ -113,7 +125,7 @@ Audio and measurements stay in tab memory until you download them. There are no 
 | Browser duration and memory | Chrome accepted real 6-/15-minute WAV and MP3 imports and completed a 15-minute master/playback/EQ/export workflow. **40 × 30-second replacement/master/export cycles passed** without continuing memory growth. The 15-minute run peaked around **3.64 GiB of browser private memory**; phones can have lower capacity. [Detailed measurements](docs/WEB_VALIDATION.md#long-tracks-and-repeated-use). |
 | Browser MP3 timing | Correct recognized encoder padding when WebKit includes it in decoded duration, preserving the strict 15-minute cap. Real long imports and independent mono/stereo timing comparisons cover this boundary. [Scope and results](docs/WEB_VALIDATION.md#mp3-padding-at-the-duration-boundary). |
 | Browser matrix | Chromium, Firefox and Linux WebKit integration in [Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml). Required together with Windows/Linux checks before merging. |
-| Appearance | Existing mastering/EQ desktop and phone states passed independent review **≥9/10** for look, polish and readability. New Studio screens are receiving a separate review; see the [current scope](docs/STUDIO.md). |
+| Appearance | Actual Studio beta captures—four native views and desktop/phone browser repair—passed independent review **≥9/10** for look, polish and readability. Earlier mastering/EQ states passed separately. Static review does not certify interaction or sound. |
 
 Read the [browser validation record](docs/WEB_VALIDATION.md) and [Linux validation guide](docs/LINUX.md) for environments, fixtures, measured results, reproduction commands and remaining gaps. The CI badges and linked artifacts show the latest commit's status. **Physical iPhone/Android playback is still unqualified.** Linux-server build, export and GUI checks passed; audible playback awaits a connected output device, and the file-picker portal still needs testing. A responsive layout or synthetic audio sink does not establish device acceptance.
 

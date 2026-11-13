@@ -7,6 +7,7 @@ import subprocess
 import zipfile
 import tomllib
 from release_packaging.public_source import copy_public_source, GUIDES, DEMO_FILES
+from release_packaging.companion_payload import companion_binaries, copy_companion
 
 
 def dependency_notices(project, destination):
@@ -58,6 +59,9 @@ def package(project, parent, version, evidence):
     # A fresh directory protects earlier releases and any user-created settings/exports.
     if destination.exists() or archive.exists():
         raise FileExistsError(f"Release destination already exists: {destination}")
+    for source in companion_binaries(project.parent):
+        if not source.is_file():
+            raise FileNotFoundError(source)
     destination.mkdir(parents=True)
     binaries = {
         "slimeybeats-ez-master-live.exe": "SlimeyBeats-EZ-Master.exe",
@@ -65,8 +69,11 @@ def package(project, parent, version, evidence):
     }
     for source, target in binaries.items():
         shutil.copy2(project / "target/release" / source, destination / target)
-    source_root = copy_public_source(project.parent, destination / "source")
+    copy_public_source(project.parent, destination / "source")
     shutil.copy2(project.parent / "LICENSE", destination / "LICENSE")
+    credits = (project.parent / "THIRD_PARTY_NOTICES.md").read_text(encoding='utf-8')
+    credits = credits.replace('examples/audio/', 'Examples/').replace('rust/assets/ASSETS.md','docs/ASSETS.md').replace('rust/tests/fixtures/README.md','docs/fixture-credits.md')
+    (destination / 'THIRD_PARTY_NOTICES.md').write_text(credits,encoding='utf-8')
     policy = (project.parent / "OUTPUT_OWNERSHIP.md").read_text(encoding="utf-8")
     (destination / "OUTPUT_OWNERSHIP.md").write_text(policy.replace("examples/audio/CREDITS.md", "Examples/CREDITS.md"), encoding="utf-8")
     shutil.copytree(project / "docs", destination / "docs")
@@ -75,6 +82,8 @@ def package(project, parent, version, evidence):
         text = text.replace("../examples/audio/", "../Examples/").replace("examples/audio/demo-input.wav", "Examples/demo-input.wav")
         (destination / "docs" / name).write_text(text, encoding="utf-8")
     shutil.copytree(project.parent / "docs/images", destination / "docs/images")
+    shutil.copytree(project.parent / 'docs/legacy', destination / 'docs/legacy')
+    shutil.copy2(project / 'tests/fixtures/README.md', destination / 'docs/fixture-credits.md')
     example = destination / "Examples"
     example.mkdir()
     for name in DEMO_FILES:
@@ -89,6 +98,7 @@ def package(project, parent, version, evidence):
     if evidence:
         shutil.copytree(evidence, destination / "verification")
     dependency_notices(project, destination)
+    copy_companion(project.parent, destination, dependency_notices)
     (destination / "Start SlimeyBeats.bat").write_text(
         '@echo off\r\ncd /d "%~dp0"\r\nstart "" "%~dp0SlimeyBeats-EZ-Master.exe" %*\r\n',
         encoding="ascii", newline="",
@@ -101,6 +111,13 @@ def package(project, parent, version, evidence):
         "Mastering prepares an in-memory preview. Export is a separate action.\n"
         "Manual EQ updates while playing; its live spectrum shares the EQ graph.\n"
         "Hover names and controls for help. Suggestions are editable starting points.\n\n"
+        "Studio: local vocal/instrumental or four-stem separation, imported stems,\n"
+        "rebalancing, voice cleanup, spectral repair and trusted VST3 effects.\n"
+        "Neural separation needs the optional isolated engine download; no audio\n"
+        "is uploaded. Models/runtime are not bundled. Read docs/STUDIO.md.\n\n"
+        "AI control: run Connect AI Assistant.bat to prepare a local MCP connection.\n"
+        "The companion and VST3 worker are included. Native plugin access is disabled\n"
+        "for AI until an owner adds trusted --plugin-root folders. See docs/MCP.md.\n\n"
         "Example audio: open Examples/Listen.html or add Examples/demo-input.wav.\n"
         "Offline illustrated guide: docs/GETTING_STARTED.html.\n\n"
         "MIT software: use/change/redistribute freely while retaining its notice.\n"
@@ -119,7 +136,8 @@ def package(project, parent, version, evidence):
         "source/rust/README.md for detailed operation and compatibility.\n"
         "This revised DSP is not sample-identical to the original Python tool.\n"
         "Listening across more songs/devices remains a separate acceptance step.\n"
-        "This release is desktop-only; a web/mobile app is future work.\n\n"
+        "The private browser companion is documented in docs/WEB.md. Imported-stem\n"
+        "editing works there; neural extraction and native VST3 remain desktop tools.\n\n"
         "Source, dependencies, artwork provenance, research and review evidence are\n"
         "included. Only the documented CC0 demo is bundled, not personal audio/settings.\n",
         encoding="utf-8",

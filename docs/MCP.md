@@ -47,6 +47,8 @@ The server ships its own instructions, tool schemas, defaults and a `get_help` t
 
 The intended flow is **Analyze → Master → audition/EQ/re-master → Export**. Suggestions are editable proposals. The tool returns measurements and paths, not audio content; an assistant cannot claim to have heard the track from these results. Genre profiles and artifact indicators are heuristics, not universal quality ratings.
 
+The Studio Preview installer also includes the companion and VST3 worker. Open **Connect AI assistant** from its Start menu group to prepare a connection example; the same library/output arguments apply.
+
 ## Tools
 
 The current development companion exposes **36 tools**, including the Studio additions below. Published v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.

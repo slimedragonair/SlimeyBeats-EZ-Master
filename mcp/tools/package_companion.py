@@ -25,12 +25,15 @@ def package(destination, server, desktop):
     root.mkdir(parents=True)
     shutil.copy2(server, root / "slimeybeats-mcp.exe")
     shutil.copy2(desktop, root / "SlimeyBeats-EZ-Master.exe")
+    host = REPOSITORY / 'plugins/host/target/release/slimeybeats-vst3-host.exe'
+    if not host.is_file(): raise FileNotFoundError(host)
+    shutil.copy2(host, root / host.name)
     for name in ("LICENSE", "OUTPUT_OWNERSHIP.md", "THIRD_PARTY_NOTICES.md"):
         shutil.copy2(REPOSITORY / name, root / name)
     policy = (root / "OUTPUT_OWNERSHIP.md").read_text(encoding="utf-8")
     (root / "OUTPUT_OWNERSHIP.md").write_text(policy.replace("examples/audio/", "Examples/"), encoding="utf-8")
     (root / "docs").mkdir()
-    for name in ("MCP.md", "MCP_VALIDATION.md"):
+    for name in ("MCP.md", "MCP_VALIDATION.md", "STUDIO.md", "LINUX.md"):
         text = (REPOSITORY / "docs" / name).read_text(encoding="utf-8")
         text = text.replace("(LINUX.md)", "(https://github.com/slimedragonair/SlimeyBeats-EZ-Master/blob/main/docs/LINUX.md)")
         (root / "docs" / name).write_text(text, encoding="utf-8")
@@ -42,7 +45,7 @@ def package(destination, server, desktop):
     examples.mkdir()
     for name in DEMO_FILES:
         shutil.copy2(REPOSITORY / "examples/audio" / name, examples / name)
-    for name, project in (("MCP-dependencies", "mcp/server"), ("Desktop-dependencies", "rust")):
+    for name, project in (("MCP-dependencies", "mcp/server"), ("Desktop-dependencies", "rust"), ("Plugin-dependencies", "plugins/host")):
         notices = root / name
         notices.mkdir()
         dependency_notices(REPOSITORY / project, notices)
@@ -56,7 +59,8 @@ def package(destination, server, desktop):
         "master, then open it in the desktop app so I can listen before exporting.\n\n"
         "Included: local stdio MCP server, desktop build with session handoff, CC0 example,\n"
         "setup helper and dependency notices. The published v0.4.2 installer is unchanged.\n"
-        "The desktop engine still identifies as 0.4.2; this preview adds MCP/session support.\n\n"
+        "This preview includes desktop Studio, self-contained project handoff and\n"
+        "the optional VST3 worker. See the component --version commands.\n\n"
         "WAV works without codecs. Compressed imports, FLAC/MP3 exports and resampling\n"
         "require separately installed ffmpeg and ffprobe on PATH. No AI model is bundled.\n"
         "Audio is processed locally. Your AI client controls metadata sent to its provider.\n"

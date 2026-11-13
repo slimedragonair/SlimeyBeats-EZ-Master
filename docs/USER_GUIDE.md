@@ -9,6 +9,8 @@
 
 ## Reading the controls
 
+Studio Preview adds a separate editing workspace for stems, voice cleanup, spectral repair and compatible VST3 effects. It preserves the main mastering workflow above. Follow the [Studio guide](STUDIO.md) for model setup, imported stems, A/B, undo, projects and explicit exports.
+
 | Control | Meaning |
 |---|---|
 | Integrated LUFS | Average programme loudness with weighting/gating; not a quality score or a universal release target |

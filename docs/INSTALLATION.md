@@ -8,6 +8,12 @@ The installer is unsigned. Check that it came from the project's own release bef
 
 Start **SlimeyBeats-EZ-Master** from the Start menu. The example WAV works without installing anything else. The Start menu also contains an example-audio link and the uninstaller.
 
+## Studio Preview 0.5.0-beta.1
+
+The Studio Preview installer includes the desktop app, MCP companion and VST3 worker. It uses **SlimeyBeats-EZ-Master Studio Preview** in Apps and the Start menu, a separate installation folder and separate registration from stable v0.4.2. Both can coexist. Upgrade a preview in its preview folder; the installer rejects the other channel's marked folder. Preview uninstall preserves settings, exports, profiles, example edits and saved Studio projects.
+
+Open **Connect AI assistant** from its Start menu group to prepare a local connection example. Neural extraction uses an optional one-time engine/model download from Studio; other editing tools work without that runtime. Downloaded model/runtime cache data is outside the program folder and is retained on uninstall. [Studio workflow and limits](STUDIO.md).
+
 ## Portable ZIP
 
 Extract the complete ZIP to a writable folder. Open `Start SlimeyBeats.bat` or `SlimeyBeats-EZ-Master.exe`. Keep its documentation, license and notice files together if redistributing it.
