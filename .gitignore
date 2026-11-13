@@ -42,3 +42,9 @@ rust/target/
 !examples/audio/demo-master.wav
 !examples/audio/listen-input.mp3
 !examples/audio/listen-master.mp3
+
+# Browser build products
+web/dsp/target/
+web/dist/
+web/site/pkg/
+web/site/assets/

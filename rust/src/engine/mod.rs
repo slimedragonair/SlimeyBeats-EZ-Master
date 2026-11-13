@@ -1,6 +1,7 @@
 mod chain;
 mod planning;
 mod tonal_correction;
+use crate::clock::Instant;
 use crate::{
     analysis::{self, Analysis, transients},
     audio::Audio,
@@ -11,7 +12,6 @@ use crate::{
 };
 use anyhow::{Result, ensure};
 use serde_json::Value;
-use std::time::Instant;
 
 pub struct Mastered {
     pub audio: Audio,

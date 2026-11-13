@@ -8,11 +8,11 @@
 
 **Local song mastering. Real-time EQ. Your music stays yours.**
 
-SlimeyBeats-EZ-Master is a native Rust desktop mastering app for Windows. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
+SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Linux source support, and a private browser preview. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
 
-**Windows x64 · MIT licensed · No account or subscription · Local processing**
+**Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-[Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+[Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
 **Installer note:** v0.4.2 is unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
 
@@ -73,9 +73,17 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 | Processing | Local; full tracks are held in memory |
 | Installer data | Settings and exports are kept on your computer and preserved by uninstall |
 
-The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. Web, Android and iPhone versions are future work.
+The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. The [browser preview](docs/WEB.md) processes audio locally with Rust/WebAssembly, including real-time EQ and WAV export. It has a responsive phone layout; physical iPhone and Android devices still need qualification. Native Android/iOS apps are future work.
 
 Ubuntu 24.04 x86_64 source-build and runtime validation is available separately; see the [Linux validation guide](docs/LINUX.md). The downloadable v0.4.2 installer above is for Windows. Linux physical playback and portal dialogs still require desktop-device qualification.
+
+## Browser preview
+
+Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV. The preview supports one mono/stereo track up to five minutes, uses a 48 kHz decoded sample rate, and exports 16/24-bit PCM or 32-bit float WAV. The desktop app remains the choice for longer files, source-rate handling, batch queues and compressed exports. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
+
+![The real browser preview with live spectrum and EQ, separate Master and Export, and local Rust processing](docs/images/web-preview.png)
+
+The browser screenshot above is from the running app. [Open it at full size](docs/images/web-preview.png). On phones, select one of seven bands and keep the playback dock available while editing.
 
 ## Evidence and limits
 

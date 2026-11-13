@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add a private static browser preview using the shared Rust engine in WebAssembly: local decoding/analysis/mastering, AudioWorklet live EQ, overlaid spectrum, deterministic EQ suggestions, matched A/B audition, reference profiles, three verified WAV formats and touch-friendly help.
+- Add responsive SlimeDragon styling, browser qualification, static-site build/license inventory and GitHub Pages deployment. Native v0.4.2 release artifacts remain unchanged.
+
 - Add Ubuntu Linux build/export/GUI validation, XDG settings/data paths, Linux system-font lookup and platform-native output-folder opening; preserve the Windows portable layout and DSP.
 - Fix installer packaging on fresh runners by allowing locked Cargo metadata to fetch platform packages needed for the license inventory; include Cargo's error details on failure.
 - Make hosted installer verification explicitly command-line-only, retain full GUI verification by default locally, and include capture error output when it fails.

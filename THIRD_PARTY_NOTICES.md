@@ -8,6 +8,10 @@ Native releases include `THIRD-PARTY.json` and `licenses/`, generated from the l
 
 The runtime does not bundle the legacy Python virtual environment, PySide6/Qt or a Python interpreter. It does not bundle FFmpeg/ffprobe; those optional external programs retain the license of the distribution a user installs.
 
+## Browser preview
+
+The static browser build includes its own `THIRD-PARTY.json` and dependency `licenses/`, generated from the locked `web/dsp` Cargo graph. WebAssembly bindings use wasm-bindgen and the browser clock uses web-time, under their original licenses. The browser build does not bundle FFmpeg, external fonts, or analytics. The optional example recording keeps its CC0 credits. Original software/artwork and audio-output ownership follow the same terms as the native app.
+
 ## Separately licensed content
 
 | Content | License and attribution |

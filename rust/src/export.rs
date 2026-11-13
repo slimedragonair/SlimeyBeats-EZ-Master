@@ -13,46 +13,8 @@ use std::{
 use tempfile::{Builder, NamedTempFile};
 
 fn wav(audio: &Audio, path: &Path, format: &str, dither: bool) -> Result<()> {
-    let float = format == "wav32f";
-    let bits = if float {
-        32
-    } else if format.ends_with("16") {
-        16
-    } else {
-        24
-    };
-    let spec = hound::WavSpec {
-        channels: audio.channels as u16,
-        sample_rate: audio.sample_rate,
-        bits_per_sample: bits,
-        sample_format: if float {
-            hound::SampleFormat::Float
-        } else {
-            hound::SampleFormat::Int
-        },
-    };
-    let mut writer = hound::WavWriter::create(path, spec)?;
-    let scale = 2_f64.powi(bits as i32 - 1);
-    let mut random = 0x6d61737465726372_u64;
-    let mut uniform = || {
-        random ^= random << 13;
-        random ^= random >> 7;
-        random ^= random << 17;
-        (random >> 11) as f64 / (1_u64 << 53) as f64
-    };
-    for &sample in &audio.samples {
-        if float {
-            writer.write_sample(sample)?;
-        } else {
-            let noise = if dither { uniform() - uniform() } else { 0. };
-            let quantized = (sample as f64 * scale + noise)
-                .round()
-                .clamp(-scale, scale - 1.) as i32;
-            writer.write_sample(quantized)?;
-        }
-    }
-    writer.finalize()?;
-    Ok(())
+    let file = std::io::BufWriter::new(std::fs::File::create(path)?);
+    crate::wav_encoding::write_wav(audio, file, format, dither)
 }
 fn temporary(dir: &Path, suffix: &str) -> Result<NamedTempFile> {
     Ok(Builder::new()

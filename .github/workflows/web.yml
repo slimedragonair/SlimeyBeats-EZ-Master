@@ -1,0 +1,72 @@
+name: Browser preview
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: browser-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Rust and WebAssembly
+        run: |
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+          rustup component add rustfmt clippy
+      - name: Install matching wasm-bindgen CLI
+        run: |
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
+          echo '9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f  /tmp/wasm-bindgen.tar.gz' | sha256sum --check
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          echo '/tmp/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl' >> "$GITHUB_PATH"
+      - name: Check binding crate
+        run: |
+          cargo fmt --manifest-path web/dsp/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path web/dsp/Cargo.toml --target wasm32-unknown-unknown -- -D warnings
+      - name: Build static site and license inventory
+        run: python3 web/tools/build.py
+      - name: Install browser test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_test'
+          echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
+          python3 -m pip install playwright==1.57.0
+          python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Verify Chromium
+        run: python3 web/tools/verify_browser.py --out '${{ runner.temp }}/browser-checks/chromium'
+      - name: Verify Firefox
+        run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'
+      - name: Verify WebKit
+        run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: SlimeyBeats-browser-validation
+          path: ${{ runner.temp }}/browser-checks
+          if-no-files-found: warn
+      - uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: web/dist
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: browser
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish private-processing static preview
+        id: deployment
+        uses: actions/deploy-pages@v4

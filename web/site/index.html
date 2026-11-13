@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+        <meta name="theme-color" content="#120e1c" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+        />
+        <meta
+            name="description"
+            content="Private song mastering and real-time EQ. Your audio stays in your browser. Free, open-source SlimeDragon Audio software."
+        />
+        <title>SlimeyBeats-EZ-Master · SlimeDragon Audio</title>
+        <link rel="icon" href="assets/slimeybeats-small-icon.png" />
+        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="responsive.css" />
+    </head>
+    <body>
+        <div class="app-shell">
+            <header class="masthead">
+                <a class="brand" href="./" aria-label="SlimeDragon Audio, home"
+                    ><img
+                        src="assets/slimeybeats-small-icon.png"
+                        alt=""
+                        width="64"
+                        height="64"
+                    /><span
+                        ><strong>SlimeDragon Audio</strong
+                        ><small
+                            >✦ EZ-Master
+                            <span class="brand-detail"
+                                >&nbsp; | &nbsp; Song mastering & EQ</span
+                            ></small
+                        ></span
+                    ></a
+                >
+                <svg
+                    class="slime-crown"
+                    viewBox="450 0 810 170"
+                    aria-hidden="true"
+                >
+                    <image
+                        href="assets/slimeybeats-slime-frame.png"
+                        width="1586"
+                        height="992"
+                    /></svg
+                ><img
+                    class="crest"
+                    src="assets/sovereign-amethyst-crest.png"
+                    alt=""
+                />
+                <div class="header-actions">
+                    <span class="privacy-badge"><i></i> Private by design</span
+                    ><button id="analyze" class="primary" disabled>
+                        ◈ Analyze
+                    </button>
+                </div>
+            </header>
+            <main class="workspace">
+                <aside class="library panel" aria-label="Your track">
+                    <div class="eyebrow">✦ Your session</div>
+                    <h2>Your sound. <br />Your space.</h2>
+                    <p class="muted">
+                        One track at a time.<br />Nothing leaves your device.
+                    </p>
+                    <button id="add" class="primary wide">
+                        ＋ Add audio file</button
+                    ><input
+                        id="file"
+                        type="file"
+                        accept="audio/*,.wav,.flac,.mp3,.m4a,.ogg,.aiff"
+                        hidden
+                    />
+                    <button id="demo" class="quiet wide">
+                        Try the example track ↗
+                    </button>
+                    <button id="drop" class="drop-zone">
+                        <span class="drop-icon">⇩</span
+                        ><strong>Drop your mix here</strong
+                        ><span
+                            >WAV, MP3, FLAC, M4A<br />and browser-supported
+                            audio</span
+                        ><small>Mono / stereo · Up to 5 min</small>
+                    </button>
+                    <div id="track-card" class="track-card" hidden>
+                        <span class="eyebrow">Current track</span
+                        ><strong id="filename"></strong>
+                        <p id="filemeta" class="muted"></p>
+                        <button id="clear" class="quiet">Remove track</button>
+                    </div>
+                    <div class="library-art">
+                        <img
+                            src="assets/slimeybeats-dragon-portrait.png"
+                            alt="SlimeDragon, a teal skeletal dragon with a violet eye and amethyst orb"
+                        /><span>SLIMEDRAGON AUDIO</span>
+                    </div>
+                    <button id="privacy" class="text-button">
+                        Privacy & compatibility
+                    </button>
+                </aside>
+                <section class="studio panel" aria-label="Mastering studio">
+                    <div class="studio-heading">
+                        <div>
+                            <span class="eyebrow" id="session-state"
+                                >Your next master starts here</span
+                            >
+                            <h1 id="track-title">Shape your sound.</h1>
+                        </div>
+                        <span id="engine-status" class="engine-tag"
+                            >Loading Rust engine…</span
+                        >
+                    </div>
+                    <nav class="tabs" aria-label="Studio pages">
+                        <button
+                            id="tab-overview"
+                            class="selected"
+                            aria-current="page"
+                        >
+                            ⌂ Overview</button
+                        ><button id="tab-eq">☷ Manual EQ</button
+                        ><button id="tab-report">▤ Report</button>
+                    </nav>
+                    <div class="mobile-actions">
+                        <button id="mobile-master" class="primary" disabled>
+                            ◇ Master track</button
+                        ><button id="mobile-export" disabled>
+                            ↥ Export WAV
+                        </button>
+                    </div>
+                    <div id="overview" class="page">
+                        <div id="welcome" class="hero">
+                            <img
+                                src="assets/slimeybeats-dragon-portrait.png"
+                                alt=""
+                            />
+                            <div>
+                                <span class="eyebrow teal"
+                                    >A little alchemy. All your music.</span
+                                >
+                                <h2>
+                                    From your mix<br />to your next release.
+                                </h2>
+                                <p>
+                                    Analyze the mix. Refine the master.<br />Export
+                                    when you are ready.
+                                </p>
+                                <span class="small"
+                                    >Powered by the same Rust engine as the
+                                    desktop app.</span
+                                >
+                            </div>
+                        </div>
+                        <div id="measurements" hidden>
+                            <div class="section-heading">
+                                <h2>Input measurements</h2>
+                                <span class="small">Measured, not guessed</span>
+                            </div>
+                            <div class="metrics" id="input-metrics"></div>
+                            <div id="output-section" hidden>
+                                <div class="section-heading">
+                                    <h2>Master preview</h2>
+                                    <span class="small teal"
+                                        >Ready to audition</span
+                                    >
+                                </div>
+                                <div class="metrics" id="output-metrics"></div>
+                            </div>
+                            <div class="insight" id="insight"></div>
+                        </div>
+                        <ol id="steps" class="steps">
+                            <li>
+                                <b>01</b>
+                                <div>
+                                    <h3>Add your track</h3>
+                                    <p>
+                                        Choose your mix, then Analyze to
+                                        understand its starting point.
+                                    </p>
+                                </div>
+                            </li>
+                            <li>
+                                <b>02</b>
+                                <div>
+                                    <h3>Find your direction</h3>
+                                    <p>
+                                        Pick a tonal profile and Master. Listen
+                                        before you decide.
+                                    </p>
+                                </div>
+                            </li>
+                            <li>
+                                <b>03</b>
+                                <div>
+                                    <h3>Make it yours</h3>
+                                    <p>
+                                        Shape it with live EQ, compare A / B,
+                                        then export a WAV.
+                                    </p>
+                                </div>
+                            </li>
+                        </ol>
+                        <p class="local-note">
+                            ♧ Your audio stays here. No accounts, uploads,
+                            tracking, or cloud rendering.
+                        </p>
+                    </div>
+                    <div id="eq" class="page" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <h2>Shape the final detail</h2>
+                                <p class="small">
+                                    Spectrum and EQ together. Changes are live
+                                    while playing B · Master.
+                                </p>
+                            </div>
+                            <span class="live-badge" id="live-state"
+                                >Master a track to begin</span
+                            >
+                        </div>
+                        <div class="plot-wrap">
+                            <canvas
+                                id="eq-plot"
+                                aria-label="EQ response in decibels, layered with the live audio spectrum"
+                            ></canvas>
+                            <div class="plot-legend">
+                                <span class="curve-key"
+                                    >━ EQ gain · left dB</span
+                                ><span class="teal"
+                                    >━ Live spectrum · right dBFS</span
+                                >
+                            </div>
+                        </div>
+                        <div class="eq-actions">
+                            <button id="suggest" disabled>✦ Suggest EQ</button
+                            ><button id="reset-eq">Reset EQ</button
+                            ><label class="check"
+                                ><input type="checkbox" id="hold" checked />
+                                Hold loudness
+                                <button
+                                    class="help"
+                                    data-help="hold"
+                                    aria-label="Help with Hold loudness"
+                                >
+                                    ?
+                                </button></label
+                            >
+                        </div>
+                        <p class="small" id="eq-note">
+                            Suggestions are deterministic starting points,
+                            gently influenced by your tonal profile. Trust your
+                            ears.
+                        </p>
+                        <div
+                            id="band-picker"
+                            class="band-picker"
+                            role="group"
+                            aria-label="Choose EQ band"
+                        ></div>
+                        <div id="bands" class="bands"></div>
+                        <label class="output-control"
+                            >EQ output
+                            <button
+                                class="help"
+                                data-help="output"
+                                aria-label="Help with EQ output"
+                            >
+                                ?</button
+                            ><input
+                                id="eq-output"
+                                type="range"
+                                min="-12"
+                                max="12"
+                                step="0.1"
+                                value="0"
+                            /><output id="eq-output-value"
+                                >0.0 dB</output
+                            ></label
+                        >
+                    </div>
+                    <div id="report" class="page" hidden>
+                        <div class="section-heading">
+                            <h2>Processing report</h2>
+                            <button id="save-report" disabled>
+                                ↓ Save JSON
+                            </button>
+                        </div>
+                        <p id="report-empty" class="muted">
+                            Master your track to see the changes, measurements,
+                            and safety notes.
+                        </p>
+                        <div id="report-content"></div>
+                    </div>
+                    <div class="playback">
+                        <div class="waveform">
+                            <canvas
+                                id="waveform"
+                                aria-label="Track waveform"
+                            ></canvas
+                            ><input
+                                id="seek"
+                                aria-label="Playback position"
+                                type="range"
+                                min="0"
+                                max="1000"
+                                step="1"
+                                value="0"
+                                disabled
+                            />
+                        </div>
+                        <div class="transport">
+                            <div class="transport-main">
+                                <button id="play" disabled>▶ Play</button
+                                ><button
+                                    id="stop"
+                                    aria-label="Stop playback"
+                                    disabled
+                                >
+                                    ■
+                                </button>
+                                <div
+                                    class="ab"
+                                    role="group"
+                                    aria-label="Audition source"
+                                >
+                                    <button id="original" class="selected">
+                                        A · Original</button
+                                    ><button id="master-source" disabled>
+                                        B · Master
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="transport-extra">
+                                <label class="check"
+                                    ><input
+                                        id="match"
+                                        type="checkbox"
+                                        checked
+                                    />
+                                    Level match
+                                    <button
+                                        class="help"
+                                        data-help="match"
+                                        aria-label="Help with Level match"
+                                    >
+                                        ?
+                                    </button></label
+                                ><label class="volume"
+                                    >Volume
+                                    <input
+                                        id="volume"
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                        value="0.7"
+                                        aria-label="Listening volume" /></label
+                                ><time id="clock">0:00 / 0:00</time>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <aside class="direction panel" aria-label="Mastering direction">
+                    <button id="master" class="primary wide" disabled>
+                        ◇ Master track</button
+                    ><button id="export" class="wide" disabled>
+                        ↥ Export WAV
+                    </button>
+                    <p class="action-note">
+                        Master → tweak → export when ready
+                    </p>
+                    <div id="job" hidden>
+                        <progress id="progress" max="1" value="0"></progress
+                        ><button id="cancel" class="quiet wide">
+                            Cancel processing
+                        </button>
+                    </div>
+                    <div class="eyebrow divider">Mastering direction ✦</div>
+                    <label for="profile"
+                        >Tonal profile
+                        <button
+                            class="help"
+                            data-help="profile"
+                            aria-label="Help with Tonal profile"
+                        >
+                            ?
+                        </button></label
+                    ><select id="profile" disabled></select>
+                    <details>
+                        <summary>Blend two profiles</summary>
+                        <label for="blend-profile">Second profile</label
+                        ><select id="blend-profile"></select
+                        ><label for="blend"
+                            >Blend amount
+                            <output id="blend-value">0%</output></label
+                        ><input
+                            id="blend"
+                            type="range"
+                            min="0"
+                            max="80"
+                            value="0"
+                            step="5"
+                        />
+                    </details>
+                    <label
+                        >Loudness mode
+                        <button
+                            class="help"
+                            data-help="mode"
+                            aria-label="Help with Loudness mode"
+                        >
+                            ?
+                        </button></label
+                    >
+                    <div class="segmented">
+                        <button id="gentler" class="selected">Gentler</button
+                        ><button id="louder">Louder</button>
+                    </div>
+                    <label class="check custom-target"
+                        ><input id="custom-target" type="checkbox" /> Custom
+                        LUFS target
+                        <button
+                            class="help"
+                            data-help="lufs"
+                            aria-label="Help with LUFS"
+                        >
+                            ?
+                        </button></label
+                    ><label id="target-label" hidden
+                        >Target LUFS
+                        <input
+                            id="target"
+                            type="number"
+                            min="-40"
+                            max="-5"
+                            step="0.5"
+                            value="-14"
+                    /></label>
+                    <label for="ceiling"
+                        >True-peak ceiling
+                        <button
+                            class="help"
+                            data-help="ceiling"
+                            aria-label="Help with True-peak ceiling"
+                        >
+                            ?</button
+                        ><output id="ceiling-value">−1.0 dBTP</output></label
+                    ><input
+                        id="ceiling"
+                        type="range"
+                        min="-6"
+                        max="-0.3"
+                        value="-1"
+                        step="0.1"
+                    />
+                    <label for="intensity"
+                        >Correction intensity
+                        <button
+                            class="help"
+                            data-help="intensity"
+                            aria-label="Help with Correction intensity"
+                        >
+                            ?</button
+                        ><output id="intensity-value">1.00</output></label
+                    ><input
+                        id="intensity"
+                        type="range"
+                        min="0"
+                        max="1.5"
+                        value="1"
+                        step="0.05"
+                    />
+                    <label class="check safety"
+                        ><input id="safety" type="checkbox" checked /> Protect
+                        punch & tone
+                        <button
+                            class="help"
+                            data-help="safety"
+                            aria-label="Help with Protect punch and tone"
+                        >
+                            ?
+                        </button></label
+                    >
+                    <div class="eyebrow divider">Reference track</div>
+                    <button id="reference" class="wide">
+                        Choose reference…</button
+                    ><input
+                        id="reference-file"
+                        type="file"
+                        accept="audio/*,.wav,.flac,.mp3"
+                        hidden
+                    />
+                    <p id="reference-name" class="small">
+                        Optional. Borrow a finished track’s tonal direction.
+                    </p>
+                    <div class="eyebrow divider">Export quality</div>
+                    <label class="sr-only" for="format">WAV format</label
+                    ><select id="format">
+                        <option value="wav24">WAV · 24-bit PCM</option>
+                        <option value="wav16">WAV · 16-bit PCM</option>
+                        <option value="wav32f">
+                            WAV · 32-bit float
+                        </option></select
+                    ><label class="check"
+                        ><input id="dither" type="checkbox" checked /> Dither
+                        integer exports
+                        <button
+                            class="help"
+                            data-help="dither"
+                            aria-label="Help with Dither"
+                        >
+                            ?
+                        </button></label
+                    >
+                    <p class="small">
+                        Export uses the decoded sample rate. Browser decoding
+                        may resample your input.
+                    </p>
+                </aside>
+            </main>
+            <footer class="statusbar">
+                <span id="status" role="status" aria-live="polite"
+                    >Preparing your private studio…</span
+                >
+                <div class="footer-tools">
+                    <button class="text-button" data-help="privacy">
+                        Privacy</button
+                    ><span class="small">Web preview · v0.1</span>
+                </div>
+            </footer>
+        </div>
+        <dialog id="help-dialog">
+            <form method="dialog">
+                <button class="dialog-close" aria-label="Close help">×</button>
+            </form>
+            <span class="eyebrow">A little guidance</span>
+            <h2 id="help-title"></h2>
+            <div id="help-body"></div>
+        </dialog>
+        <noscript
+            >This app needs JavaScript and WebAssembly to process audio
+            locally.</noscript
+        >
+        <script type="module" src="app.js"></script>
+    </body>
+</html>
