@@ -11,6 +11,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY / "rust/tools"))
 from package_release import dependency_notices  # noqa: E402
 from release_packaging.public_source import DEMO_FILES  # noqa: E402
+from release_packaging.documentation_payload import copy_documentation, copy_project_notices
 
 
 def package(destination, server, desktop):
@@ -28,15 +29,8 @@ def package(destination, server, desktop):
     host = REPOSITORY / 'plugins/host/target/release/slimeybeats-vst3-host.exe'
     if not host.is_file(): raise FileNotFoundError(host)
     shutil.copy2(host, root / host.name)
-    for name in ("LICENSE", "OUTPUT_OWNERSHIP.md", "THIRD_PARTY_NOTICES.md"):
-        shutil.copy2(REPOSITORY / name, root / name)
-    policy = (root / "OUTPUT_OWNERSHIP.md").read_text(encoding="utf-8")
-    (root / "OUTPUT_OWNERSHIP.md").write_text(policy.replace("examples/audio/", "Examples/"), encoding="utf-8")
-    (root / "docs").mkdir()
-    for name in ("MCP.md", "MCP_VALIDATION.md", "STUDIO.md", "LINUX.md"):
-        text = (REPOSITORY / "docs" / name).read_text(encoding="utf-8")
-        text = text.replace("(LINUX.md)", "(https://github.com/slimedragonair/SlimeyBeats-EZ-Master/blob/main/docs/LINUX.md)")
-        (root / "docs" / name).write_text(text, encoding="utf-8")
+    copy_project_notices(REPOSITORY, root)
+    copy_documentation(REPOSITORY, root)
     shutil.copy2(REPOSITORY / "mcp/tools/Connect-AI-Assistant.ps1", root / "Connect-AI-Assistant.ps1")
     (root / "Connect AI Assistant.bat").write_text(
         '@echo off\r\npowershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0Connect-AI-Assistant.ps1"\r\npause\r\n',

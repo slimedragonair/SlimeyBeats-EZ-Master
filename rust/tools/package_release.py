@@ -6,8 +6,9 @@ import shutil
 import subprocess
 import zipfile
 import tomllib
-from release_packaging.public_source import copy_public_source, GUIDES, DEMO_FILES
+from release_packaging.public_source import copy_public_source, DEMO_FILES
 from release_packaging.companion_payload import companion_binaries, copy_companion
+from release_packaging.documentation_payload import copy_documentation, copy_project_notices
 
 
 def dependency_notices(project, destination):
@@ -70,31 +71,12 @@ def package(project, parent, version, evidence):
     for source, target in binaries.items():
         shutil.copy2(project / "target/release" / source, destination / target)
     copy_public_source(project.parent, destination / "source")
-    shutil.copy2(project.parent / "LICENSE", destination / "LICENSE")
-    credits = (project.parent / "THIRD_PARTY_NOTICES.md").read_text(encoding='utf-8')
-    credits = credits.replace('examples/audio/', 'Examples/').replace('rust/assets/ASSETS.md','docs/ASSETS.md').replace('rust/tests/fixtures/README.md','docs/fixture-credits.md')
-    (destination / 'THIRD_PARTY_NOTICES.md').write_text(credits,encoding='utf-8')
-    policy = (project.parent / "OUTPUT_OWNERSHIP.md").read_text(encoding="utf-8")
-    (destination / "OUTPUT_OWNERSHIP.md").write_text(policy.replace("examples/audio/CREDITS.md", "Examples/CREDITS.md"), encoding="utf-8")
-    shutil.copytree(project / "docs", destination / "docs")
-    for name in GUIDES:
-        text = (project.parent / "docs" / name).read_text(encoding="utf-8")
-        text = text.replace("../examples/audio/", "../Examples/").replace("examples/audio/demo-input.wav", "Examples/demo-input.wav")
-        (destination / "docs" / name).write_text(text, encoding="utf-8")
-    shutil.copytree(project.parent / "docs/images", destination / "docs/images")
-    shutil.copytree(project.parent / 'docs/legacy', destination / 'docs/legacy')
-    shutil.copy2(project / 'tests/fixtures/README.md', destination / 'docs/fixture-credits.md')
+    copy_project_notices(project.parent, destination)
+    copy_documentation(project.parent, destination)
     example = destination / "Examples"
     example.mkdir()
     for name in DEMO_FILES:
         shutil.copy2(project.parent / "examples/audio" / name, example / name)
-    shutil.copy2(project / "assets/ASSETS.md", destination / "docs/ASSETS.md")
-    frame_notes = project / "assets/slime-frame-generation.md"
-    if frame_notes.is_file():
-        shutil.copy2(frame_notes, destination / "docs/slime-frame-generation.md")
-    skin_notes = project / "assets/sovereign-skin-generation.md"
-    if skin_notes.is_file():
-        shutil.copy2(skin_notes, destination / "docs/sovereign-skin-generation.md")
     if evidence:
         shutil.copytree(evidence, destination / "verification")
     dependency_notices(project, destination)
