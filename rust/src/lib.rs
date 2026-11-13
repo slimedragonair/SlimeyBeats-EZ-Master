@@ -12,7 +12,12 @@ pub mod export;
 pub mod gui;
 pub mod meters;
 pub mod paths;
+pub mod preview;
 pub mod profiles;
 pub mod report;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod session_document;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod source_identity;
 
 pub mod wav_encoding;

@@ -30,6 +30,7 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 - **Compare fairly.** Original/master and pre-EQ/live-EQ comparisons support listening-only loudness matching.
 - **Export carefully.** WAV, FLAC and MP3 options, decoded-file peak checks, optional integer dither and filenames that preserve existing outputs.
 - **Learn as you go.** Hover control names for plain-language explanations of LUFS, peak ceilings, frequency, gain, Q and other terms.
+- **Connect an AI assistant (source preview).** The optional local MCP companion exposes analysis, mastering previews, editable EQ and explicit exports through the desktop Rust engine. Open a prepared session in the desktop app to listen and refine it. [Setup, tools and privacy](docs/MCP.md).
 
 ![Closer view of the actual Manual EQ graph, numeric controls, waveform and playback controls](docs/images/manual-eq-detail.png)
 
@@ -82,6 +83,8 @@ The server reported **Dummy Output**, with no headphones or speakers connected, 
 
 ## Browser preview
 
+The **desktop app is the flagship workstation**. The browser remains a private, accessible companion, with web/mobile feature coverage expanding as device limits allow. Advanced tools will target desktop first.
+
 Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV. Browser preview v0.2 supports **up to 15 minutes per mono/stereo track**, with separate **384 MiB decoded PCM and source-file limits**. Available device memory can impose a lower practical limit. It uses a 48 kHz decoded sample rate and exports 16/24-bit PCM or 32-bit float WAV. The app keeps one active mix plus an optional reference; importing another mix replaces the previous one. The desktop app supports longer files, source-rate handling, batch queues and compressed exports. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
 
 ![The real browser preview with live spectrum and EQ, separate Master and Export, and local Rust processing](docs/images/web-preview.png)
@@ -98,7 +101,8 @@ Audio and measurements stay in tab memory until you download them. There are no 
 
 | Current source scope | Verified behavior / maintained checks |
 |---|---|
-| Windows / Linux native | **78 Windows / 80 Linux tests**, format checks, Clippy with warnings denied and release builds. Linux also checks exports, XDG paths, GUI captures and a CLI without desktop features. |
+| Windows / Linux native | **82 Windows / 84 Linux tests**, format checks, Clippy with warnings denied and release builds. Linux also checks exports, XDG paths, GUI captures and a CLI without desktop features. |
+| Local MCP source preview | **16 tools**, **8 Windows / 9 Linux companion regressions**, real stdio workflow and six verified export formats. Shared preview samples match the existing native chain; repeated EQ does not accumulate. [Setup](docs/MCP.md) · [validation and limits](docs/MCP_VALIDATION.md). Published v0.4.2 installers do not include this companion. |
 | Linux-server integration | Maintainer-reported pass: **79 tests and lint**, mastering, six export formats, GUI launch/import/mastering/EQ, and installed desktop/menu launchers, without application source changes. Hardware playback and the file-picker portal remain unverified. |
 | Browser audio | Actual worker mastering and AudioWorklet PCM comparison with the shared Rust processor; deterministic EQ suggestions; mono/stereo/silence; three decoded and independently measured WAV formats. |
 | Browser session safety | Same-name reference replacement invalidates the old master; cancellation and late decode results preserve the current track/job; invalid imports preserve the session; processing works offline after loading; listening volume leaves exported samples unchanged. |

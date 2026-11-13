@@ -48,3 +48,4 @@ web/dsp/target/
 web/dist/
 web/site/pkg/
 web/site/assets/
+mcp/server/target/

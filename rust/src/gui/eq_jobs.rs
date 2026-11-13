@@ -1,5 +1,5 @@
 use super::worker::{Event, TrackResult, save_report};
-use crate::{analysis, config::Settings, dsp::manual_eq, export, profiles};
+use crate::{config::Settings, export, preview, profiles};
 use anyhow::{Context, Result, ensure};
 use eframe::egui;
 use std::{
@@ -30,8 +30,6 @@ fn resolve(
 ) -> Result<TrackResult> {
     settings.validate()?;
     let raw = result.raw.as_ref().context("Master the track first")?;
-    let rendered = manual_eq::render(raw, settings, cancel)?;
-    ensure!(!cancel(), "Cancelled");
     let mut next = result.clone();
     let profile_name = result
         .report
@@ -39,22 +37,11 @@ fn resolve(
         .and_then(|r| r.configuration["profile"].as_str())
         .unwrap_or(&settings.profile);
     let profile = profiles::resolve(profile_name, &crate::paths::app_root().join("profiles"))?;
-    if let Some(report) = &mut next.report {
-        report.ceiling_dbtp = settings.ceiling_dbtp;
-        report.configuration["manual_eq"] = serde_json::to_value(&settings.manual_eq)?;
-        report.configuration["eq_output_db"] = serde_json::json!(settings.eq_output_db);
-        report.configuration["eq_hold_loudness"] = serde_json::json!(settings.eq_hold_loudness);
-        report.configuration["eq_hold_gain_db"] = serde_json::json!(rendered.hold_gain_db);
-        report.configuration["eq_final_trim_db"] = serde_json::json!(rendered.trim_db);
-        report.output = analysis::analyze(&rendered.audio, &profile)?;
-        report.exports.clear();
-        report.notes.retain(|note| {
-            !note.starts_with("Manual EQ:") && !note.starts_with("Manual EQ preview")
-        });
-        report.notes.push(format!("Manual EQ: shared streaming processor; hold {:.2} dB, final peak trim {:.3} dB, loudness hold {}.",rendered.hold_gain_db,rendered.trim_db,if rendered.converged{"resolved"}else{"limited by the peak/gain constraints"}));
-    }
-    next.eq_parameters = Some(rendered.parameters);
-    next.after = Some(Arc::new(rendered.audio));
+    let report = next.report.as_ref().context("Master the track first")?;
+    let (audio, parameters, report) = preview::resolve_eq(raw, settings, &profile, report, cancel)?;
+    next.report = Some(report);
+    next.eq_parameters = Some(parameters);
+    next.after = Some(Arc::new(audio));
     Ok(next)
 }
 pub fn render_revision(

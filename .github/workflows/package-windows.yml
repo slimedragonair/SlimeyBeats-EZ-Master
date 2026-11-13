@@ -20,6 +20,15 @@ jobs:
         run: |
           $setup = (Get-ChildItem dist/*-Setup.exe).FullName
           python rust/tools/verify_installer.py --installer "$setup" --test-root "${{ runner.temp }}/SlimeyBeats Installer QA" --report "${{ runner.temp }}/SlimeyBeats-QA/installer-check.json" --skip-gui
+      - name: Build MCP companion preview
+        run: cargo build --locked --release --manifest-path mcp/server/Cargo.toml
+      - name: Assemble separate MCP preview ZIP
+        run: python mcp/tools/package_companion.py --out dist/MCP
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-MCP-preview
+          path: dist/MCP/*.zip
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         with:
           name: SlimeyBeats-installer-verification

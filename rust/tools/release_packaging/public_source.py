@@ -6,7 +6,7 @@ ROOT_FILES = ('README.md', 'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICE
               'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', '.gitignore', '.gitattributes', '.editorconfig',
               'run-slimeybeats.bat', 'run-rust.bat', 'cli-rust.bat',
               'run.bat', 'cli.bat', 'setup.bat', 'requirements.txt')
-GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md')
+GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'MCP.md', 'MCP_ARCHITECTURE.md', 'MCP_VALIDATION.md')
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')
 
@@ -54,6 +54,12 @@ def copy_public_source(repository, destination):
     for path in sorted((repository / 'web/dsp/src').rglob('*')):
         if path.is_file():
             copy(path.relative_to(repository))
+    for name in ('Cargo.toml', 'Cargo.lock'):
+        copy(Path('mcp/server') / name)
+    for directory in ('mcp/server/src', 'mcp/server/tests', 'mcp/tools'):
+        for path in sorted((repository / directory).rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
+                copy(path.relative_to(repository))
     for path in sorted((repository / '.github').rglob('*')):
         if path.is_file():
             copy(path.relative_to(repository))

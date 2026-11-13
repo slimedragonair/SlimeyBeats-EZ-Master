@@ -38,6 +38,10 @@ FFmpeg is not bundled or silently installed. It is optional at application runti
 python rust/tools/verify_exports.py --input YOUR-STEREO-WAV
 ```
 
+## MCP companion preview
+
+Build both native binaries as above, then run `cargo build --locked --release --manifest-path mcp/server/Cargo.toml` from the repository root. On Windows, `python mcp/tools/package_companion.py --out dist/MCP` produces a separate companion preview ZIP containing the server, matching desktop build, folder-selection setup helper, docs, CC0 input example and dependency notices. Destinations must be new. This does not modify or publish the v0.4.2 installer. See [MCP setup and privacy](MCP.md) and [validation](MCP_VALIDATION.md).
+
 ## Public source boundary
 
 `rust/tools/release_packaging/public_source.py` owns the clean source allowlist. It includes native source/tests, the shared profiles, reference Python source, selected guides, licensed assets and the published example files. It excludes `.git`, virtual environments, build output, personal settings, private tests/reports, recordings and unrelated scratch folders. Use the clean source export for a new public repository rather than archiving the development directory.

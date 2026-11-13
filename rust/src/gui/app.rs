@@ -65,10 +65,20 @@ pub struct MasterCraftApp {
 }
 impl MasterCraftApp {
     pub fn new(cc: &eframe::CreationContext<'_>, files: Vec<PathBuf>, auto_master: bool) -> Self {
+        Self::with_initial_settings(cc, files, auto_master, None)
+    }
+    pub fn with_initial_settings(
+        cc: &eframe::CreationContext<'_>,
+        files: Vec<PathBuf>,
+        auto_master: bool,
+        initial: Option<Settings>,
+    ) -> Self {
         theme::apply(&cc.egui_ctx);
         let root = crate::paths::app_root();
         let settings_path = crate::paths::settings_file();
-        let (mut settings, error) = if settings_path.is_file() {
+        let (mut settings, error) = if let Some(settings) = initial {
+            (settings, None)
+        } else if settings_path.is_file() {
             match Settings::load(&settings_path) {
                 Ok(s) => (s, None),
                 Err(e) => (

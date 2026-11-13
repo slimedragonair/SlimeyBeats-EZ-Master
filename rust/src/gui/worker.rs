@@ -1,9 +1,8 @@
 use crate::{
     analysis::{self, Analysis},
     audio::{self, Audio},
-    config::{Settings, default_eq},
-    dsp::manual_eq,
-    engine, export, profiles,
+    config::Settings,
+    export, preview, profiles,
     report::Report,
 };
 use anyhow::{Result, ensure};
@@ -121,44 +120,27 @@ pub fn batch(
                         report: None,
                     });
                 }
-                let mut auto_settings = settings.clone();
-                auto_settings.manual_eq = default_eq();
-                auto_settings.eq_output_db = 0.;
                 let progress = |fraction, msg: &str| {
                     let _ = tx.send(Event::Progress(index, fraction, msg.into()));
                     ctx.request_repaint();
                 };
-                let mut mastered = engine::master(
+                let mut mastered = preview::master(
                     &before,
-                    &auto_settings,
+                    &settings,
                     p,
                     r.as_ref(),
                     &file.to_string_lossy(),
                     &progress,
                     &|| cancel.load(Ordering::Relaxed),
                 )?;
-                let raw = Arc::new(mastered.audio);
-                let raw_analysis = Arc::new(mastered.report.output.clone());
-                let eq_start = std::time::Instant::now();
-                let eq_render =
-                    manual_eq::render(&raw, &settings, &|| cancel.load(Ordering::Relaxed))?;
-                let parameters = eq_render.parameters;
-                let eq_hold = eq_render.hold_gain_db;
-                let eq_trim = eq_render.trim_db;
-                let after = eq_render.audio;
-                mastered.report.output = analysis::analyze(&after, p)?;
-                mastered.report.configuration = serde_json::to_value(&settings)?;
-                mastered.report.configuration["eq_hold_gain_db"] = serde_json::json!(eq_hold);
-                mastered.report.configuration["eq_final_trim_db"] = serde_json::json!(eq_trim);
-                mastered.report.processing_seconds += eq_start.elapsed().as_secs_f64();
                 mastered.report.notes.push("Preview is in memory. Tweak or re-master, then use Export selected master to save it.".into());
                 Ok(TrackResult {
                     analysis: mastered.report.input.clone(),
                     before,
-                    raw: Some(raw),
-                    raw_analysis: Some(raw_analysis),
-                    eq_parameters: Some(parameters),
-                    after: Some(Arc::new(after)),
+                    raw: Some(mastered.raw),
+                    raw_analysis: Some(mastered.raw_analysis),
+                    eq_parameters: Some(mastered.parameters),
+                    after: Some(mastered.audio),
                     report: Some(mastered.report),
                 })
             })();

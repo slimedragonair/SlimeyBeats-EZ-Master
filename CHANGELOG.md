@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add an optional local stdio MCP companion preview with 16 tools for scoped audio import, analysis, deterministic EQ suggestions, mastering previews, EQ revisions, explicit non-clobber exports, progress/cancellation and desktop session handoff. Keep the desktop as the flagship; no models, stems or cloud audio service are bundled.
+- Share native preview/EQ preparation between desktop and companion, preserve the existing DSP sample path, and verify handoff source files with SHA-256 fingerprints. Add job, access, input-budget, cancellation and wire-protocol regressions plus MCP setup/privacy documentation. The published v0.4.2 installer is unchanged.
+
 - Raise the private browser preview to 15 minutes per track, with coordinated 384 MiB source/decoded bounds and visible mobile import errors. Reduce redundant input/reference/preview/convolution allocations and reserve export buffers. Keep one active mix rather than a growing queue.
 - Version connected browser runtime assets together to prevent cached JS/WASM API mismatches. Add duration/byte boundary regressions, real long WAV/MP3 imports and repeat-use/master/export memory checks.
 - Honor declared MP3 gapless timing when a browser leaves encoder padding in the decoded audio, fixing WebKit's rejection at the 15-minute boundary without widening the WAV limit or shortening overlong recordings. Cross-check decoded timing with independent FFmpeg PCM.

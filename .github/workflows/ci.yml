@@ -26,6 +26,12 @@ jobs:
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked --release --all-targets
       - run: cargo build --locked --release --bins
+      - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
+      - run: cargo clippy --locked --manifest-path ../mcp/server/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --release --manifest-path ../mcp/server/Cargo.toml --all-targets
+      - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
+      - name: Verify MCP over stdio
+        run: python ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -50,6 +56,12 @@ jobs:
         run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks'
       - name: Check headless CLI without desktop features
         run: cargo check --locked --no-default-features --bin slimeybeats-ez-master-cli
+      - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
+      - run: cargo clippy --locked --manifest-path ../mcp/server/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --release --manifest-path ../mcp/server/Cargo.toml --all-targets
+      - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
+      - name: Verify MCP over stdio and six codecs
+        run: python3 ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
       - uses: actions/upload-artifact@v7
         with:
           name: SlimeyBeats-Linux-validation

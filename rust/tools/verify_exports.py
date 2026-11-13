@@ -16,6 +16,14 @@ def command(args, expected=0):
     return result
 
 
+def independent_measurements(path):
+    measured = command(["ffmpeg", "-hide_banner", "-nostdin", "-i", path, "-af", "ebur128=peak=true", "-f", "null", "-"])
+    summary = measured.stderr.rsplit("Summary:", 1)[1]
+    lufs = float(re.search(r"\bI:\s+([-\d.]+) LUFS", summary)[1])
+    peak = float(re.search(r"\bPeak:\s+([-\d.]+) dBFS", summary)[1])
+    return lufs, peak
+
+
 def verify(binary, source, output):
     original = hashlib.sha256(source.read_bytes()).hexdigest()
     command([binary, source, "--format", "wav24,wav16,wav32f,flac24,flac16,mp3", "--sr", "44100", "--out", output])
@@ -25,11 +33,8 @@ def verify(binary, source, output):
     results = []
     for item in report["exports"]:
         path = Path(item["path"])
-        measured = command(["ffmpeg", "-hide_banner", "-nostdin", "-i", path, "-af", "ebur128=peak=true", "-f", "null", "-"])
-        summary = measured.stderr.rsplit("Summary:", 1)[1]
-        lufs = float(re.search(r"\bI:\s+([-\d.]+) LUFS", summary)[1])
-        peak = float(re.search(r"\bPeak:\s+([-\d.]+) dBFS", summary)[1])
-        assert peak <= report["ceiling_dbtp"] + 0.05, (path, summary)
+        lufs, peak = independent_measurements(path)
+        assert peak <= report["ceiling_dbtp"] + 0.05, (path, peak)
         assert abs(lufs - item["decoded_metrics"]["integrated_lufs"]) <= 0.15, (path, lufs, item)
         probe = json.loads(command(["ffprobe", "-v", "error", "-show_streams", "-of", "json", path]).stdout)["streams"][0]
         assert int(probe["sample_rate"]) == 44100
