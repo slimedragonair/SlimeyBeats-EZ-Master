@@ -2,13 +2,13 @@
 
 Linux checks target **Ubuntu 24.04 x86_64**. The published v0.4.2 installer remains Windows-only; Linux build/render/export validation is separate from a packaged Linux release and physical audio-device qualification.
 
-## Build dependencies
+## Desktop build dependencies
 
 Install a current stable Rust toolchain and these Ubuntu packages:
 
 ```bash
 sudo apt-get update
-sudo apt-get install --no-install-recommends build-essential pkg-config libasound2-dev libdbus-1-dev libxkbcommon-dev libwayland-dev libxcb-shape0-dev libxcb-xfixes0-dev libgl1-mesa-dev libudev-dev fonts-dejavu-core xdg-utils
+sudo apt-get install --no-install-recommends build-essential pkg-config libasound2-dev libdbus-1-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libxcb-shape0-dev libxcb-xfixes0-dev libgl1-mesa-dev libudev-dev fonts-dejavu-core xdg-utils
 ```
 
 From the repository root:
