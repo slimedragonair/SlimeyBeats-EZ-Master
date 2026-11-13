@@ -26,7 +26,8 @@ def copy_public_source(repository, destination):
         copy(Path(name))
     for name in GUIDES:
         copy(Path('docs') / name)
-    for name in ('welcome.png', 'manual-eq.png', 'manual-eq-detail.png'):
+    for name in ('welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
+                 'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png'):
         copy(Path('docs/images') / name)
     for name in ('python-guide.md', 'python-third-party-notices.md', 'python-changelog.md'):
         copy(Path('docs/legacy') / name)

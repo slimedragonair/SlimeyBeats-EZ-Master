@@ -24,6 +24,14 @@ WAV input/export is native. Install `ffmpeg` for compressed inputs, FLAC/MP3 exp
 
 ## User files and desktop integration
 
+For a headless server, build only the CLI without desktop/audio features:
+
+```bash
+cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli
+```
+
+The CLI's WAV path needs neither a graphical session nor an output device. Add FFmpeg only for the formats/resampling that require it.
+
 - Settings: `$XDG_CONFIG_HOME/slimeybeats-ez-master/rust-settings.json`, defaulting to `~/.config/slimeybeats-ez-master/rust-settings.json`.
 - GUI data/profiles/default exports: `$XDG_DATA_HOME/slimeybeats-ez-master/`, defaulting to `~/.local/share/slimeybeats-ez-master/`. Exports go in its `output/` folder unless you choose another location. The CLI retains its explicit `--out`/working-directory behavior.
 - Relative XDG environment values are ignored. Absolute overrides are useful for isolated tests. If no absolute XDG/HOME location exists, the legacy executable/development-root fallback remains available and filesystem errors remain visible.
@@ -45,3 +53,11 @@ Use a new evidence directory. The verifier checks native WAV with no FFmpeg on P
 Render-only checks configure an isolated ALSA null sink rather than depending on a sound card in the test host. This is a synthetic output backend, not physical playback qualification. Each native capture includes a state sidecar; error banners, missing mastered previews or unavailable playback sources fail the smoke check even if a PNG was produced.
 
 The `linux` job in Native checks performs these commands on Ubuntu. Keep its artifacts with any platform-specific findings; do not replace a failing measurement with a looser limit to obtain a pass.
+
+## Actual native captures
+
+The plot and spectrum share one graph; waveform and playback controls remain pinned below. These captures use the explicitly synthetic audio backend described above. They illustrate layout rather than certify physical playback. [Open the default EQ at full size](images/linux-manual-eq.png).
+
+![Ubuntu native EQ, spectrum and waveform](images/linux-manual-eq.png)
+
+At the 1100×720 minimum, the full plot remains visible. Scroll the editing area to reach all band fields while keeping transport available. [Full-size compact plot](images/linux-compact-eq.png) · [Full-size scrolled controls](images/linux-compact-controls.png).

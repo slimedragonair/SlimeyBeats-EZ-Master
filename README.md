@@ -2,7 +2,7 @@
 
 # SlimeyBeats-EZ-Master
 
-[![Windows checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml)
+[![Native checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/slimedragonair/SlimeyBeats-EZ-Master?color=8b5cf6)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-14b8a6)](LICENSE)
 
@@ -75,11 +75,11 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 
 The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. Web, Android and iPhone versions are future work.
 
-Ubuntu Linux source-build and runtime checks are being added separately; see the [Linux validation guide](docs/LINUX.md). The downloadable v0.4.2 installer above is for Windows.
+Ubuntu 24.04 x86_64 source-build and runtime validation is available separately; see the [Linux validation guide](docs/LINUX.md). The downloadable v0.4.2 installer above is for Windows. Linux physical playback and portal dialogs still require desktop-device qualification.
 
 ## Evidence and limits
 
-The current DSP has **73 automated regression tests**. The 0.4.1 real-music retest covered 12 songs and 24 full-song renders, with independent peak/integrity checks, six export formats and additional EQ/mono/sample-rate cases. Version 0.4.2 packages the same DSP with documentation, licensing, demo audio and an installer.
+The v0.4.2 release passed **73 automated regression tests**. The 0.4.1 real-music retest covered 12 songs and 24 full-song renders, with independent peak/integrity checks, six export formats and additional EQ/mono/sample-rate cases. Version 0.4.2 packages the same DSP with documentation, licensing, demo audio and an installer.
 
 On three songs on the development PC, median processing ran about **18–22× real time** with four threads. Those timings exclude decoding, startup and export. They are not competitor benchmarks or a subjective sound-quality score. Genre profiles and artifact indicators remain heuristics; listening is essential. See [validation](rust/docs/CORPUS_VALIDATION.md) and [DSP safety design](rust/docs/DSP_SAFETY.md).
 

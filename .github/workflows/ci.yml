@@ -48,6 +48,8 @@ jobs:
       - run: cargo build --locked --release --bins
       - name: Verify Linux exports, XDG paths and native GUI captures
         run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks'
+      - name: Check headless CLI without desktop features
+        run: cargo check --locked --no-default-features --bin slimeybeats-ez-master-cli
       - uses: actions/upload-artifact@v7
         with:
           name: SlimeyBeats-Linux-validation
