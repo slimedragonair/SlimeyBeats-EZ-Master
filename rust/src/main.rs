@@ -12,6 +12,8 @@ struct Arguments {
     view: String,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
+    #[arg(long, hide = true, requires = "capture_ui")]
+    capture_save_settings: bool,
     #[arg(long, hide=true, num_args=2, requires="capture_ui", value_parser=clap::value_parser!(u32).range(1..=7680))]
     capture_size: Vec<u32>,
     #[arg(long, hide = true, requires = "capture_ui")]
@@ -43,6 +45,9 @@ fn main() -> eframe::Result {
                 "report" => 2,
                 _ => 0,
             };
+            if args.capture_save_settings {
+                app.save_settings();
+            }
             if let Some(destination) = args.capture_ui {
                 app.capture_ui_once(destination);
             }

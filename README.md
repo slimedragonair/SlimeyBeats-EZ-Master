@@ -75,6 +75,8 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 
 The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. Web, Android and iPhone versions are future work.
 
+Ubuntu Linux source-build and runtime checks are being added separately; see the [Linux validation guide](docs/LINUX.md). The downloadable v0.4.2 installer above is for Windows.
+
 ## Evidence and limits
 
 The current DSP has **73 automated regression tests**. The 0.4.1 real-music retest covered 12 songs and 24 full-song renders, with independent peak/integrity checks, six export formats and additional EQ/mono/sample-rate cases. Version 0.4.2 packages the same DSP with documentation, licensing, demo audio and an installer.

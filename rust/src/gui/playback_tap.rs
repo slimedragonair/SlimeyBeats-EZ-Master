@@ -35,10 +35,8 @@ impl PlaybackTap {
         }
         let mut samples = Vec::with_capacity(count * channels);
         for frame in end - count..end {
-            for ch in 0..channels {
-                samples.push(f32::from_bits(
-                    self.samples[frame % CAPACITY][ch].load(Ordering::Relaxed),
-                ));
+            for sample in &self.samples[frame % CAPACITY][..channels] {
+                samples.push(f32::from_bits(sample.load(Ordering::Relaxed)));
             }
         }
         Some(Audio {

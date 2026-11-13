@@ -2,6 +2,8 @@ pub mod analysis;
 pub mod audio;
 pub mod branding;
 pub mod config;
+#[cfg(feature = "gui")]
+pub mod desktop_integration;
 pub mod dsp;
 pub mod engine;
 pub mod export;

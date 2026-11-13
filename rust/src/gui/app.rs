@@ -67,7 +67,7 @@ impl MasterCraftApp {
     pub fn new(cc: &eframe::CreationContext<'_>, files: Vec<PathBuf>, auto_master: bool) -> Self {
         theme::apply(&cc.egui_ctx);
         let root = crate::paths::app_root();
-        let settings_path = root.join("user_data/rust-settings.json");
+        let settings_path = crate::paths::settings_file();
         let (mut settings, error) = if settings_path.is_file() {
             match Settings::load(&settings_path) {
                 Ok(s) => (s, None),
@@ -251,7 +251,7 @@ impl MasterCraftApp {
     pub fn save_settings(&mut self) {
         let result = (|| -> anyhow::Result<()> {
             self.settings.validate()?;
-            let path = self.root.join("user_data/rust-settings.json");
+            let path = crate::paths::settings_file();
             std::fs::create_dir_all(path.parent().unwrap())?;
             let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap())?;
             serde_json::to_writer_pretty(&mut temp, &self.settings)?;

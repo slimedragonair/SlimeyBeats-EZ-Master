@@ -82,9 +82,13 @@ pub fn apply(ctx: &egui::Context) {
     ctx.set_global_style(style);
 }
 fn install_fonts(ctx: &egui::Context) {
-    // Load installed faces at runtime; Windows font files are not bundled or redistributed.
+    // Load installed faces at runtime; system font files are not bundled or redistributed.
     let mut fonts = egui::FontDefinitions::default();
-    if let Ok(bytes) = std::fs::read("C:/Windows/Fonts/segoeui.ttf") {
+    #[cfg(target_os = "linux")]
+    let ui_paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"];
+    #[cfg(not(target_os = "linux"))]
+    let ui_paths = ["C:/Windows/Fonts/segoeui.ttf"];
+    if let Some(bytes) = ui_paths.iter().find_map(|path| std::fs::read(path).ok()) {
         fonts
             .font_data
             .insert("system-ui".into(), egui::FontData::from_owned(bytes).into());
@@ -95,7 +99,14 @@ fn install_fonts(ctx: &egui::Context) {
             .insert(0, "system-ui".into());
     }
     let mut display = Vec::new();
-    for path in ["C:/Windows/Fonts/georgia.ttf", "C:/Windows/Fonts/times.ttf"] {
+    #[cfg(target_os = "linux")]
+    let display_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf",
+    ];
+    #[cfg(not(target_os = "linux"))]
+    let display_paths = ["C:/Windows/Fonts/georgia.ttf", "C:/Windows/Fonts/times.ttf"];
+    for path in display_paths {
         if let Ok(bytes) = std::fs::read(path) {
             fonts.font_data.insert(
                 "system-display".into(),
