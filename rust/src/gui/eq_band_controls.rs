@@ -65,7 +65,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 .on_hover_text(help::FREQUENCY)
                 .changed();
         });
-        field_group(ui, 72., |ui| {
+        field_group(ui, 88., |ui| {
             help::label(ui, "Gain / dB", help::EQ_GAIN);
             changed |= ui
                 .add(
@@ -77,7 +77,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 .on_hover_text(help::EQ_GAIN)
                 .changed();
         });
-        field_group(ui, 72., |ui| {
+        field_group(ui, 88., |ui| {
             help::label(ui, "Q / width", help::Q);
             changed |= ui
                 .add(

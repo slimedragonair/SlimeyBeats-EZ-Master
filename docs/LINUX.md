@@ -37,9 +37,11 @@ cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked --release --all-targets
 sudo apt-get install --no-install-recommends ffmpeg xvfb xauth
-xvfb-run -a python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out /tmp/slimeybeats-new-evidence
+xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out /tmp/slimeybeats-new-evidence
 ```
 
 Use a new evidence directory. The verifier checks native WAV with no FFmpeg on PATH, unchanged native duration/rate/channels, six independently metered formats, actual 48 kHz → 44.1 kHz conversion, source preservation, collisions and errors. GUI captures exercise welcome, default EQ and compact EQ, isolated XDG paths and preview without audio export. The hidden capture-only settings flag invokes the same explicit Save settings action used by the app; settings are not assumed to autosave on exit. Software-rendered captures do not establish physical playback, portal dialogs, every distribution or device latency. Those limits are explicit in the JSON report.
+
+Render-only checks configure an isolated ALSA null sink rather than depending on a sound card in the test host. This is a synthetic output backend, not physical playback qualification. Each native capture includes a state sidecar; error banners, missing mastered previews or unavailable playback sources fail the smoke check even if a PNG was produced.
 
 The `linux` job in Native checks performs these commands on Ubuntu. Keep its artifacts with any platform-specific findings; do not replace a failing measurement with a looser limit to obtain a pass.

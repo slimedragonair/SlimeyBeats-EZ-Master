@@ -3,20 +3,34 @@ use eframe::egui;
 use image::ImageEncoder;
 use std::{path::PathBuf, sync::mpsc, time::Duration};
 
+#[derive(serde::Serialize)]
+pub(super) struct CaptureState {
+    pub error: Option<String>,
+    pub preview_ready: bool,
+    pub playback_ready: bool,
+}
+
 pub(super) struct UiCapture {
     destination: Option<PathBuf>,
+    state_destination: PathBuf,
     settled_frames: usize,
     receiver: Option<mpsc::Receiver<Result<(), String>>>,
 }
 impl UiCapture {
     pub fn new(destination: PathBuf) -> Self {
         Self {
+            state_destination: destination.with_extension("state.json"),
             destination: Some(destination),
             settled_frames: 0,
             receiver: None,
         }
     }
-    pub fn update(&mut self, ctx: &egui::Context, ready: bool) -> Option<Result<(), String>> {
+    pub fn update(
+        &mut self,
+        ctx: &egui::Context,
+        ready: bool,
+        state: CaptureState,
+    ) -> Option<Result<(), String>> {
         if let Some(receiver) = &self.receiver {
             return match receiver.try_recv() {
                 Ok(result) => Some(result),
@@ -35,8 +49,19 @@ impl UiCapture {
         let (sender, receiver) = mpsc::channel();
         self.receiver = Some(receiver);
         let repaint = ctx.clone();
+        let state_destination = self.state_destination.clone();
         ctx.request_screenshot(move |image| {
             let result = save_png(&destination, &image)
+                .and_then(|()| {
+                    use std::io::Write;
+                    let mut file = std::fs::OpenOptions::new()
+                        .create_new(true)
+                        .write(true)
+                        .open(state_destination)?;
+                    serde_json::to_writer_pretty(&mut file, &state)?;
+                    file.write_all(b"\n")?;
+                    Ok(())
+                })
                 .map_err(|error| format!("UI capture {}: {error:#}", destination.display()));
             let _ = sender.send(result);
             repaint.request_repaint();

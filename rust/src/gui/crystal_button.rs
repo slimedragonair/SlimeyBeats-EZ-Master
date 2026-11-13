@@ -82,6 +82,8 @@ impl Widget for CrystalButton {
         }
         if self.wrap {
             button = button.wrap();
+        } else {
+            button = button.wrap_mode(egui::TextWrapMode::Extend);
         }
         let response = ui.add(button);
         if ui.is_rect_visible(response.rect) {
@@ -229,6 +231,40 @@ fn clipped_corners(rect: Rect, cut: f32) -> [Pos2; 8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn action_labels_stay_single_line_when_whole_buttons_wrap() {
+        for width in [166., 214., 300.] {
+            let ctx = egui::Context::default();
+            let mut rectangles = Vec::new();
+            let mut output = ctx.run_ui(Default::default(), |ui| {
+                ui.style_mut()
+                    .text_styles
+                    .insert(egui::TextStyle::Button, egui::FontId::proportional(20.));
+                let mut child = ui.new_child(egui::UiBuilder::new().max_rect(Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(width, 160.),
+                )));
+                child.horizontal_wrapped(|ui| {
+                    for (name, icon) in [("Remove", Icon::Trash), ("Clear", Icon::Clear)] {
+                        rectangles.push(
+                            ui.add(secondary(name).icon(icon).min_size(egui::vec2(0., 36.)))
+                                .rect,
+                        );
+                    }
+                });
+            });
+            output.textures_delta.clear();
+            for rectangle in &rectangles {
+                assert!(
+                    (rectangle.height() - 36.).abs() < 0.1,
+                    "Wrapped label at width {width}: {rectangle:?}"
+                );
+                assert!(rectangle.right() <= width + 0.1);
+            }
+            assert!(!rectangles[0].intersects(rectangles[1]));
+        }
+    }
 
     fn frame(
         ctx: &egui::Context,
