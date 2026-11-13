@@ -19,13 +19,13 @@ from browser_capture import BrowserDiagnostics
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def reference_fixture(frequency):
+def reference_fixture(frequency, seconds=2):
     buffer = io.BytesIO()
     with wave.open(buffer, 'wb') as writer:
         writer.setnchannels(1)
         writer.setsampwidth(2)
         writer.setframerate(48000)
-        writer.writeframes(b''.join(struct.pack('<h',int(3000*math.sin(2*math.pi*frequency*i/48000))) for i in range(96000)))
+        writer.writeframes(b''.join(struct.pack('<h',int(3000*math.sin(2*math.pi*frequency*i/48000))) for i in range(48000*seconds)))
     return {'name':'reference.wav','mimeType':'audio/wav','buffer':buffer.getvalue()}
 parser = argparse.ArgumentParser()
 parser.add_argument('--site', type=Path, default=ROOT/'web/dist')
@@ -133,6 +133,13 @@ try:
                 artifact=page.evaluate('i=>{const a=window.auditArtifacts[i];let t="";for(let j=0;j<a.bytes.length;j+=8192)t+=String.fromCharCode(...a.bytes.subarray(j,j+8192));return {name:a.name,bytes:btoa(t)};}',index)
                 (args.out/artifact['name']).write_bytes(base64.b64decode(artifact['bytes']))
             page.set_viewport_size({'width':1480,'height':1000})
+            # State/recovery tests need distinct sources, not repeated full-song
+            # renders. The real 45-second example and PCM checks above stay intact.
+            state_source=reference_fixture(440, seconds=8)
+            state_source['name']='State validation mix.wav'
+            page.locator('#file').set_input_files(state_source)
+            expect(page.locator('#master')).to_be_enabled(timeout=30000)
+            expect(page.locator('#filename')).to_have_text(state_source['name'])
             page.locator('#reference-file').set_input_files(reference_fixture(220))
             expect(page.locator('#master')).to_be_enabled(timeout=30000)
             expect(page.locator('#export')).to_be_disabled()
