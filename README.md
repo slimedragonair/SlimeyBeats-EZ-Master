@@ -76,7 +76,9 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 
 The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. The [browser preview](docs/WEB.md) processes audio locally with Rust/WebAssembly, including real-time EQ and WAV export. It has a responsive phone layout; physical iPhone and Android devices still need qualification. Native Android/iOS apps are future work.
 
-Ubuntu 24.04 x86_64 source-build and runtime validation is available separately; see the [Linux validation guide](docs/LINUX.md). The downloadable v0.4.2 installer above is for Windows. Linux physical playback and portal dialogs still require desktop-device qualification.
+Linux source builds have passed Ubuntu 24.04 x86_64 CI and a separate maintainer-reported Linux-server check. On that server, **all 79 tests and lint checks passed**, mastering and all six export formats were verified, and the GUI passed launch, audio import, mastering and EQ-control checks. Desktop and application-menu launchers were installed. **No application source changes were needed.** See the [Linux validation guide](docs/LINUX.md#additional-linux-server-check).
+
+The server reported **Dummy Output**, with no headphones or speakers connected, so audible hardware playback remains unverified. The file-picker portal was not verified either. The downloadable v0.4.2 installer above remains Windows-only; this server check validates the Linux source build and desktop workflow.
 
 ## Browser preview
 
@@ -97,12 +99,13 @@ Audio and measurements stay in tab memory until you download them. There are no 
 | Current source scope | Verified behavior / maintained checks |
 |---|---|
 | Windows / Linux native | **77 Windows / 79 Linux tests**, format checks, Clippy with warnings denied and release builds. Linux also checks exports, XDG paths, GUI captures and a CLI without desktop features. |
+| Linux-server integration | Maintainer-reported pass: **79 tests and lint**, mastering, six export formats, GUI launch/import/mastering/EQ, and installed desktop/menu launchers, without application source changes. Hardware playback and the file-picker portal remain unverified. |
 | Browser audio | Actual worker mastering and AudioWorklet PCM comparison with the shared Rust processor; deterministic EQ suggestions; mono/stereo/silence; three decoded and independently measured WAV formats. |
 | Browser session safety | Same-name reference replacement invalidates the old master; cancellation and late decode results preserve the current track/job; invalid imports preserve the session; processing works offline after loading; listening volume leaves exported samples unchanged. |
 | Browser matrix | Chromium, Firefox and Linux WebKit integration in [Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml). Required together with Windows/Linux checks before merging. |
 | Appearance | Independent review of actual desktop and responsive phone captures: all principal states **≥9/10** for look, polish and readability. Scope and limits are documented. |
 
-Read the [browser validation record](docs/WEB_VALIDATION.md) for exact environments, fixtures, measured results, reproduction commands and remaining gaps. The CI badges and linked artifacts show the latest commit's status. **Physical iPhone/Android playback is still unqualified**, as are Linux physical audio and portal dialogs. A responsive layout or synthetic audio sink does not establish device acceptance.
+Read the [browser validation record](docs/WEB_VALIDATION.md) and [Linux validation guide](docs/LINUX.md) for environments, fixtures, measured results, reproduction commands and remaining gaps. The CI badges and linked artifacts show the latest commit's status. **Physical iPhone/Android playback is still unqualified.** Linux-server build, export and GUI checks passed; audible playback awaits a connected output device, and the file-picker portal still needs testing. A responsive layout or synthetic audio sink does not establish device acceptance.
 
 The following evidence concerns the published native release, rather than the larger current-source suite:
 

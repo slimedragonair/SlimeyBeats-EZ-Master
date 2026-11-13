@@ -2,6 +2,23 @@
 
 Linux checks target **Ubuntu 24.04 x86_64**. The published v0.4.2 installer remains Windows-only; Linux build/render/export validation is separate from a packaged Linux release and physical audio-device qualification.
 
+## Additional Linux-server check
+
+The maintainer supplied a separate Linux-server validation result confirming that the app was installed with desktop and application-menu launchers and left open. This run required **no application source changes**.
+
+| Check | Reported result |
+| --- | --- |
+| Build, tests and lint | Passed; all **79 tests** passed. |
+| Mastering and exports | Verified mastering and all six supported formats: WAV 16/24-bit PCM, WAV 32-bit float, FLAC 16/24-bit and MP3. |
+| Desktop workflow | Verified GUI launch, audio import, mastering and EQ controls. |
+| Launchers | Desktop and application-menu launchers installed. |
+| Audible hardware playback | **Unverified.** The server reported Dummy Output and had no headphones or speakers connected. |
+| File-picker portal | **Unverified.** Audio-import validation does not establish that the portal dialog was exercised. |
+
+The detailed report is located on that Linux server at `~/Projects/SlimeyBeats-EZ-Master/linux-validation-2026-11-13/README.md`. This is the maintainer-provided, server-local evidence location, not a downloadable repository artifact; the directory's date label is November 13, 2026. The separate Ubuntu CI checks below retain their own artifacts and scope.
+
+The server result establishes a working source build, desktop workflow and exports on that host. Audible playback needs a follow-up with an actual output device; the file-picker portal remains a separate follow-up.
+
 ## Desktop build dependencies
 
 Install a current stable Rust toolchain and these Ubuntu packages:

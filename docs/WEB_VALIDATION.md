@@ -10,6 +10,7 @@ This record separates measured behavior, automated integration coverage, appeara
 | --- | --- |
 | Windows native source | 77 regression tests, formatting, Clippy with warnings denied, and release builds passed in CI. |
 | Ubuntu 24.04 native source | 79 regression tests plus actual exports, XDG paths, native GUI captures and a CLI build without desktop features. Virtual display/audio backends do not establish hardware playback. |
+| Additional maintainer-reported Linux-server run | All 79 tests and lint passed; mastering, all six export formats and GUI launch/import/mastering/EQ were verified. Desktop/menu launchers were installed, with no application source changes needed. The host reported Dummy Output with no headphones/speakers; audible hardware playback and the file-picker portal remain unverified. [Server-check scope and local report location](LINUX.md#additional-linux-server-check). |
 | Chrome 156.0.8078.80 on the development PC | Actual application flows, worker DSP, AudioWorklet rendering, exports, recovery and responsive-layout checks. |
 | Chromium 143.0.7499.4, Firefox 144.0.2, WebKit 26.0 on Ubuntu CI | Three-engine integration matrix using a synthetic audio sink. Initial complete three-engine qualification: [run 43354121252](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43354121252). Later state regressions are enforced by the maintained workflow. |
 | iPhone / Android hardware | **Not qualified yet.** Responsive desktop-engine captures are not physical-device acceptance. |
@@ -46,6 +47,6 @@ A three-minute synthetic stereo fixture at 48 kHz (65.92 MiB decoded) preserved 
 
 The preview accepts one mono/stereo track at a time, up to five minutes **and** 96 MiB of decoded PCM, with a 100 MiB source-file limit. The decoded-PCM limit can be reached before five minutes. Browser decoding uses a 48 kHz context; input codec support varies. Export is WAV only. Full files are held in memory, so actual device capacity may be lower and decoding very long compressed files can fail before the decoded-size check.
 
-Physical iPhone/Android audio, headphones/Bluetooth routing, background/lock-screen interruptions, thermal behavior and full-song memory use remain open. Linux physical playback and portal dialogs also remain open. Automated tests do not establish commercial-mastering equivalence or replace listening.
+Physical iPhone/Android audio, headphones/Bluetooth routing, background/lock-screen interruptions, thermal behavior and full-song memory use remain open. The additional Linux-server check confirms the native desktop workflow and exports; audible hardware playback still needs a connected output device, and the file-picker portal remains unverified. Automated tests do not establish commercial-mastering equivalence or replace listening.
 
 Build, serve and reproduce the checks using [WEB.md](WEB.md). Test entry points are [verify_browser.py](../web/tools/verify_browser.py), [browser_audit.js](../web/tools/browser_audit.js), and the [Linux verifier](../rust/tools/verify_linux.py). Runtime browser use does not require FFmpeg or Python; those are development/verification tools.
