@@ -96,14 +96,12 @@ fn queue_actions(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
         {
             app.pick_files();
         }
-        ui.columns(2, |columns| {
-            let remove_width = columns[0].available_width();
-            let clear_width = columns[1].available_width();
-            if columns[0]
+        ui.horizontal_wrapped(|ui| {
+            if ui
                 .add(
                     crystal_button::secondary("Remove")
                         .icon(Icon::Trash)
-                        .min_size(egui::vec2(remove_width, 36.)),
+                        .min_size(egui::vec2(0., 36.)),
                 )
                 .on_hover_text(
                     "Remove the selected track from this session. The source file is preserved.",
@@ -121,11 +119,11 @@ fn queue_actions(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 app.player.unload();
                 app.eq_live.reset_source();
             }
-            if columns[1]
+            if ui
                 .add(
                     crystal_button::secondary("Clear")
                         .icon(Icon::Clear)
-                        .min_size(egui::vec2(clear_width, 36.)),
+                        .min_size(egui::vec2(0., 36.)),
                 )
                 .on_hover_text(
                     "Clear the session queue. Source audio and exported files are preserved.",

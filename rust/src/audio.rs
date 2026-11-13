@@ -70,7 +70,9 @@ struct Stream {
 }
 
 pub fn external_command(name: &str) -> Command {
-    let mut cmd = Command::new(name);
+    let cmd = Command::new(name);
+    #[cfg(windows)]
+    let mut cmd = cmd;
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

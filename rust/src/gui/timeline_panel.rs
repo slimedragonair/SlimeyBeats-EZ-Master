@@ -6,12 +6,15 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
         return;
     };
     let eq = app.tab == 1;
+    let compact = ui.available_width() < 560.;
     ui.scope(|ui| {
         ui.spacing_mut().interact_size.y = 20.;
         ui.horizontal_wrapped(|ui| {
             theme::eyebrow(
                 ui,
-                if eq {
+                if eq && compact {
+                    "EQ · CLICK TO SEEK"
+                } else if eq {
                     "EQ PLAYBACK / CLICK TO SEEK"
                 } else {
                     "PLAYBACK / CLICK TO SEEK"
@@ -21,7 +24,8 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 "Live EQ · export measurement preparing".into()
             } else if let Some(report) = &result.report {
                 format!(
-                    "Processed {:.2}s · {} export{}",
+                    "{}{:.2}s · {} export{}",
+                    if compact { "" } else { "Processed " },
                     report.processing_seconds,
                     report.exports.len(),
                     if report.exports.len() == 1 { "" } else { "s" }

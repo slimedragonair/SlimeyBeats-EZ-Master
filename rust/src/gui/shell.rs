@@ -97,17 +97,24 @@ impl eframe::App for MasterCraftApp {
         self.brand.paint_crest(&ornament, footer.center(), 144.);
         self.sync_live_eq(&ctx);
         let ready = !self.busy && !self.eq_dirty;
-        if let Some(result) = self
-            .capture
-            .as_mut()
-            .and_then(|capture| capture.update(&ctx, ready))
-        {
-            self.capture = None;
-            match result {
-                Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
-                Err(error) => {
-                    eprintln!("{error}");
-                    self.error = Some(error);
+        if self.capture.is_some() {
+            let state = super::ui_capture::CaptureState {
+                error: self.error.clone(),
+                preview_ready: self.current().is_some(),
+                playback_ready: self.player.duration > 0.,
+            };
+            let result = self
+                .capture
+                .as_mut()
+                .and_then(|capture| capture.update(&ctx, ready, state));
+            if let Some(result) = result {
+                self.capture = None;
+                match result {
+                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    Err(error) => {
+                        eprintln!("{error}");
+                        self.error = Some(error);
+                    }
                 }
             }
         }
@@ -238,6 +245,10 @@ impl MasterCraftApp {
     }
 
     fn sovereign_workspace(&mut self, ui: &mut egui::Ui, _: &egui::Context) {
+        let compact_height = ui.ctx().viewport_rect().height() < 800.;
+        if compact_height {
+            ui.spacing_mut().item_spacing.y = 5.;
+        }
         if let Some(error) = self.error.clone() {
             egui::Frame::new()
                 .fill(Color32::from_rgb(62, 29, 44))
@@ -263,21 +274,49 @@ impl MasterCraftApp {
                     .into_owned()
             })
             .unwrap_or_else(|| "Your next master starts here".into());
-        ui.add(egui::Label::new(theme::display(&name, 26.)).truncate())
-            .on_hover_text(&name);
-        ui.add_space(4.);
+        ui.add(
+            egui::Label::new(theme::display(
+                &name,
+                if compact_height { 22. } else { 26. },
+            ))
+            .truncate(),
+        )
+        .on_hover_text(&name);
+        if !compact_height {
+            ui.add_space(4.);
+        }
+        let full_tab_labels = ["Overview", "Manual EQ", "Processing report"];
+        let font = egui::TextStyle::Button.resolve(ui.style());
+        let full_tabs_width: f32 = full_tab_labels
+            .iter()
+            .map(|label| {
+                ui.painter()
+                    .layout_no_wrap((*label).into(), font.clone(), Color32::WHITE)
+                    .size()
+                    .x
+                    + 17.
+                    + ui.spacing().item_spacing.x
+                    + 2. * ui.spacing().button_padding.x
+            })
+            .sum::<f32>()
+            + 2. * ui.spacing().item_spacing.x;
+        let report_label = if full_tabs_width > ui.available_width() {
+            "Report"
+        } else {
+            "Processing report"
+        };
         ui.horizontal_wrapped(|ui| {
             for (tab, label, icon) in [
                 (0, "Overview", Icon::Home),
                 (1, "Manual EQ", Icon::Sliders),
-                (2, "Processing report", Icon::Report),
+                (2, report_label, Icon::Report),
             ] {
                 if ui
                     .add(
                         crystal_button::secondary(label)
                             .icon(icon)
                             .selected(self.tab == tab)
-                            .min_size(vec2(0., 36.)),
+                            .min_size(vec2(0., if compact_height { 32. } else { 36. })),
                     )
                     .clicked()
                 {
@@ -293,7 +332,7 @@ impl MasterCraftApp {
             90.
         }) + if timeline {
             if ui.ctx().viewport_rect().height() < 800. {
-                145.
+                130.
             } else {
                 165.
             }

@@ -1,6 +1,7 @@
 name: Native checks
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -25,3 +26,32 @@ jobs:
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked --release --all-targets
       - run: cargo build --locked --release --bins
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Linux build and validation dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libasound2-dev libdbus-1-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libxcb-shape0-dev libxcb-xfixes0-dev libgl1-mesa-dev libudev-dev xvfb xauth ffmpeg fonts-dejavu-core xdg-utils
+      - name: Set up stable Rust
+        run: |
+          rustup default stable
+          rustup component add rustfmt clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked --release --all-targets
+      - run: cargo build --locked --release --bins
+      - name: Verify Linux exports, XDG paths and native GUI captures
+        run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks'
+      - name: Check headless CLI without desktop features
+        run: cargo check --locked --no-default-features --bin slimeybeats-ez-master-cli
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-Linux-validation
+          path: ${{ runner.temp }}/SlimeyBeats-Linux-Checks
+          if-no-files-found: error

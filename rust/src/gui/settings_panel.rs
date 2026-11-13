@@ -259,9 +259,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
                         app.settings.out_dir = path;
                     }
                     if ui.add(crystal_button::secondary("Open folder")).clicked()
-                        && let Err(e) = crate::audio::external_command("explorer.exe")
-                            .arg(&app.settings.out_dir)
-                            .spawn()
+                        && let Err(e) = crate::desktop_integration::open_folder(&app.settings.out_dir)
                     {
                         app.error = Some(format!("Open output: {e}"));
                     }

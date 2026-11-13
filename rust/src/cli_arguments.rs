@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[command(
     name=mastercraft::branding::APP_NAME,
     version,
-    about = "SlimeyBeats-EZ-Master native mastering. Use slimeybeats-ez-master.exe for the desktop app."
+    about = "SlimeyBeats-EZ-Master native mastering. Use the desktop application for interactive mastering and EQ."
 )]
 pub struct Arguments {
     pub inputs: Vec<String>,

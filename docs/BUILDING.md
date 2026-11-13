@@ -2,6 +2,8 @@
 
 The current release is the native Rust application. The older Python implementation has a [separate historical guide](legacy/python-guide.md).
 
+For the Ubuntu source-build and validation commands, see [Linux checks](LINUX.md). The published v0.4.2 installer is for Windows.
+
 ## Native development
 
 Use a current stable Rust MSVC toolchain, Microsoft C++ Build Tools/Windows SDK, and Git. From the repository root:

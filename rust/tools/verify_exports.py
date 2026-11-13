@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -40,18 +41,18 @@ def verify(binary, source, output):
     command([binary, source, output / "missing-input.wav", "--out", output], expected=1)
     command([binary, output / "missing-input.wav", "--out", output], expected=3)
     command([binary, source, "--lufs", "-1", "--out", output], expected=2)
-    print(json.dumps({"exports": results, "checks": ["six formats", "independent loudness and true-peak", "44100Hz resampling", "source preserved", "collision handling", "mixed batch failure", "missing input", "invalid target"]}, indent=2))
+    return {"exports": results, "checks": ["six formats", "independent loudness and true-peak", "44100Hz output", "source preserved", "collision handling", "mixed batch failure", "missing input", "invalid target"]}
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--binary", type=Path, default=Path(__file__).resolve().parents[1] / "target/release/slimeybeats-ez-master-cli.exe")
-    parser.add_argument("--input", type=Path, default=Path(__file__).resolve().parents[2] / "test/test_song.wav")
+    parser.add_argument("--binary", type=Path, default=Path(__file__).resolve().parents[1] / ("target/release/slimeybeats-ez-master-cli" + (".exe" if os.name == "nt" else "")))
+    parser.add_argument("--input", type=Path, default=Path(__file__).resolve().parents[2] / "examples/audio/demo-input.wav")
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
     if args.out:
         args.out.mkdir(parents=True, exist_ok=True)
-        verify(args.binary, args.input, args.out)
+        print(json.dumps(verify(args.binary, args.input, args.out), indent=2))
     else:
         with tempfile.TemporaryDirectory(prefix="mastercraft-exports-") as directory:
-            verify(args.binary, args.input, Path(directory))
+            print(json.dumps(verify(args.binary, args.input, Path(directory)), indent=2))
