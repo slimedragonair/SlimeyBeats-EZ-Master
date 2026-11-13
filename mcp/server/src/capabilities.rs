@@ -2,6 +2,11 @@ use crate::state::{Engine, public_settings};
 use serde_json::{Value, json};
 
 pub fn describe(engine: &Engine) -> Value {
+    let audition = if engine.desktop.is_some() {
+        "open_in_desktop to audition"
+    } else {
+        "Ask the user to audition the temporary WAV in a local player; desktop is not configured"
+    };
     let profiles = mastercraft::profiles::builtin()
         .into_iter()
         .map(|(id, p)| json!({"id":id,"name":p["display_name"],"targets_lufs":p["lufs"]}))
@@ -16,6 +21,6 @@ pub fn describe(engine: &Engine) -> Value {
         "concurrent_audio_jobs":1,"desktop_configured":engine.desktop.is_some(),
         "privacy":"Local stdio only. This companion does not upload audio. Your AI client may send tool requests, measurements and filenames to its model provider. No audio is sent through tool results.",
         "memory":"The input limit is decoded PCM, not total process memory. Mastering holds several working buffers. One source and one master per session; longer tracks depend on RAM.",
-        "workflow":["get_help for complete examples and units","list_audio_files","load_audio and poll for source_id","analyze_audio","master_preview and poll for preview_id","optional suggest_eq then apply_eq","open_in_desktop to audition","export_audio only when requested"],
+        "workflow":["get_help for complete examples and units","list_audio_files","load_audio and poll for source_id","analyze_audio","master_preview and poll for preview_id","optional suggest_eq then apply_eq",audition,"export_audio only when requested"],
         "help_topics":["quick_start","mastering","eq","export","troubleshooting","privacy"]})
 }

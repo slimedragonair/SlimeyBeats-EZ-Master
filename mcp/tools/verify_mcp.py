@@ -47,6 +47,8 @@ def verify(server, fixture, codecs):
             assert all("inputSchema" in tool and "annotations" in tool for tool in tools)
             caps = client.call("get_capabilities")
             assert caps["concurrent_audio_jobs"] == 1
+            if not caps["desktop_configured"]:
+                assert "desktop is not configured" in " ".join(caps["workflow"])
             neutral = next(p for p in caps["profiles"] if p["id"] == "neutral")
             assert isinstance(neutral["targets_lufs"]["streaming_safe"], (int, float))
             guide = client.call("get_help")
@@ -84,7 +86,10 @@ def verify(server, fixture, codecs):
             first_path = output / master["relative_preview_path"]
             assert first_path.is_file()
             assert master["preview_bytes"] == first_path.stat().st_size > 44
-            assert "No desktop executable is configured" in master["listening"]
+            if caps["desktop_configured"]:
+                assert "open_in_desktop" in master["listening"]
+            else:
+                assert "No desktop executable is configured" in master["listening"]
             assert not list(output.glob("*.wav")), "Mastering exported final audio"
             for _ in range(2):
                 proposal = client.run("suggest_eq", {"source_id": source_id})
@@ -113,6 +118,7 @@ def verify(server, fixture, codecs):
                     assert peak <= -0.95, (format_name, peak)
                     assert abs(lufs - item["decoded_metrics"]["integrated_lufs"]) <= 0.15
                 report = json.loads((output / result["report_path"]).read_text(encoding="utf-8"))
+                assert report["file"] == source.name
                 assert "out_dir" not in report["configuration"] and "reference" not in report["configuration"]
                 exports.append(path)
             saved_hash = hashlib.sha256(exports[1].read_bytes()).hexdigest()
