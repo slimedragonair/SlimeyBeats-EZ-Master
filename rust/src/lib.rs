@@ -19,5 +19,6 @@ pub mod report;
 pub mod session_document;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_identity;
+pub mod studio;
 
 pub mod wav_encoding;
