@@ -25,6 +25,7 @@ let settings,
     masterKey = "",
     revision = 0,
     trackRevision = 0,
+    referenceRevision = 0,
     curveTimer;
 const player = new Player(syncControls, (error) => {
     status(error.message, true);
@@ -45,7 +46,7 @@ function masterSignature() {
         formats,
         ...auto
     } = settings;
-    return JSON.stringify(auto);
+    return JSON.stringify({ ...auto, reference_revision: referenceRevision });
 }
 function syncControls() {
     const locked = busy || restoring;
@@ -457,6 +458,7 @@ $("reference-file").onchange = () =>
             [samples.buffer],
         );
         reference = buffer;
+        referenceRevision++;
         settings.reference = "browser-reference";
         $("reference-name").textContent = `Reference: ${file.name}`;
         directionChanged();

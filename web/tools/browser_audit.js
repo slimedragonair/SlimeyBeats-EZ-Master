@@ -207,6 +207,25 @@ window.runAudit = async () => {
         checks.push(
             "three WAV formats, decoded peak guard, deterministic export",
         );
+        await dsp.call("reference", {
+            samples: fixture(2, 1),
+            rate: 48000,
+            channels: 1,
+        });
+        let staleReferenceExport = false;
+        try {
+            await dsp.call("export", {
+                settings: JSON.stringify(settings),
+                format: "wav24",
+            });
+        } catch {
+            staleReferenceExport = true;
+        }
+        assert(
+            staleReferenceExport,
+            "Changing reference must invalidate the stored master",
+        );
+        checks.push("reference changes reject stale worker exports");
         await dsp.call("load", {
             samples: new Float32Array(48000),
             rate: 48000,

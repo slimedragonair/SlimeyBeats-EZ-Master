@@ -13,7 +13,7 @@ The browser preview uses the project's Rust mastering engine, compiled to WebAss
 5. On desktop, each band's frequency button expands its frequency, Q and filter type. On narrow screens, choose a numbered band to edit it. **?** buttons explain controls, including on touchscreens. Playback remains accessible while you edit.
 6. **Export WAV** resolves the latest EQ, measures the encoded file after decoding it, and downloads it. Use **Report → Save JSON** for the corresponding report. Your browser controls the download folder and any save prompt.
 
-Changing an automatic mastering setting marks the preview as needing **Re-master** and disables export until it is applied. EQ edits do not require re-mastering. Listening volume and Level match never change the exported samples. Cancel stops the processing worker and restores the original; create a new master after cancellation.
+Changing an automatic mastering setting marks the preview as needing **Re-master** and disables export until it is applied. Choosing a new reference also invalidates the master, even if the file has the same name. EQ edits do not require re-mastering. Listening volume and Level match never change the exported samples. Cancel stops the processing worker and restores the original; create a new master after cancellation.
 
 ## Formats and practical limits
 

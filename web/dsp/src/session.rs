@@ -48,6 +48,8 @@ impl Session {
         self.reference = Some(
             analysis::analyze(&audio, &profile("neutral").map_err(failure)?).map_err(failure)?,
         );
+        self.raw = None;
+        self.report = None;
         Ok(())
     }
 

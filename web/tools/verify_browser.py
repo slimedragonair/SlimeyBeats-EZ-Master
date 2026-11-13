@@ -4,15 +4,29 @@ import base64
 import functools
 import http.server
 import json
+import io
+import math
 from pathlib import Path
 import subprocess
 import threading
+import struct
+import wave
 from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright, expect
 from browser_capture import BrowserDiagnostics
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def reference_fixture(frequency):
+    buffer = io.BytesIO()
+    with wave.open(buffer, 'wb') as writer:
+        writer.setnchannels(1)
+        writer.setsampwidth(2)
+        writer.setframerate(48000)
+        writer.writeframes(b''.join(struct.pack('<h',int(3000*math.sin(2*math.pi*frequency*i/48000))) for i in range(96000)))
+    return {'name':'reference.wav','mimeType':'audio/wav','buffer':buffer.getvalue()}
 parser = argparse.ArgumentParser()
 parser.add_argument('--site', type=Path, default=ROOT/'web/dist')
 parser.add_argument('--out', type=Path, required=True)
@@ -119,6 +133,16 @@ try:
                 artifact=page.evaluate('i=>{const a=window.auditArtifacts[i];let t="";for(let j=0;j<a.bytes.length;j+=8192)t+=String.fromCharCode(...a.bytes.subarray(j,j+8192));return {name:a.name,bytes:btoa(t)};}',index)
                 (args.out/artifact['name']).write_bytes(base64.b64decode(artifact['bytes']))
             page.set_viewport_size({'width':1480,'height':1000})
+            page.locator('#reference-file').set_input_files(reference_fixture(220))
+            expect(page.locator('#master')).to_be_enabled(timeout=30000)
+            expect(page.locator('#export')).to_be_disabled()
+            page.locator('#master').click()
+            expect(page.locator('#export')).to_be_enabled(timeout=240000)
+            page.locator('#reference-file').set_input_files(reference_fixture(880))
+            expect(page.locator('#master')).to_be_enabled(timeout=30000)
+            expect(page.locator('#export')).to_be_disabled()
+            expect(page.locator('#session-state')).to_contain_text('Direction changed')
+            result['replacing_reference_with_same_filename_invalidates_master']=True
             page.evaluate('()=>{document.querySelector("#master").click();document.querySelector("#cancel").click();}')
             expect(page.locator('#status')).to_contain_text('Cancelled. Your original is ready',timeout=30000)
             expect(page.locator('#master')).to_be_enabled()
