@@ -1,5 +1,6 @@
 import { DspClient } from "../dsp-client.js";
 import init, { LiveEq, defaults } from "../pkg/dsp.js";
+import { runGaplessAudit } from "./gapless_audit.js";
 
 function assert(value, message) {
     if (!value) throw new Error(message);
@@ -25,7 +26,7 @@ window.runAudit = async () => {
     const dsp = new DspClient();
     await init();
     const { settings } = JSON.parse(defaults());
-    let checks = [];
+    let checks = runGaplessAudit();
     try {
         let rejected = false;
         try {

@@ -1,4 +1,4 @@
-use crate::{failure, profile, settings, wav_output};
+use crate::{failure, import_limits, profile, settings, wav_output};
 use mastercraft::{
     analysis::{self, Analysis},
     audio::Audio,
@@ -20,16 +20,10 @@ pub struct Session {
 #[wasm_bindgen]
 impl Session {
     #[wasm_bindgen(constructor)]
-    pub fn new(samples: &[f32], rate: u32, channels: u32) -> Result<Session, JsValue> {
-        if samples.len() > 25_165_824 {
-            return Err(failure("Decoded audio exceeds the 96 MiB browser limit"));
-        }
-        let input = Audio::new(samples.to_vec(), rate, channels as usize).map_err(failure)?;
-        if input.duration() > 300. {
-            return Err(failure(
-                "Browser preview supports up to five minutes per track",
-            ));
-        }
+    pub fn new(samples: Vec<f32>, rate: u32, channels: u32) -> Result<Session, JsValue> {
+        import_limits::validate(samples.len(), rate, channels).map_err(failure)?;
+        // Own the binding's input allocation instead of copying a whole track again.
+        let input = Audio::new(samples, rate, channels as usize).map_err(failure)?;
         Ok(Self {
             input,
             reference: None,
@@ -40,11 +34,12 @@ impl Session {
 
     pub fn set_reference(
         &mut self,
-        samples: &[f32],
+        samples: Vec<f32>,
         rate: u32,
         channels: u32,
     ) -> Result<(), JsValue> {
-        let audio = Audio::new(samples.to_vec(), rate, channels as usize).map_err(failure)?;
+        import_limits::validate(samples.len(), rate, channels).map_err(failure)?;
+        let audio = Audio::new(samples, rate, channels as usize).map_err(failure)?;
         self.reference = Some(
             analysis::analyze(&audio, &profile("neutral").map_err(failure)?).map_err(failure)?,
         );
@@ -85,13 +80,22 @@ impl Session {
         Ok(serde_json::json!({"report":self.report,"raw_analysis":raw_analysis}).to_string())
     }
 
-    pub fn preview_samples(&self) -> Result<Vec<f32>, JsValue> {
+    pub fn preview_ptr(&self) -> Result<*const f32, JsValue> {
         Ok(self
             .raw
             .as_ref()
             .ok_or_else(|| failure("Master the track first"))?
             .samples
-            .clone())
+            .as_ptr())
+    }
+
+    pub fn preview_len(&self) -> Result<usize, JsValue> {
+        Ok(self
+            .raw
+            .as_ref()
+            .ok_or_else(|| failure("Master the track first"))?
+            .samples
+            .len())
     }
 
     pub fn suggest(&self, json: &str) -> Result<String, JsValue> {

@@ -1,3 +1,6 @@
+import { validateFile, validateDecoded } from "./import-validation.js";
+import { readMp3Timing, normalizeMp3Timing } from "./mp3-gapless.js";
+
 export class Player {
     constructor(onState, onError) {
         this.onState = onState;
@@ -39,29 +42,12 @@ export class Player {
         return this.ctx;
     }
     async decode(file) {
-        if (file.size > 100 * 1024 * 1024)
-            throw new Error(
-                "Choose a file smaller than 100 MiB for the browser preview.",
-            );
-        const buffer = await this.context().decodeAudioData(
-            await file.arrayBuffer(),
-        );
-        if (buffer.numberOfChannels < 1 || buffer.numberOfChannels > 2)
-            throw new Error(
-                "Use a mono or stereo track. Downmix surround audio explicitly first.",
-            );
-        if (
-            buffer.duration > 300 ||
-            buffer.length * buffer.numberOfChannels * 4 > 96 * 1024 * 1024
-        )
-            throw new Error(
-                "Browser preview limit: five minutes and 96 MiB of decoded audio. Use the desktop app for longer tracks.",
-            );
-        for (let ch = 0; ch < buffer.numberOfChannels; ch++)
-            if (!buffer.getChannelData(ch).every(Number.isFinite))
-                throw new Error(
-                    "Decoded track contains invalid audio samples.",
-                );
+        validateFile(file, this.importLimits);
+        const context = this.context(), encoded = await file.arrayBuffer();
+        const timing = readMp3Timing(encoded);
+        const decoded = await context.decodeAudioData(encoded);
+        const buffer = normalizeMp3Timing(context, decoded, timing, this.importLimits.max_seconds);
+        validateDecoded(buffer, this.importLimits);
         return buffer;
     }
     setOriginal(buffer) {

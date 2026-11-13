@@ -3,7 +3,7 @@ let session;
 const ready = init();
 self.onmessage = async ({ data: m }) => {
     try {
-        await ready;
+        const wasm = await ready;
         let result;
         switch (m.action) {
             case "init":
@@ -27,7 +27,13 @@ self.onmessage = async ({ data: m }) => {
                         self.postMessage({ id: m.id, progress: value, text }),
                     ),
                 );
-                result.samples = session.preview_samples();
+                // Copy once into the transferable buffer, without a second full
+                // preview allocation in the WASM heap. Read before any mutation.
+                result.samples = new Float32Array(
+                    wasm.memory.buffer,
+                    session.preview_ptr(),
+                    session.preview_len(),
+                ).slice();
                 break;
             }
             case "suggest":

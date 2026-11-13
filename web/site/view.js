@@ -7,6 +7,13 @@ export const time = (seconds) =>
 export function status(text, error = false) {
     $("status").textContent = text;
     $("status").classList.toggle("status-error", error);
+    const notice = $("import-error");
+    notice.textContent = error ? text : "";
+    notice.hidden = !error;
+    if (error) {
+        notice.scrollIntoView({ block: "center" });
+        notice.focus({ preventScroll: true });
+    }
 }
 export function page(name) {
     for (const key of ["overview", "eq", "report"]) {

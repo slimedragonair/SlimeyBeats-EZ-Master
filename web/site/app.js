@@ -1,5 +1,6 @@
 import { DspClient, interleave, toBuffer } from "./dsp-client.js";
 import { Player } from "./audio/player.js";
+import { limitsSummary } from "./audio/import-validation.js";
 import { wireHelp } from "./help.js";
 import {
     $,
@@ -21,7 +22,7 @@ let settings,
     currentFile,
     analysis,
     report,
-    reference,
+    referenceFile,
     masterKey = "",
     revision = 0,
     trackRevision = 0,
@@ -37,6 +38,7 @@ const dsp = new DspClient((value, text) => {
     status(text);
 });
 wireHelp();
+syncControls();
 function masterSignature() {
     if (!settings) return "";
     const {
@@ -158,6 +160,11 @@ function clearMaster() {
     syncControls();
 }
 async function loadWorker(buffer = player.original) {
+    const owner = jobRevision;
+    const ensureOwner = () => {
+        if (owner !== jobRevision)
+            throw new DOMException("Processing cancelled", "AbortError");
+    };
     const samples = interleave(buffer);
     await dsp.call(
         "load",
@@ -168,17 +175,21 @@ async function loadWorker(buffer = player.original) {
         },
         [samples.buffer],
     );
-    if (reference) {
-        const samples = interleave(reference);
+    ensureOwner();
+    if (referenceFile) {
+        const decoded = await player.decode(referenceFile);
+        ensureOwner();
+        const samples = interleave(decoded);
         await dsp.call(
             "reference",
             {
                 samples,
-                rate: reference.sampleRate,
-                channels: reference.numberOfChannels,
+                rate: decoded.sampleRate,
+                channels: decoded.numberOfChannels,
             },
             [samples.buffer],
         );
+        ensureOwner();
     }
 }
 async function loadFile(file) {
@@ -456,9 +467,11 @@ $("reference-file").onchange = () =>
             throw new Error("Add your mix before choosing a reference.");
         const file = $("reference-file").files[0];
         if (!file) return;
+        status("Decoding the reference locally…");
         const buffer = await player.decode(file);
         ensureCurrent();
         const samples = interleave(buffer);
+        status("Measuring the reference locally. Long tracks can take a while…");
         await dsp.call(
             "reference",
             {
@@ -468,7 +481,7 @@ $("reference-file").onchange = () =>
             },
             [samples.buffer],
         );
-        reference = buffer;
+        referenceFile = file;
         referenceRevision++;
         settings.reference = "browser-reference";
         $("reference-name").textContent = `Reference: ${file.name}`;
@@ -516,7 +529,7 @@ $("clear").onclick = () => {
     plots.setAudio(null);
     analysis = null;
     currentFile = null;
-    reference = null;
+    referenceFile = null;
     settings.reference = null;
     $("reference-name").textContent =
         "Optional. Borrow a finished track’s tonal direction.";
@@ -555,6 +568,8 @@ try {
             "Open this app over HTTPS or localhost to use private audio processing.",
         );
     const initial = await dsp.call("init");
+    player.importLimits = Object.freeze(initial.import_limits);
+    $("import-limits").textContent = limitsSummary(player.importLimits);
     settings = initial.settings;
     defaults = structuredClone(settings);
     for (const id of ["profile", "blend-profile"]) {
