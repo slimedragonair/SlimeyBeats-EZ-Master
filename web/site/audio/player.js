@@ -1,4 +1,5 @@
 import { validateFile, validateDecoded } from "./import-validation.js";
+import { readMp3Timing, normalizeMp3Timing } from "./mp3-gapless.js";
 
 export class Player {
     constructor(onState, onError) {
@@ -42,9 +43,10 @@ export class Player {
     }
     async decode(file) {
         validateFile(file, this.importLimits);
-        const buffer = await this.context().decodeAudioData(
-            await file.arrayBuffer(),
-        );
+        const context = this.context(), encoded = await file.arrayBuffer();
+        const timing = readMp3Timing(encoded);
+        const decoded = await context.decodeAudioData(encoded);
+        const buffer = normalizeMp3Timing(context, decoded, timing, this.importLimits.max_seconds);
         validateDecoded(buffer, this.importLimits);
         return buffer;
     }

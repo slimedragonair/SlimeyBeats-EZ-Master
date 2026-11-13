@@ -67,6 +67,14 @@ A 15-minute constant-sine reference exceeded the initial **180-second measuremen
 
 An independent review opened the actual new 390 × 844 limit/error screenshots and scored look, polish and readability **9/10 each**. This covers those two states only.
 
+## MP3 padding at the duration boundary
+
+The expanded matrix found WebKit 26.0 counting MP3 encoder/decoder padding against the limit: a valid 15-minute WAV passed, while its MP3 was reported just over 15:00. A focused adapter now reads recognized Xing/Info + LAME-compatible declared timing and removes padding only when decoded frame counts match a known layout. It leaves already gapless buffers unchanged, rejects unknown/truncated layouts for correction, and never shortens a genuinely overlong recording to fit. The strict WAV/Rust frame boundary is unchanged.
+
+Local Linux WebKit then accepted all four real 6-/15-minute WAV/MP3 imports and the complete 15-minute MP3 reference measurement. An initial three-second stereo-noise check at 44.1/48 kHz compared the result with independent FFmpeg decoding: normalized output was exactly **144,000 frames at 48 kHz**, with best alignment at **zero samples** in both cases. Observed stereo correlation was about 0.99545 after different 44.1→48 kHz resamplers, and 0.99999994 at 48 kHz. The maintained mono/stereo alignment fixture is band-limited noise so it checks timing without treating expected high-frequency resampler-response differences as a delay failure. This is a timing/alignment check, not bit-identical decoder certification. Chrome's already gapless buffers were returned unchanged.
+
+Maintained checks cover mono/stereo at both source rates, malformed/missing timing, MPEG variants, ID3/CRC/optional tag layouts, no double trimming, unknown lengths, genuinely overlong sources and the strict extra-frame WAV rejection. The CI runs actual independent MP3 timing and long imports before the broader audio suite so a codec-boundary regression fails earlier. Physical iPhone testing remains outstanding.
+
 ## Limits and reproduction
 
 The preview accepts one mono/stereo mix plus an optional reference, **up to 15:00 per file**, within **384 MiB decoded PCM and 384 MiB source size**. All three bounds apply independently. Browser decoding uses a 48 kHz context; input codec support varies. Export is WAV only. Full files are held in memory, so actual device capacity may be lower and decoding very long compressed files can fail before the decoded-size check. There is no combined-duration/song-count quota.

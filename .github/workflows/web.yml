@@ -42,17 +42,22 @@ jobs:
           echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
           python3 -m pip install playwright==1.57.0
           python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Verify MP3 timing against independent decoded PCM
+        run: |
+          python3 web/tools/verify_gapless.py --out '${{ runner.temp }}/browser-checks/gapless-chromium'
+          python3 web/tools/verify_gapless.py --browser firefox --out '${{ runner.temp }}/browser-checks/gapless-firefox'
+          python3 web/tools/verify_gapless.py --browser webkit --out '${{ runner.temp }}/browser-checks/gapless-webkit'
+      - name: Verify long WAV and MP3 imports in three engines
+        run: |
+          python3 web/tools/verify_imports.py --out '${{ runner.temp }}/browser-checks/imports-chromium'
+          python3 web/tools/verify_imports.py --browser firefox --out '${{ runner.temp }}/browser-checks/imports-firefox'
+          python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
       - name: Verify Chromium
         run: python3 web/tools/verify_browser.py --out '${{ runner.temp }}/browser-checks/chromium'
       - name: Verify Firefox
         run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'
       - name: Verify WebKit
         run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
-      - name: Verify long WAV and MP3 imports in three engines
-        run: |
-          python3 web/tools/verify_imports.py --out '${{ runner.temp }}/browser-checks/imports-chromium'
-          python3 web/tools/verify_imports.py --browser firefox --out '${{ runner.temp }}/browser-checks/imports-firefox'
-          python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
       - name: Verify repeated track replacement and export
         run: python3 web/tools/verify_memory.py --tracks 4 --seconds 10 --out '${{ runner.temp }}/browser-checks/replacement'
       - uses: actions/upload-artifact@v7

@@ -41,8 +41,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
     def translate_path(self, path):
-        if urlparse(path).path == '/tools/browser_audit.js':
-            return str(ROOT/'web/tools/browser_audit.js')
+        tool = urlparse(path).path
+        if tool in ['/tools/browser_audit.js','/tools/gapless_audit.js']:
+            return str(ROOT/'web'/tool.lstrip('/'))
         return super().translate_path(path)
 
 
