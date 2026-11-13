@@ -38,13 +38,25 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, height: f32) {
             egui::TextureOptions::LINEAR,
         ));
     }
-    ui.label(
-        egui::RichText::new("Frequency / Hz · sampled spectrum, dBFS per bin")
-            .color(theme::MUTED)
-            .size(13.),
-    );
-    let (outer, _) = ui.allocate_exact_size(vec2(ui.available_width(), height), Sense::hover());
-    let chart = Rect::from_min_max(outer.min + vec2(48., 8.), outer.max - vec2(10., 30.));
+    let section_top = ui.next_widget_position().y;
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new("Frequency / Hz").color(theme::MUTED).size(13.));
+        let (key, _) = ui.allocate_exact_size(vec2(64., 8.), Sense::hover());
+        for i in 0..16 { ui.painter().rect_filled(Rect::from_min_size(pos2(key.left()+i as f32*4., key.top()),vec2(4.,8.)),0.,color(-100.+85.*i as f32/15.)); }
+        ui.small("−100 to −15 dBFS/bin").on_hover_text("Sampled mean-channel spectral power. Dark is quiet; teal and pale colors indicate stronger energy. This is a display range, not a target curve.");
+    });
+    let header_height = ui.next_widget_position().y - section_top;
+    let plot_height = height
+        - header_height
+        - ui.text_style_height(&egui::TextStyle::Small)
+        - 2. * ui.spacing().item_spacing.y;
+    if plot_height < 50. {
+        ui.small("Expand the window or dismiss the notice to inspect the graph.");
+        return;
+    }
+    let (outer, _) =
+        ui.allocate_exact_size(vec2(ui.available_width(), plot_height), Sense::hover());
+    let chart = Rect::from_min_max(outer.min + vec2(48., 2.), outer.max - vec2(10., 20.));
     let response = ui.interact(
         chart,
         ui.scope_id().with("spectral-selection"),
@@ -123,8 +135,30 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, height: f32) {
     painter.rect_stroke(
         selected,
         0.,
-        Stroke::new(1.5, theme::AMETHYST),
+        Stroke::new(4., Color32::from_rgb(16, 12, 24)),
         egui::StrokeKind::Inside,
     );
-    ui.small("Dark: quiet · violet: detail · teal: stronger energy. A bright region is not automatically a defect.");
+    painter.rect_stroke(
+        selected,
+        0.,
+        Stroke::new(1.5, Color32::from_rgb(255, 240, 255)),
+        egui::StrokeKind::Inside,
+    );
+    for (corner, dx, dy) in [
+        (selected.left_top(), 1., 1.),
+        (selected.right_top(), -1., 1.),
+        (selected.left_bottom(), 1., -1.),
+        (selected.right_bottom(), -1., -1.),
+    ] {
+        let length = 6_f32.min(selected.width() / 3.).min(selected.height() / 3.);
+        painter.line_segment(
+            [corner + vec2(dx * length, 0.), corner],
+            Stroke::new(3., Color32::WHITE),
+        );
+        painter.line_segment(
+            [corner, corner + vec2(0., dy * length)],
+            Stroke::new(3., Color32::WHITE),
+        );
+    }
+    ui.small(format!("Selection: {:.2}–{:.2} s · {:.0}–{:.0} Hz",studio.repair.start_seconds,studio.repair.end_seconds,studio.repair.low_hz,studio.repair.high_hz)).on_hover_text("A bright region is not automatically a defect. The outline and exact values show what the next repair will affect.");
 }

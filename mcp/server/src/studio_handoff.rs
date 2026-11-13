@@ -17,14 +17,21 @@ fn snapshot(ctx: &ContextData) -> Result<StudioSnapshot> {
         .bank
         .as_ref()
         .map(|b| b.original_mix.clone())
+        .or_else(|| studio.origin.as_ref().map(|origin| origin.audio.clone()))
         .or_else(|| ctx.snapshot.source.as_ref().map(|s| s.audio.clone()))
         .unwrap_or_else(|| preview.before.clone());
-    let name = ctx
-        .snapshot
-        .source
+    let name = studio
+        .bank
         .as_ref()
-        .and_then(|s| s.source.path.file_name())
-        .map(|s| s.to_string_lossy().into_owned())
+        .map(|bank| bank.source_name.clone())
+        .or_else(|| studio.origin.as_ref().map(|origin| origin.label.clone()))
+        .or_else(|| {
+            ctx.snapshot
+                .source
+                .as_ref()
+                .and_then(|s| s.source.path.file_name())
+                .map(|s| s.to_string_lossy().into_owned())
+        })
         .unwrap_or_else(|| "Imported stem mix".into());
     let last = preview
         .steps
@@ -63,7 +70,10 @@ fn save(ctx: ContextData, launch: bool) -> Result<Product> {
     let path = session::save(&snapshot, &ctx.engine.policy.output, &|| ctx.cancelled())?;
     let mut warning = None;
     let mut process_id = None;
-    if launch {
+    if launch && ctx.cancelled() {
+        warning = Some("Project saved; desktop launch was cancelled".into());
+    }
+    if launch && !ctx.cancelled() {
         let executable = ctx
             .engine
             .desktop

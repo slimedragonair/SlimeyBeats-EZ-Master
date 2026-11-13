@@ -27,6 +27,7 @@ pub fn show(
         ui.separator();
         let busy=studio.busy();
         ui.add_enabled_ui(!busy,|ui|match studio.page {Page::Stems=>stems(studio,ui,ctx),Page::Voice=>voice(studio,ui,ctx),Page::Repair=>repair(studio,ui,ctx),Page::Plugins=>super::plugin_controls::show(studio,ui,ctx)});
+        if matches!(studio.target,Target::Stem(_)) && ui.add_enabled(!busy&&studio.can_apply_preview_to_stem(),crystal_button::secondary("Apply preview to selected stem")).on_hover_text("Prepare a direct cleanup, repair or plugin edit from this stem first. Applying it replaces only this part and rebuilds the full mix.").clicked(){studio.apply_preview_to_stem(ctx);}
         ui.separator();theme::eyebrow(ui,"SAVE WHEN READY");
         if studio.mix_dirty {ui.label(RichText::new("Fader changes pending · update the preview first").color(theme::BONE));}
         ui.horizontal_wrapped(|ui| {
@@ -66,7 +67,13 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     );
     if !ready {
         ui.label("First setup downloads an isolated engine and model. Your audio stays on this computer.");
-        if ui.add_enabled(!studio.busy(),crystal_button::secondary("Install stem engine")).on_hover_text("One-time download using a private Python environment, separate from other apps. Requires internet, disk space and several minutes. No audio is uploaded.").clicked() {studio.install_engine(ctx);}
+        if ui.add_enabled(!studio.busy(),crystal_button::secondary("Install stem engine")).on_hover_text("One-time download using a private Python environment, separate from other apps. Requires internet, disk space and several minutes. No audio is uploaded.").clicked() {studio.install_engine(false,ctx);}
+    }
+    if ready {
+        ui.collapsing("Engine maintenance", |ui| {
+            if ui.add(crystal_button::secondary("Verify installed model")).on_hover_text("Check every model file against the verified installation manifest without downloading it again.").clicked() { studio.install_engine(false, ctx); }
+            if ui.add(crystal_button::secondary("Repair stem engine")).on_hover_text("Reinstall the private dependencies and verified model. Unknown files are preserved in a backup; your audio is not touched.").clicked() { studio.install_engine(true, ctx); }
+        });
     }
     ui.add_enabled_ui(!studio.busy(),|ui| {
         ui.radio_value(&mut studio.two_stems,true,"Vocal + instrumental");
@@ -133,6 +140,8 @@ pub fn target(studio: &mut Studio, ui: &mut egui::Ui) {
             }
         });
     if studio.target != previous {
+        studio.analysis = None;
+        studio.status = "Input changed · Analyze to measure the selected source".into();
         studio.spectrogram = None;
         studio.texture = None;
     }
@@ -185,6 +194,19 @@ fn voice(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
         });
     }
     ui.checkbox(&mut studio.voice.hold_loudness,"Hold loudness").on_hover_text("Compensate the level change by at most 3 dB for a fairer comparison, while respecting the peak ceiling.");
+    let mut gate = studio.voice.gate_threshold_db.is_some();
+    if ui.checkbox(&mut gate, "Quiet-gap gate").on_hover_text("Gentle downward expansion in quiet gaps. Keep the threshold below the voice to avoid cutting off words.").changed() { studio.voice.gate_threshold_db = gate.then_some(-55.); }
+    if let Some(threshold) = &mut studio.voice.gate_threshold_db {
+        slider(
+            ui,
+            "Gate threshold",
+            threshold,
+            -80. ..=-15.,
+            " dBFS",
+            "Signals below this threshold are gently reduced. A lower value preserves more quiet speech.",
+        );
+    }
+    ui.small("These settings affect the next preview. Export saves the current prepared preview.");
     if ui
         .add_enabled(
             !studio.busy() && studio.audio_target().is_ok(),
@@ -194,7 +216,6 @@ fn voice(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     {
         studio.clean_voice(ctx);
     }
-    if matches!(studio.target,Target::Stem(_)) && ui.add_enabled(!studio.busy()&&studio.current.is_some(),crystal_button::secondary("Apply preview to selected stem")).on_hover_text("Replace this stem with its prepared cleanup, then rebuild the full mix. Process the stem directly, apply it, then chain another edit if needed.").clicked(){studio.apply_preview_to_stem(ctx);}
 }
 fn repair(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     target(studio, ui);

@@ -21,14 +21,22 @@ pub struct EditedAudio {
 }
 pub struct StemBank {
     pub id: String,
+    pub source_name: String,
     pub stems: StemSet,
     pub controls: MixSettings,
     pub model: Value,
     pub original_mix: Arc<Audio>,
 }
+#[derive(Clone)]
+pub struct StudioOrigin {
+    pub id: String,
+    pub label: String,
+    pub audio: Arc<Audio>,
+}
 
 #[derive(Clone, Default)]
 pub struct StudioState {
+    pub origin: Option<StudioOrigin>,
     pub bank: Option<Arc<StemBank>>,
     pub current: Option<Arc<EditedAudio>>,
     pub undo: Vec<Arc<EditedAudio>>,
@@ -54,6 +62,15 @@ impl Snapshot {
                     .unwrap_or_default()
                     .to_string_lossy()
                     .into_owned(),
+                steps: vec![],
+            });
+        }
+        if let Some(origin) = &self.studio.origin
+            && origin.id == id
+        {
+            return Ok(AudioTarget {
+                audio: origin.audio.clone(),
+                label: origin.label.clone(),
                 steps: vec![],
             });
         }
@@ -129,6 +146,14 @@ impl StudioState {
         let mut assets = Vec::new();
         if let Some(source) = &snapshot.source {
             assets.push(audio_info(&source.id, "Loaded source", &source.audio));
+        }
+        if let Some(origin) = &self.origin
+            && snapshot
+                .source
+                .as_ref()
+                .is_none_or(|source| source.id != origin.id)
+        {
+            assets.push(audio_info(&origin.id, "Studio original", &origin.audio));
         }
         if let Some(bank) = &self.bank {
             assets.push(audio_info(

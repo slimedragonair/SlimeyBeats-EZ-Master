@@ -17,6 +17,8 @@ Changing an automatic mastering setting marks the preview as needing **Re-master
 
 ## Formats and practical limits
 
+Development source also includes a separate **Studio** editing tab for imported stems, rebalancing, voice cleanup and spectral repair. Its **128 MiB combined decoded-input budget** is smaller than the mastering-page limits below. Neural separation and native VST3 remain desktop features. See the [Studio workflow, exact limits and current validation](STUDIO.md). These additions are not part of the published v0.4.2 desktop installer.
+
 | Item | Browser preview |
 | --- | --- |
 | Input | One mono/stereo track; formats supported by the current browser's decoder |

@@ -39,6 +39,9 @@ def verify(server, engine):
                 assert client.call("get_help", {"topic": topic})
             loaded = client.run("load_audio", {"library": 0, "path": source.name})
             source_id = loaded["source_id"]
+            measured = client.run("analyze_studio_audio", {"audio_id":source_id})
+            assert measured["audio_id"] == source_id and measured["analysis"]["metrics"]
+            assert client.call("get_studio_session")["preview"] is None
             cleaned = client.run("clean_voice", {"audio_id": source_id, "settings": {"noise_reduction": 0, "deess": 0}})
             first = cleaned["studio_preview_id"]
             assert not list(output.glob("*.wav")), "Voice cleanup exported automatically"

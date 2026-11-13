@@ -35,6 +35,8 @@ pub enum AutoAction {
     Voice,
     Spectrogram,
     Repair,
+    Plugin,
+    PluginRender,
 }
 pub struct LoadedSource {
     pub audio: Arc<Audio>,
@@ -89,6 +91,7 @@ pub struct Studio {
     pub output_dir: PathBuf,
     pub export_format: String,
     pub stem_waveforms: Vec<(StemKind, Waveform)>,
+    pub(super) waveform_bank: Option<Arc<StemSet>>,
     pub selection_anchor: Option<egui::Pos2>,
 }
 impl Studio {
@@ -144,11 +147,25 @@ impl Studio {
             output_dir,
             export_format: "wav24".into(),
             stem_waveforms: vec![],
+            waveform_bank: None,
             selection_anchor: None,
         }
     }
     pub fn busy(&self) -> bool {
         self.jobs.active.is_some()
+    }
+    pub fn cancel(&mut self) {
+        self.jobs.cancel.store(true, Ordering::Relaxed);
+        self.status = "Cancelling after the current processing step".into();
+    }
+    pub fn can_apply_preview_to_stem(&self) -> bool {
+        let (Target::Stem(kind), Some(bank), Some(current)) =
+            (self.target, self.bank.as_ref(), self.current.as_ref())
+        else {
+            return false;
+        };
+        bank.track(kind)
+            .is_ok_and(|stem| Arc::ptr_eq(&current.before, &stem.audio))
     }
     pub fn audio_target(&self) -> anyhow::Result<Arc<Audio>> {
         use anyhow::Context;
@@ -190,12 +207,14 @@ impl Studio {
                         }
                         Ok(Change::Source(source)) => {
                             self.bank = None;
+                            self.mix = MixSettings::default();
                             self.stem_waveforms.clear();
                             self.undo.clear();
                             self.redo.clear();
                             self.mix_dirty = false;
                             self.target = Target::Source;
                             self.player.stop();
+                            self.player.seek(0.);
                             let revision = Revision {
                                 before: source.audio.clone(),
                                 audio: source.audio.clone(),
@@ -218,6 +237,18 @@ impl Studio {
                                     AutoAction::Voice => self.clean_voice(ctx),
                                     AutoAction::Spectrogram => self.build_spectrogram(ctx),
                                     AutoAction::Repair => self.repair_audio(ctx),
+                                    AutoAction::Plugin => {
+                                        if let Some(path) = self.plugin_path.clone() {
+                                            self.auto_action = Some(AutoAction::PluginRender);
+                                            self.probe_plugin(path, ctx);
+                                        } else {
+                                            self.error =
+                                                Some("Plugin capture needs --studio-plugin".into());
+                                        }
+                                    }
+                                    AutoAction::PluginRender => {
+                                        self.error = Some("Plugin probe did not complete".into());
+                                    }
                                 }
                             }
                         }
@@ -230,11 +261,6 @@ impl Studio {
                             }
                         }
                         Ok(Change::Stems(bank, revision)) => {
-                            self.stem_waveforms = bank
-                                .tracks
-                                .iter()
-                                .map(|s| (s.kind, Waveform::new(&s.audio, None)))
-                                .collect();
                             self.bank = Some(bank.clone());
                             self.mix = bank.defaults();
                             self.target = Target::Stem(StemKind::Vocals);
@@ -257,10 +283,19 @@ impl Studio {
                             self.reset_plugin_values();
                             self.status =
                                 "Plugin controls ready · render a preview to apply them".into();
+                            if matches!(self.auto_action, Some(AutoAction::PluginRender)) {
+                                self.auto_action = None;
+                                self.render_plugin(ctx);
+                            }
                         }
                         Ok(Change::Analysis(analysis)) => {
+                            self.status = format!(
+                                "Selected · {:.1} LUFS · {:.2} dBTP · {} Hz",
+                                analysis.metrics.integrated_lufs,
+                                analysis.metrics.true_peak_dbtp,
+                                analysis.sample_rate
+                            );
                             self.analysis = Some(*analysis);
-                            self.status = "Selected Studio source analyzed".into();
                         }
                         Ok(Change::Spectrogram(image)) => {
                             self.spectrogram = Some(image);
@@ -322,6 +357,20 @@ impl Studio {
     }
     fn load_player(&mut self) {
         self.analysis = None;
+        if !self
+            .bank
+            .as_ref()
+            .zip(self.waveform_bank.as_ref())
+            .is_some_and(|(bank, cached)| Arc::ptr_eq(bank, cached))
+        {
+            self.stem_waveforms = self.bank.as_ref().map_or_else(Vec::new, |bank| {
+                bank.tracks
+                    .iter()
+                    .map(|stem| (stem.kind, Waveform::new(&stem.audio, None)))
+                    .collect()
+            });
+            self.waveform_bank = self.bank.clone();
+        }
         if let Some(revision) = &self.current {
             let seconds = self.player.seconds();
             let playing = self.player.controls.playing.load(Ordering::Relaxed);

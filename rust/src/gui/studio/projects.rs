@@ -89,16 +89,12 @@ impl Studio {
             path: PathBuf::from(snapshot.source_name),
             loudness: source_lufs,
         });
-        self.stem_waveforms = bank.as_ref().map_or_else(Vec::new, |b| {
-            b.tracks
-                .iter()
-                .map(|s| (s.kind, crate::gui::plots::Waveform::new(&s.audio, None)))
-                .collect()
-        });
         self.bank = bank.clone();
         self.undo.clear();
         self.redo.clear();
         self.target = super::state::Target::Preview;
+        self.player.stop();
+        self.player.seek(0.);
         self.page = match snapshot.view.as_str() {
             "voice" => Page::Voice,
             "repair" => Page::Repair,

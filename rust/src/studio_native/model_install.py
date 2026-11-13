@@ -19,6 +19,45 @@ def digest(path):
     return value.hexdigest()
 
 
+def verify(target):
+    """Full cache validation is explicit work, never a per-frame status probe."""
+    provenance = target / "provenance.json"
+    if not provenance.is_file() or provenance.is_symlink() or provenance.stat().st_size >= 65536:
+        raise ValueError("Model provenance is missing or invalid; run Repair stem engine")
+    info = json.loads(provenance.read_text(encoding="utf-8"))
+    if info.get("archive_sha256") != SHA256 or not isinstance(info.get("files"), list):
+        raise ValueError("Unexpected model provenance; run Repair stem engine")
+    checked = set()
+    for item in info["files"]:
+        name = item["file"]
+        if Path(name).name != name or name in checked:
+            raise ValueError("Invalid model manifest filename")
+        checked.add(name)
+        path = target / name
+        if path.is_symlink() or not path.is_file() or path.stat().st_size != item["bytes"] or digest(path) != item["sha256"]:
+            raise ValueError("Model integrity check failed; run Repair stem engine")
+    if not {"checkpoint", "model.index", "model.data-00000-of-00001"}.issubset(checked):
+        raise ValueError("Model checkpoint is incomplete; run Repair stem engine")
+    return True
+
+
+def discard_known_backup(backup, target):
+    # Cleanup is optional. Damaged/unknown provenance must not turn an already
+    # successful replacement into an installation failure or delete user files.
+    try:
+        previous = backup / "provenance.json"
+        if not backup.is_dir() or backup.is_symlink() or not previous.is_file() or previous.is_symlink() or previous.stat().st_size >= 65536:
+            return
+        info = json.loads(previous.read_text(encoding="utf-8"))
+        expected = {item["file"] for item in info.get("files", [])} | {"provenance.json"}
+        if (info.get("archive_sha256") == SHA256 and
+                all(p.name in expected and p.is_file() and not p.is_symlink() for p in backup.iterdir()) and
+                backup.resolve().is_relative_to(target.parent.resolve())):
+            shutil.rmtree(backup)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return
+
+
 def install(archive, target):
     if digest(archive) != SHA256:
         raise ValueError("The model archive did not pass its SHA-256 check")
@@ -60,16 +99,8 @@ def install(archive, target):
         stage.rename(target)
         # Delete only an identifiable previous cache containing no extra files.
         # Unknown/user-added files remain in the uniquely named backup.
-        if backup is not None and backup.is_dir() and not backup.is_symlink():
-            previous = backup / "provenance.json"
-            if previous.is_file() and previous.stat().st_size < 65536:
-                info = json.loads(previous.read_text(encoding="utf-8"))
-                expected = {item["file"] for item in info.get("files", [])} | {"provenance.json"}
-                actual = list(backup.iterdir())
-                if (info.get("archive_sha256") == SHA256 and
-                        all(p.name in expected and p.is_file() and not p.is_symlink() for p in actual) and
-                        backup.resolve().is_relative_to(target.parent.resolve())):
-                    shutil.rmtree(backup)
+        if backup is not None:
+            discard_known_backup(backup, target)
         print(json.dumps({"installed": True, "archive_sha256": SHA256}), flush=True)
     finally:
         if stage.exists():
@@ -77,4 +108,8 @@ def install(archive, target):
 
 
 if __name__ == "__main__":
-    install(Path(sys.argv[1]), Path(sys.argv[2]))
+    if sys.argv[1] == "--verify":
+        verify(Path(sys.argv[2]))
+        print(json.dumps({"verified": True}), flush=True)
+    else:
+        install(Path(sys.argv[1]), Path(sys.argv[2]))

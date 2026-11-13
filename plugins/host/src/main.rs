@@ -1,10 +1,12 @@
 mod host_context;
 mod instance;
 mod module;
+mod output_channel;
 mod render;
 use anyhow::{Context, Result, ensure};
 use clap::{Parser, Subcommand};
 use serde_json::json;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -32,6 +34,8 @@ enum Action {
 }
 fn main() -> Result<()> {
     let args = Args::parse();
+    let mut response =
+        output_channel::reserve().context("Cannot reserve the plugin response channel")?;
     let result = match args.command {
         Action::Probe { plugin } => {
             let library = module::Module::open(&plugin)?;
@@ -81,6 +85,7 @@ fn main() -> Result<()> {
             json!({"class_id":id,"frames":rendered.frames(),"channels":rendered.channels,"sample_rate":rendered.sample_rate,"latency_frames_compensated":latency,"tail_policy":"trimmed to original duration","parameters":parameters})
         }
     };
-    println!("{}", serde_json::to_string(&result)?);
+    writeln!(response, "{}", serde_json::to_string(&result)?)?;
+    response.flush()?;
     Ok(())
 }

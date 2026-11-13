@@ -588,11 +588,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "libc",
  "libloading",
  "mastercraft",
  "serde",
  "serde_json",
  "vst3",
+ "windows-sys",
 ]
 
 [[package]]

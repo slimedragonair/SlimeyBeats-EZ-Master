@@ -20,6 +20,7 @@ def verify(server,desktop,evidence):
             applied=client.run('apply_preview_to_stem',{'stem_set_id':bank,'studio_preview_id':cleaned['studio_preview_id'],'kind':'vocals'})
             current=client.call('get_studio_session');assert current['stem_set']['stem_set_id']!=bank
             bank=current['stem_set']['stem_set_id']
+            assert applied['stem_set_id'] == bank
             raw=client.run('export_stems',{'stem_set_id':bank})
             assert (output/raw['folder']/'vocals.wav').is_file()
             preview=current['preview']['studio_preview_id']

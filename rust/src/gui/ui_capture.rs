@@ -1,7 +1,15 @@
 //! Opt-in renderer captures for repeatable visual QA, without desktop input automation.
 use eframe::egui;
 use image::ImageEncoder;
-use std::{path::PathBuf, sync::mpsc, time::Duration};
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    },
+    time::Duration,
+};
 
 #[derive(serde::Serialize)]
 pub(super) struct CaptureState {
@@ -15,14 +23,16 @@ pub(super) struct UiCapture {
     state_destination: PathBuf,
     settled_frames: usize,
     receiver: Option<mpsc::Receiver<Result<(), String>>>,
+    failed: Arc<AtomicBool>,
 }
 impl UiCapture {
-    pub fn new(destination: PathBuf) -> Self {
+    pub fn new(destination: PathBuf, failed: Arc<AtomicBool>) -> Self {
         Self {
             state_destination: destination.with_extension("state.json"),
             destination: Some(destination),
             settled_frames: 0,
             receiver: None,
+            failed,
         }
     }
     pub fn update(
@@ -32,13 +42,17 @@ impl UiCapture {
         state: CaptureState,
     ) -> Option<Result<(), String>> {
         if let Some(receiver) = &self.receiver {
-            return match receiver.try_recv() {
+            let result = match receiver.try_recv() {
                 Ok(result) => Some(result),
                 Err(mpsc::TryRecvError::Disconnected) => {
                     Some(Err("Renderer capture callback disconnected".into()))
                 }
                 Err(mpsc::TryRecvError::Empty) => None,
             };
+            if matches!(&result, Some(Err(_))) {
+                self.failed.store(true, Ordering::Relaxed);
+            }
+            return result;
         }
         self.settled_frames = if ready { self.settled_frames + 1 } else { 0 };
         ctx.request_repaint_after(Duration::from_millis(40));

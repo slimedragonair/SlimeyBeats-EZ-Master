@@ -50,7 +50,8 @@ pub fn get(topic: Topic) -> Value {
             ],
             "job_example":{"submitted":{"job_id":"job-1","status":"running"},"poll":{"tool":"get_job_status","arguments":{"job_id":"job-1"}},"completed":{"status":"completed","result":{"source_id":"source-job-1"}}},
             "polling":"Delay about 250–1000 ms between polls. Do not submit a dependent job until the previous one is terminal. failed has an error; cancelled has no usable new result. get_session recovers current IDs/settings.",
-            "more_help":["mastering","eq","export","troubleshooting","privacy"]}),
+            "editing":"Stem mixing, voice cleanup, spectral repair and optional VST3 have a separate Studio preview and IDs. Start get_help(topic=stems/voice/repair/plugins/studio_export). get_studio_session recovers current audio/stem/Studio IDs. import_stems works without a model; separate_stems needs the optional installed runtime. Editing previews do not silently replace a master.",
+            "more_help":["mastering","eq","export","stems","voice","repair","plugins","studio_export","troubleshooting","privacy"]}),
         Topic::Mastering => json!({
             "options":"Sparse changes: omit fields to keep current settings. New source import resets defaults; re-mastering retains current manual EQ.",
             "loudness_target":"get_capabilities.profiles[].targets_lufs exposes both modes' numeric profile targets before processing. Tonal intensity does not scale this loudness target: a gentle tonal correction can still raise level substantially. Choose an explicit target_lufs if the user wants a smaller loudness increase; gain/limiter constraints can prevent reaching the request.",

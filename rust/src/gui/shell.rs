@@ -140,12 +140,13 @@ impl eframe::App for MasterCraftApp {
             if let Some(result) = result {
                 self.capture = None;
                 match result {
-                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    Ok(()) => {}
                     Err(error) => {
                         eprintln!("{error}");
                         self.error = Some(error);
                     }
                 }
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             }
         }
         if self.busy
@@ -224,6 +225,22 @@ impl MasterCraftApp {
     }
 
     fn sovereign_footer(&mut self, ui: &mut egui::Ui) -> Rect {
+        let studio_active = self.tab == 3;
+        let status_text = if studio_active {
+            self.studio.status.clone()
+        } else {
+            self.status.clone()
+        };
+        let failed = if studio_active {
+            self.studio.error.is_some()
+        } else {
+            self.error.is_some()
+        };
+        let running = if studio_active {
+            self.studio.busy()
+        } else {
+            self.busy
+        };
         egui::Panel::bottom("status")
             .show(ui, |ui| {
                 let background =
@@ -240,9 +257,9 @@ impl MasterCraftApp {
                         ui.horizontal(|ui| {
                             let (light, _) =
                                 ui.allocate_exact_size(vec2(12., 12.), egui::Sense::hover());
-                            let color = if self.error.is_some() {
+                            let color = if failed {
                                 Color32::from_rgb(239, 136, 157)
-                            } else if self.busy {
+                            } else if running {
                                 theme::AMETHYST
                             } else {
                                 Color32::from_rgb(104, 230, 153)
@@ -263,17 +280,26 @@ impl MasterCraftApp {
                                     ui.set_width(status_width);
                                     ui.add(
                                         egui::Label::new(
-                                            RichText::new(&self.status)
+                                            RichText::new(&status_text)
                                                 .size(13.)
                                                 .color(theme::TEXT),
                                         )
                                         .truncate(),
                                     )
-                                    .on_hover_text(&self.status);
+                                    .on_hover_text(&status_text);
                                 },
                             );
                             ui.add_space(200.);
-                            if self.busy {
+                            if studio_active && self.studio.busy() {
+                                ui.spinner();
+                                ui.add(
+                                    egui::ProgressBar::new(self.studio.progress)
+                                        .desired_width(150.),
+                                );
+                                if ui.add(crystal_button::secondary("Cancel")).clicked() {
+                                    self.studio.cancel();
+                                }
+                            } else if self.busy {
                                 ui.spinner();
                                 ui.add(egui::ProgressBar::new(self.progress).desired_width(150.));
                                 if ui.add(crystal_button::secondary("Cancel")).clicked() {
@@ -306,18 +332,32 @@ impl MasterCraftApp {
                     });
                 });
         }
-        let name = self
-            .selected
-            .and_then(|i| self.tracks.get(i))
-            .map(|track| {
-                track
-                    .path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .into_owned()
-            })
-            .unwrap_or_else(|| "Your next master starts here".into());
+        let name = if self.tab == 3 {
+            self.studio
+                .source
+                .as_ref()
+                .map(|source| {
+                    source
+                        .path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into_owned()
+                })
+                .unwrap_or_else(|| "Studio editor".into())
+        } else {
+            self.selected
+                .and_then(|i| self.tracks.get(i))
+                .map(|track| {
+                    track
+                        .path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into_owned()
+                })
+                .unwrap_or_else(|| "Your next master starts here".into())
+        };
         ui.add(
             egui::Label::new(theme::display(
                 &name,

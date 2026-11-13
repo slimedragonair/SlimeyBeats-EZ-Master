@@ -1,6 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use clap::Parser;
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 #[derive(Parser)]
 #[command(name=mastercraft::branding::APP_NAME,version, about = "SlimeyBeats-EZ-Master desktop mastering workstation")]
@@ -17,8 +23,12 @@ struct Arguments {
     view: String,
     #[arg(long)]
     studio_data: Option<PathBuf>,
-    #[arg(long,hide=true,value_parser=["separate","voice","spectrogram","repair"])]
+    #[arg(long,hide=true,value_parser=["separate","voice","spectrogram","repair","plugin"])]
     studio_action: Option<String>,
+    #[arg(long, hide = true, requires = "studio_action")]
+    studio_plugin: Option<PathBuf>,
+    #[arg(long, hide = true)]
+    studio_four_stems: bool,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
     #[arg(long, hide = true, requires = "capture_ui")]
@@ -57,7 +67,9 @@ fn main() -> eframe::Result {
         [1480., 940.]
     };
     let studio_source = files.first().cloned();
-    eframe::run_native(
+    let capture_failed = Arc::new(AtomicBool::new(false));
+    let capture_result = capture_failed.clone();
+    let result = eframe::run_native(
         mastercraft::branding::APP_NAME,
         eframe::NativeOptions {
             viewport: eframe::egui::ViewportBuilder::default()
@@ -95,10 +107,13 @@ fn main() -> eframe::Result {
                     "plugins" => Page::Plugins,
                     _ => Page::Stems,
                 };
+                app.studio.two_stems = !args.studio_four_stems;
+                app.studio.plugin_path = args.studio_plugin;
                 app.studio.auto_action = args.studio_action.map(|action| match action.as_str() {
                     "voice" => AutoAction::Voice,
                     "spectrogram" => AutoAction::Spectrogram,
                     "repair" => AutoAction::Repair,
+                    "plugin" => AutoAction::Plugin,
                     _ => AutoAction::Separate,
                 });
                 if let Some(path) = studio_source {
@@ -109,7 +124,7 @@ fn main() -> eframe::Result {
                 app.save_settings();
             }
             if let Some(destination) = args.capture_ui {
-                app.capture_ui_once(destination);
+                app.capture_ui_once(destination, capture_result);
             }
             if let Some(offset) = args.capture_settings_scroll {
                 app.capture_settings_at(offset as f32);
@@ -119,5 +134,9 @@ fn main() -> eframe::Result {
             }
             Ok(Box::new(app))
         }),
-    )
+    );
+    if capture_failed.load(Ordering::Relaxed) {
+        std::process::exit(1);
+    }
+    result
 }

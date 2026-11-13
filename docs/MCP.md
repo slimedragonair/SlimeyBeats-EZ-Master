@@ -49,6 +49,8 @@ The intended flow is **Analyze → Master → audition/EQ/re-master → Export**
 
 ## Tools
 
+The current development companion exposes **36 tools**, including the Studio additions below. Published v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+
 | Tool | Purpose |
 |---|---|
 | `get_capabilities` | Bundled profile names/IDs, defaults, formats, library indexes and configured limits |
@@ -65,6 +67,18 @@ The intended flow is **Analyze → Master → audition/EQ/re-master → Export**
 | `open_in_desktop` | Verify the sources and launch a new desktop session with these settings |
 | `export_audio` | Explicitly save one chosen format plus a report, preserving existing files |
 | `clear_session` | Cancel pending processing and release source/preview memory |
+| `get_stem_engine_status`, `install_stem_engine` | Inspect/setup the optional local CPU separation engine; setup verifies an existing model, and `repair: true` reinstalls a damaged private engine/model |
+| `get_studio_session` | Current editing audio IDs, stem bank/controls, preview and undo/redo |
+| `analyze_studio_audio` | Measure an available original, stem or Studio preview without changing it |
+| `separate_stems`, `import_stems` | Real model separation in two/four modes, or aligned user stems without a model |
+| `mix_stems` | Patch gain, mute/solo, stereo balance and output/peak settings; prepare a mix preview |
+| `clean_voice`, `repair_audio` | Voice cleanup or a precise time/frequency repair on a current source/stem/Studio preview |
+| `undo_studio_edit`, `redo_studio_edit` | Restore a retained editing revision and its bank/controls |
+| `apply_preview_to_stem` | Apply a direct current-stem edit back to that stem and rebuild the mix |
+| `export_studio_audio`, `export_stems` | Explicit processed-audio export/report or aligned raw float stem files |
+| `save_studio_project`, `open_studio_in_desktop` | Save self-contained working audio/settings, optionally launching the matching desktop |
+| `use_studio_for_mastering` | Promote the prepared edit to a new mastering source ID while retaining Studio |
+| `list_plugins`, `probe_plugin`, `render_plugin` | Discover/probe/process owner-authorized VST3 effects with generic controls in the isolated helper |
 
 Long operations return a job ID promptly. Poll `get_job_status` with a short delay between polls until `completed`, `failed` or `cancelled`. Only one audio job runs at once. Cancellation waits for DSP checkpoints; it is not an immediate interruption of every calculation. Decoder subprocesses have a timeout and are killed when cancellation is requested. If audio was already durably saved when cancellation arrives, the job reports its saved output. History retains the latest 64 jobs, not their PCM buffers.
 

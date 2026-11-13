@@ -51,6 +51,23 @@ class ModelInstallTests(unittest.TestCase):
             self.assertEqual(len(backups), 1)
             self.assertEqual((backups[0] / "my-notes.txt").read_text(), "keep me")
 
+    def test_same_size_corruption_is_detected_and_repair_preserves_unknown_provenance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = self.archive(root)
+            target = root / "models/4stems"
+            installer.install(archive, target)
+            self.assertTrue(installer.verify(target))
+            (target / "model.index").write_bytes(b"other")
+            with self.assertRaisesRegex(ValueError, "integrity"):
+                installer.verify(target)
+            (target / "provenance.json").write_text("{broken")
+            installer.install(archive, target)
+            self.assertTrue(installer.verify(target))
+            backups = list(target.parent.glob("4stems.previous-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual((backups[0] / "provenance.json").read_text(), "{broken")
+
     def test_bad_hash_and_traversal_cannot_replace_a_working_cache(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

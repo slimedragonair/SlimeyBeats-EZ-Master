@@ -19,6 +19,14 @@ use std::{
 
 impl RuntimePaths {
     pub fn install(&self, progress: &dyn Fn(f32, &str), cancel: Arc<AtomicBool>) -> Result<Value> {
+        self.install_with_repair(false, progress, cancel)
+    }
+    pub fn install_with_repair(
+        &self,
+        repair: bool,
+        progress: &dyn Fn(f32, &str),
+        cancel: Arc<AtomicBool>,
+    ) -> Result<Value> {
         ensure!(
             cfg!(all(
                 target_arch = "x86_64",
@@ -58,7 +66,22 @@ impl RuntimePaths {
             .open(self.base.join("engine.lock"))?;
         lock.try_lock()
             .context("Another local stem setup is active; wait for it and retry")?;
-        if self.is_ready() {
+        if self.is_ready() && !repair {
+            progress(0.05, "Checking the installed model's integrity");
+            let script = tempfile::NamedTempFile::new_in(&self.base)?;
+            std::fs::write(script.path(), include_str!("model_install.py"))?;
+            let mut verify = crate::audio::external_command(
+                self.python()
+                    .to_str()
+                    .context("Engine path must be Unicode")?,
+            );
+            verify
+                .arg("-I")
+                .arg(script.path())
+                .arg("--verify")
+                .arg(self.models());
+            run(verify, &cancel)
+                .context("The cached model needs repair; use Repair stem engine")?;
             return Ok(self.status());
         }
         let (asset, sha, relative) = if cfg!(windows) {
@@ -122,10 +145,16 @@ impl RuntimePaths {
             .arg(requirements)
             .arg("--override")
             .arg(overrides);
+        if repair {
+            dependencies.arg("--reinstall");
+        }
         progress(
             0.25,
             "Installing the local separation engine; this first setup can take several minutes",
         );
+        if repair && self.receipt().is_file() {
+            std::fs::remove_file(self.receipt())?;
+        }
         run(dependencies, &cancel)?;
         progress(0.65, "Downloading the verified four-stem model");
         let model = download::fetch(

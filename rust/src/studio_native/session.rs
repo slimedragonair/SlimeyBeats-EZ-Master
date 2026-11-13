@@ -37,6 +37,8 @@ pub struct StudioDocument {
     pub stems: Vec<StemFile>,
     pub mix: MixSettings,
     pub before: AssetFile,
+    #[serde(default)]
+    pub before_stem: Option<StemKind>,
     pub preview: AssetFile,
     pub label: String,
     pub notes: Vec<String>,
@@ -89,13 +91,19 @@ impl StudioDocument {
             .context("Studio document has no directory")?
             .canonicalize()?;
         let source = Arc::new(read(&root, &document.source)?);
-        let before = Arc::new(read(&root, &document.before)?);
+        let mut before = Arc::new(read(&root, &document.before)?);
         let preview = Arc::new(read(&root, &document.preview)?);
         ensure!(
             before.sample_rate == preview.sample_rate
                 && before.channels == preview.channels
                 && before.frames() == preview.frames(),
             "Studio comparison assets are not aligned"
+        );
+        ensure!(
+            source.sample_rate == preview.sample_rate
+                && source.channels == preview.channels
+                && source.frames() == preview.frames(),
+            "Studio source and preview are not aligned"
         );
         let stems = if document.stems.is_empty() {
             None
@@ -111,9 +119,30 @@ impl StudioDocument {
                 })
                 .collect::<Result<Vec<_>>>()?;
             let bank = StemSet::new(tracks)?;
+            let first = &bank.tracks[0].audio;
+            ensure!(
+                first.sample_rate == source.sample_rate
+                    && first.channels == source.channels
+                    && first.frames() == source.frames(),
+                "Studio stem bank is not aligned with its source"
+            );
             document.mix.validate(&bank)?;
+            if let Some(kind) = document.before_stem {
+                let stem = &bank.track(kind)?.audio;
+                ensure!(
+                    before.samples == stem.samples,
+                    "Studio comparison does not match its declared stem"
+                );
+                // Restore edit lineage after reading separate self-contained
+                // WAVs, so a reopened direct stem edit can still be applied.
+                before = stem.clone();
+            }
             Some(bank)
         };
+        ensure!(
+            document.before_stem.is_none() || stems.is_some(),
+            "Studio comparison refers to a missing stem bank"
+        );
         Ok(StudioSnapshot {
             source_name: document.source_name,
             source,
@@ -206,6 +235,12 @@ pub fn save(
         stems,
         mix: snapshot.mix.clone(),
         before,
+        before_stem: snapshot.stems.as_ref().and_then(|bank| {
+            bank.tracks
+                .iter()
+                .find(|stem| Arc::ptr_eq(&snapshot.before, &stem.audio))
+                .map(|stem| stem.kind)
+        }),
         preview,
         label: snapshot.label.clone(),
         notes: snapshot.notes.clone(),
@@ -258,6 +293,16 @@ mod tests {
         let loaded = StudioDocument::load(&path).unwrap();
         assert_eq!(loaded.mix.tracks[0].gain_db, -3.);
         assert_eq!(loaded.preview.samples, snapshot.preview.samples);
+        assert!(Arc::ptr_eq(
+            &loaded.before,
+            &loaded
+                .stems
+                .as_ref()
+                .unwrap()
+                .track(StemKind::Vocals)
+                .unwrap()
+                .audio
+        ));
         assert_eq!(loaded.stems.unwrap().tracks.len(), 2);
         std::fs::write(path.parent().unwrap().join("preview.wav"), b"tampered").unwrap();
         assert!(StudioDocument::load(&path).is_err());

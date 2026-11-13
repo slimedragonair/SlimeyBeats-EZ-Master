@@ -25,6 +25,16 @@ pub fn finish(
     mut studio: StudioState,
 ) -> Result<Product> {
     ctx.check()?;
+    if studio.origin.is_none() && studio.bank.is_none() {
+        studio.origin = Some(crate::studio_state::StudioOrigin {
+            id: step["input_audio_id"]
+                .as_str()
+                .unwrap_or("studio-original")
+                .into(),
+            label: target.label.clone(),
+            audio: target.audio.clone(),
+        });
+    }
     let file = artifact_files::preview(&ctx.engine, &audio)?;
     ctx.check()?;
     if studio.current.is_none() {
@@ -104,6 +114,13 @@ pub fn separate(ctx: ContextData, source_id: String, mode: SeparationMode) -> Re
     let audio = stem_mix::render(&separated.stems, &controls, &|| ctx.cancelled())?;
     let bank = Arc::new(StemBank {
         id: format!("stems-{}", ctx.id),
+        source_name: source
+            .source
+            .path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned(),
         stems: separated.stems,
         controls,
         model: separated.metadata,
@@ -131,6 +148,7 @@ pub fn mix(ctx: ContextData, bank_id: String, settings: MixSettings) -> Result<P
     let mut studio = ctx.snapshot.studio.clone();
     studio.bank = Some(Arc::new(StemBank {
         id: bank.id.clone(),
+        source_name: bank.source_name.clone(),
         stems: bank.stems.clone(),
         controls: settings.clone(),
         model: bank.model.clone(),

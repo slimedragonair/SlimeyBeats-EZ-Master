@@ -88,6 +88,7 @@ impl Companion {
                     let audio = stem_mix::render(&stems, &controls, &|| ctx.cancelled())?;
                     let bank = Arc::new(StemBank {
                         id: format!("stems-{}", ctx.id),
+                        source_name: "Imported stem mix.wav".into(),
                         stems,
                         controls,
                         model: json!({"origin":"imported aligned stems"}),
@@ -168,9 +169,12 @@ impl Companion {
             let stems=bank.stems.replace(a.kind,preview.audio.clone())?;
             let audio=stem_mix::render(&stems,&bank.controls,&||ctx.cancelled())?;
             let mut studio=ctx.snapshot.studio.clone();
-            studio.bank=Some(Arc::new(StemBank {id:format!("stems-{}",ctx.id),stems,controls:bank.controls.clone(),model:bank.model.clone(),original_mix:bank.original_mix.clone()}));
+            studio.bank=Some(Arc::new(StemBank {id:format!("stems-{}",ctx.id),source_name:bank.source_name.clone(),stems,controls:bank.controls.clone(),model:bank.model.clone(),original_mix:bank.original_mix.clone()}));
             let target=crate::studio_state::AudioTarget {audio:bank.original_mix.clone(),label:"Mix with edited stem".into(),steps:preview.steps.clone()};
-            crate::studio_operations::finish(&ctx,target,audio,json!({"operation":"replace_stem","kind":a.kind}),vec!["The prepared stem edit was applied to the mix; other stem audio was retained.".into()],studio)
+            let bank_id = studio.bank.as_ref().expect("replacement bank").id.clone();
+            let mut product = crate::studio_operations::finish(&ctx,target,audio,json!({"operation":"replace_stem","kind":a.kind}),vec!["The prepared stem edit was applied to the mix; other stem audio was retained.".into()],studio)?;
+            product.result["stem_set_id"] = bank_id.into();
+            Ok(product)
         }))
     }
 }

@@ -136,8 +136,8 @@ impl MasterCraftApp {
         }
         app
     }
-    pub fn capture_ui_once(&mut self, destination: PathBuf) {
-        self.capture = Some(super::ui_capture::UiCapture::new(destination));
+    pub fn capture_ui_once(&mut self, destination: PathBuf, failed: Arc<AtomicBool>) {
+        self.capture = Some(super::ui_capture::UiCapture::new(destination, failed));
     }
     pub fn capture_settings_at(&mut self, offset: f32) {
         self.capture_settings_scroll = Some(offset);

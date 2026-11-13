@@ -2,6 +2,8 @@
 
 The companion is a development preview. Validation targets the real stdio transport and shared desktop DSP; it does not establish that every AI client is configured correctly or that an assistant can hear audio from measurements.
 
+**Studio development update:** the current companion exposes **36 tools**, adding original/stem/preview analysis, model/imported stems, cleanup, repair, optional VST3 effects, explicit stem/audio saving, projects and mastering promotion. The historical baseline table below concerns the earlier mastering companion. Current Studio results and remaining qualification are maintained in the [Studio guide](STUDIO.md#validation-status--november-13-2026), including real model processing, worker-fault containment, latency, source preservation and a second discovery-only fresh-agent workflow.
+
 ## Local results — November 13, 2026
 
 | Check | Observed result |

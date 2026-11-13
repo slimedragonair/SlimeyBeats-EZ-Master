@@ -16,12 +16,13 @@ export function status(text, error = false) {
     }
 }
 export function page(name) {
-    for (const key of ["overview", "eq", "report"]) {
+    for (const key of ["overview", "eq", "report", "studio-tools"]) {
         $(key).hidden = key !== name;
         $(`tab-${key}`).classList.toggle("selected", key === name);
         if (key === name) $(`tab-${key}`).setAttribute("aria-current", "page");
         else $(`tab-${key}`).removeAttribute("aria-current");
     }
+    document.dispatchEvent(new CustomEvent("studio-page", { detail: name }));
 }
 export function metrics(target, analysis) {
     const m = analysis.metrics;

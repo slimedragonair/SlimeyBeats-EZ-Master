@@ -59,11 +59,7 @@ impl Studio {
         let (Some(bank), Some(current)) = (self.bank.clone(), self.current.clone()) else {
             return;
         };
-        let original = match bank.track(kind) {
-            Ok(stem) => stem.audio.clone(),
-            Err(_) => return,
-        };
-        if !Arc::ptr_eq(&current.before, &original) {
+        if !self.can_apply_preview_to_stem() {
             self.error=Some("Preview an edit from the selected stem first; apply each stem edit before chaining another.".into());
             return;
         }
@@ -185,13 +181,13 @@ impl Studio {
             }))
         });
     }
-    pub fn install_engine(&mut self, ctx: &egui::Context) {
+    pub fn install_engine(&mut self, repair: bool, ctx: &egui::Context) {
         let runtime = self.runtime.clone();
         self.begin(
             ctx,
             "Preparing the optional local stem engine",
             move |cancel, progress| {
-                runtime.install(progress, cancel)?;
+                runtime.install_with_repair(repair, progress, cancel)?;
                 Ok(Change::EngineReady)
             },
         );

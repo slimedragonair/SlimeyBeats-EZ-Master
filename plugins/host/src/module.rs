@@ -37,7 +37,7 @@ impl Module {
                 {
                     ensure!(init(handle), "VST3 module entry failed");
                 }
-                return Self::factory(library);
+                Self::factory(library)
             }
             #[cfg(not(unix))]
             Self::factory(library)

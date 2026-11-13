@@ -34,6 +34,12 @@ pub struct RepairRequest {
 }
 #[derive(Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub struct StudioAudioRequest {
+    /// Current source/stem/Studio preview ID from get_studio_session; stale IDs are rejected.
+    pub audio_id: String,
+}
+#[derive(Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct SeparateRequest {
     pub source_id: String,
     #[serde(default)]
@@ -79,6 +85,12 @@ pub struct StudioExportRequest {
 fn dither_default() -> bool {
     true
 }
+#[derive(Clone, Default, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct EngineSetupRequest {
+    /// Reinstall dependencies and replace the verified model cache after corruption or a failed inference. Unknown cache files are preserved in a backup.
+    pub repair: bool,
+}
 impl MixPatch {
     fn apply(&self, bank: &crate::studio_state::StemBank) -> anyhow::Result<MixSettings> {
         let mut settings = bank.controls.clone();
@@ -123,6 +135,23 @@ impl MixPatch {
 #[tool_router(router=studio_router,vis="pub(crate)")]
 impl Companion {
     #[tool(
+        description = "Analyze a currently available original, stem or Studio preview without changing it. Discover audio_id with get_studio_session. Returns measured loudness/peaks and neutral-profile analysis; indicators are heuristics, not listening judgments. Poll the job.",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
+    fn analyze_studio_audio(
+        &self,
+        Parameters(a): Parameters<StudioAudioRequest>,
+    ) -> Result<Json<Value>, String> {
+        let check = a.audio_id.clone();
+        self.response(self.engine.start("analyze_studio_audio",move|s|s.studio_audio(&check).map(|_|()),move|ctx| {
+            let target=ctx.snapshot.studio_audio(&a.audio_id)?;
+            let profile=mastercraft::profiles::resolve("neutral",std::path::Path::new(""))?;
+            let analysis=mastercraft::analysis::analyze(&target.audio,&profile)?;
+            ctx.check()?;
+            Ok(Product {result:serde_json::json!({"audio_id":a.audio_id,"label":target.label,"analysis":analysis}),change:Change::None,committed:false})
+        }))
+    }
+    #[tool(
         description = "Explicitly save the current Studio voice/repair/stem-mix preview as a new WAV/FLAC/MP3 plus report. Requires current studio_preview_id and filename stem; no path or extension. Only on the user's export request. Existing files are preserved. Compressed output/resampling needs FFmpeg. Poll the job.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
@@ -166,12 +195,16 @@ impl Companion {
         description = "Download/install the isolated local stem engine and verified model, then run an inference test. Use when the user requests/agrees to engine setup; needs internet and substantial disk space. Returns a job ID; poll it. Does not upload audio or modify global Python.",
         annotations(destructive_hint = false, open_world_hint = true)
     )]
-    fn install_stem_engine(&self) -> Result<Json<Value>, String> {
+    fn install_stem_engine(
+        &self,
+        Parameters(a): Parameters<EngineSetupRequest>,
+    ) -> Result<Json<Value>, String> {
         self.response(self.engine.start(
             "install_stem_engine",
             |_| Ok(()),
-            |ctx| {
-                let result = ctx.engine.stem_runtime.install(
+            move |ctx| {
+                let result = ctx.engine.stem_runtime.install_with_repair(
+                    a.repair,
                     &|fraction, message| ctx.progress(fraction, message),
                     ctx.cancel.clone(),
                 )?;
