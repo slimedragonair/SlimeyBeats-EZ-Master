@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add a private static browser preview using the shared Rust engine in WebAssembly: local decoding/analysis/mastering, AudioWorklet live EQ, overlaid spectrum, deterministic EQ suggestions, matched A/B audition, reference profiles, three verified WAV formats and touch-friendly help.
+- Discard late browser decode/fetch completions after cancellation and preserve control ownership across overlapping job completions.
 - Invalidate both the stored master and its export when reference audio is replaced, even under the same filename.
 - Add responsive SlimeDragon styling, browser qualification, static-site build/license inventory and GitHub Pages deployment. Native v0.4.2 release artifacts remain unchanged.
 

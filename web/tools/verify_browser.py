@@ -158,6 +158,28 @@ try:
             expect(page.locator('#status')).to_have_class('status-error',timeout=30000)
             expect(page.locator('#analyze')).to_be_enabled()
             result['invalid_file_reports_error_and_preserves_session']=True
+            previous_name=page.locator('#filename').inner_text()
+            page.evaluate('''()=>{
+                const prototype=AudioContext.prototype,decode=prototype.decodeAudioData;
+                prototype.decodeAudioData=function(...args){
+                    prototype.decodeAudioData=decode;
+                    return decode.apply(this,args).then(buffer=>new Promise(resolve=>{
+                        window.releaseDelayedDecode=()=>resolve(buffer);
+                    }));
+                };
+            }''')
+            pending=reference_fixture(330)
+            pending['name']='cancelled-import.wav'
+            page.locator('#file').set_input_files(pending)
+            page.wait_for_function('()=>typeof window.releaseDelayedDecode==="function"')
+            page.locator('#cancel').click()
+            expect(page.locator('#status')).to_contain_text('Cancelled. Your original is ready',timeout=30000)
+            page.evaluate('()=>{document.querySelector("#master").click();window.releaseDelayedDecode();}')
+            page.wait_for_timeout(100)
+            expect(page.locator('#master')).to_be_disabled()
+            expect(page.locator('#export')).to_be_enabled(timeout=240000)
+            expect(page.locator('#filename')).to_have_text(previous_name)
+            result['late_cancelled_decode_cannot_replace_track_or_unlock_new_job']=True
             for path in args.out.glob('*.wav'):
                 check=subprocess.run(['ffmpeg','-hide_banner','-nostats','-i',str(path),'-filter_complex','ebur128=peak=true','-f','null','-'],capture_output=True,text=True,check=True)
                 (args.out/(path.stem+'.ffmpeg.txt')).write_text(check.stderr,encoding='utf-8')

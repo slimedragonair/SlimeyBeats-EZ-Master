@@ -26,6 +26,7 @@ let settings,
     revision = 0,
     trackRevision = 0,
     referenceRevision = 0,
+    jobRevision = 0,
     curveTimer;
 const player = new Player(syncControls, (error) => {
     status(error.message, true);
@@ -101,18 +102,24 @@ function syncControls() {
             "Master preview ready · Listen, tweak, then export";
 }
 async function job(action) {
-    if (busy) return;
+    if (busy || restoring) return;
+    const current = ++jobRevision;
     busy = true;
     $("progress").value = 0;
     syncControls();
     try {
-        await action();
+        await action(() => {
+            if (current !== jobRevision)
+                throw new DOMException("Processing cancelled", "AbortError");
+        });
     } catch (error) {
-        if (error.name !== "AbortError")
+        if (current === jobRevision && error.name !== "AbortError")
             status(error.message || String(error), true);
     } finally {
-        busy = false;
-        syncControls();
+        if (current === jobRevision) {
+            busy = false;
+            syncControls();
+        }
     }
 }
 function eqChanged() {
@@ -150,14 +157,14 @@ function clearMaster() {
     reportView(null);
     syncControls();
 }
-async function loadWorker() {
-    const samples = interleave(player.original);
+async function loadWorker(buffer = player.original) {
+    const samples = interleave(buffer);
     await dsp.call(
         "load",
         {
             samples,
-            rate: player.original.sampleRate,
-            channels: player.original.numberOfChannels,
+            rate: buffer.sampleRate,
+            channels: buffer.numberOfChannels,
         },
         [samples.buffer],
     );
@@ -176,15 +183,17 @@ async function loadWorker() {
 }
 async function loadFile(file) {
     if (!file) return;
-    await job(async () => {
+    await job(async (ensureCurrent) => {
         status("Decoding your track locally…");
         const buffer = await player.decode(file);
+        ensureCurrent();
+        await loadWorker(buffer);
+        ensureCurrent();
         trackRevision++;
         clearMaster();
         player.setOriginal(buffer);
         analysis = null;
         currentFile = file;
-        await loadWorker();
         plots.setAudio(buffer);
         $("welcome").hidden = true;
         $("measurements").hidden = true;
@@ -337,7 +346,7 @@ $("file").onchange = () => {
     $("file").value = "";
 };
 $("demo").onclick = () =>
-    job(async () => {
+    job(async (ensureCurrent) => {
         status("Loading the included example…");
         const response = await fetch("./assets/demo-input.wav");
         if (!response.ok)
@@ -345,6 +354,7 @@ $("demo").onclick = () =>
         const file = new File([await response.blob()], "CC0 Example Mix.wav", {
             type: "audio/wav",
         });
+        ensureCurrent();
         busy = false;
         await loadFile(file);
     });
@@ -441,12 +451,13 @@ $("dither").onchange = () => {
 };
 $("reference").onclick = () => $("reference-file").click();
 $("reference-file").onchange = () =>
-    job(async () => {
+    job(async (ensureCurrent) => {
         if (!player.original)
             throw new Error("Add your mix before choosing a reference.");
         const file = $("reference-file").files[0];
         if (!file) return;
         const buffer = await player.decode(file);
+        ensureCurrent();
         const samples = interleave(buffer);
         await dsp.call(
             "reference",
@@ -477,6 +488,8 @@ $("save-report").onclick = () => {
 };
 $("cancel").onclick = async () => {
     restoring = true;
+    jobRevision++;
+    busy = false;
     dsp.cancel();
     clearMaster();
     trackRevision++;
@@ -494,6 +507,7 @@ $("cancel").onclick = async () => {
     }
 };
 $("clear").onclick = () => {
+    jobRevision++;
     dsp.cancel();
     trackRevision++;
     player.stop();
