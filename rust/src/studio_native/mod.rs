@@ -5,4 +5,5 @@ pub mod inference;
 mod install;
 pub mod plugins;
 pub mod runtime;
+pub mod session;
 pub mod stem_files;

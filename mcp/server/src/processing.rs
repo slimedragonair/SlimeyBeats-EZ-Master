@@ -53,6 +53,7 @@ pub fn load(ctx: ContextData, path: PathBuf, reference: bool) -> Result<Product>
                 id,
                 source,
                 audio: Arc::new(audio),
+                generated: None,
             })),
             committed: false,
         })
@@ -250,8 +251,26 @@ pub fn desktop(ctx: ContextData) -> Result<Product> {
         .as_ref()
         .context("Configure --desktop-exe with a desktop build that supports --session")?;
     ctx.progress(0.1, "Verifying source files before desktop handoff");
+    let handoff_source = if source.generated.is_some() {
+        let mut file = tempfile::NamedTempFile::new_in(&ctx.engine.policy.output)?;
+        std::io::copy(&mut std::fs::File::open(&source.source.path)?, &mut file)?;
+        file.flush()?;
+        file.as_file().sync_all()?;
+        let path = export::persist_unique(
+            file,
+            &ctx.engine.policy.output,
+            "Studio-mastering-source",
+            "wav",
+        )?;
+        SessionSource {
+            path,
+            identity: source.source.identity.clone(),
+        }
+    } else {
+        source.source.clone()
+    };
     let document = SessionDocument::new(
-        source.source.clone(),
+        handoff_source,
         ctx.snapshot.reference.as_ref().map(|r| r.source.clone()),
         ctx.snapshot.settings.clone(),
     );

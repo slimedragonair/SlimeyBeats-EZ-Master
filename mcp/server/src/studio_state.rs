@@ -13,6 +13,7 @@ pub struct EditedAudio {
     pub id: String,
     pub label: String,
     pub audio: Arc<Audio>,
+    pub before: Arc<Audio>,
     pub file: Option<Arc<TempPath>>,
     pub steps: Vec<Value>,
     pub notes: Vec<String>,

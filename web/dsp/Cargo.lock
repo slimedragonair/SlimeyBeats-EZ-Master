@@ -358,6 +358,7 @@ dependencies = [
  "ebur128",
  "glob",
  "hound",
+ "libc",
  "rayon",
  "rustfft",
  "serde",
@@ -365,6 +366,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "web-time",
+ "windows-sys",
 ]
 
 [[package]]

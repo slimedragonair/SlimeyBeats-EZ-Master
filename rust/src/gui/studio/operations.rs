@@ -38,6 +38,20 @@ fn revision(
     })
 }
 impl Studio {
+    pub fn import_aligned_stems(
+        &mut self,
+        files: Vec<(crate::studio::stem_mix::StemKind, PathBuf)>,
+        ctx: &egui::Context,
+    ) {
+        self.begin(ctx,"Importing aligned local stems",move|cancel,progress| {
+            let bank=crate::studio_native::stem_files::import(&files,cancel.clone(),progress)?;
+            let mix=bank.defaults();let mut raw=mix.clone();raw.protect_peaks=false;
+            let source=Arc::new(stem_mix::render(&bank,&raw,&||cancel.load(Ordering::Relaxed))?);
+            let preview=Arc::new(stem_mix::render(&bank,&mix,&||cancel.load(Ordering::Relaxed))?);
+            let snapshot=crate::studio_native::session::StudioSnapshot {source_name:"Imported stem mix.wav".into(),source:source.clone(),stems:Some(bank),mix,before:source,preview,label:"Imported stem mix".into(),notes:vec!["User stems were aligned and retained at their original rate, channels and length.".into()],view:"stems".into()};
+            Ok(Change::Session(Box::new(snapshot)))
+        });
+    }
     pub fn apply_preview_to_stem(&mut self, ctx: &egui::Context) {
         let super::state::Target::Stem(kind) = self.target else {
             return;
@@ -339,7 +353,7 @@ impl Studio {
         let (_file, path) = file.keep()?;
         Ok(path)
     }
-    fn begin(
+    pub(super) fn begin(
         &mut self,
         ctx: &egui::Context,
         message: &str,

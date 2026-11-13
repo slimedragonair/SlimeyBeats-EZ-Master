@@ -7,6 +7,35 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+pub fn import(
+    files: &[(crate::studio::stem_mix::StemKind, std::path::PathBuf)],
+    cancel: std::sync::Arc<AtomicBool>,
+    progress: &dyn Fn(f32, &str),
+) -> Result<StemSet> {
+    ensure!(
+        (2..=4).contains(&files.len()),
+        "Choose two to four aligned stem files"
+    );
+    let mut tracks = Vec::new();
+    for (index, (kind, path)) in files.iter().enumerate() {
+        progress(
+            index as f32 / files.len() as f32,
+            &format!("Loading {} stem", kind.name()),
+        );
+        let (audio, _) = super::audio_import::load(
+            path,
+            512 * 1024 * 1024,
+            std::time::Duration::from_secs(300),
+            cancel.clone(),
+        )?;
+        tracks.push(crate::studio::stem_mix::Stem {
+            kind: *kind,
+            audio: std::sync::Arc::new(audio),
+        });
+    }
+    StemSet::new(tracks)
+}
+
 /// Publish an aligned raw bank as float WAVs. No per-stem normalization can
 /// change relative levels; floating-point files retain any original headroom.
 pub fn export(stems: &StemSet, destination: &Path, cancel: &AtomicBool) -> Result<Value> {

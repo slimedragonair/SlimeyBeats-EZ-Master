@@ -62,6 +62,7 @@ impl ContextData {
 pub enum Change {
     None,
     Source(Arc<Input>),
+    Promote(Arc<Input>),
     Reference(Option<Arc<Reference>>),
     Master(Arc<Master>),
     Studio(crate::studio_state::StudioState),
@@ -161,6 +162,10 @@ impl Engine {
                                     settings,
                                     studio: Default::default(),
                                 };
+                            }
+                            Change::Promote(source) => {
+                                store.session.source = Some(source);
+                                store.session.master = None;
                             }
                             Change::Reference(reference) => {
                                 if reference.is_none() {

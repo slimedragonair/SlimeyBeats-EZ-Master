@@ -8,6 +8,8 @@ struct Arguments {
     /// Open a validated local session prepared by the MCP companion.
     #[arg(long, conflicts_with = "files")]
     session: Option<PathBuf>,
+    #[arg(long,conflicts_with_all=["files","session","auto_master"])]
+    studio_session: Option<PathBuf>,
     files: Vec<PathBuf>,
     #[arg(long)]
     auto_master: bool,
@@ -80,6 +82,10 @@ fn main() -> eframe::Result {
             };
             if let Some(base) = args.studio_data {
                 app.studio.runtime = mastercraft::studio_native::runtime::RuntimePaths { base };
+            }
+            if let Some(project) = args.studio_session {
+                app.tab = 3;
+                app.studio.load_project(project, &cc.egui_ctx);
             }
             if app.tab == 3 {
                 use mastercraft::gui::studio::state::{AutoAction, Page};

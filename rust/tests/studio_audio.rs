@@ -155,8 +155,8 @@ fn spectral_selection_attenuates_its_band_and_preserves_unselected_samples() {
 fn heal_reduces_a_localized_burst_without_editing_the_rest_of_the_track() {
     let original = tone(1., 1500., 0.1);
     let mut noisy = original.clone();
-    for i in 22000..25000 {
-        noisy.samples[i] += (0.4 * (i as f64 / 48000. * 6000. * TAU).sin()) as f32;
+    for (i, sample) in noisy.samples.iter_mut().enumerate().take(25000).skip(22000) {
+        *sample += (0.4 * (i as f64 / 48000. * 6000. * TAU).sin()) as f32;
     }
     let selection = RepairSelection {
         start_seconds: 0.42,

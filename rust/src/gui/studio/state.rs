@@ -54,6 +54,7 @@ pub struct Revision {
 }
 
 pub struct Studio {
+    pub import_files: std::collections::BTreeMap<StemKind, PathBuf>,
     pub plugin_host: Option<crate::studio_native::plugins::VstHost>,
     pub plugin_path: Option<PathBuf>,
     pub plugin_probe: Option<crate::studio_native::plugins::Probe>,
@@ -101,6 +102,7 @@ impl Studio {
             .err()
             .map(|e| format!("Cannot create a private Studio cache: {e}"));
         Self {
+            import_files: Default::default(),
             plugin_host: crate::studio_native::plugins::VstHost::find(),
             plugin_path: None,
             plugin_probe: None,
@@ -221,6 +223,11 @@ impl Studio {
                         }
                         Ok(Change::Preview(revision)) => {
                             self.accept(revision, true);
+                        }
+                        Ok(Change::Session(snapshot)) => {
+                            if let Err(error) = self.adopt_project(*snapshot) {
+                                self.error = Some(format!("Cannot adopt project: {error:#}"));
+                            }
                         }
                         Ok(Change::Stems(bank, revision)) => {
                             self.stem_waveforms = bank

@@ -12,6 +12,10 @@ pub fn show(
 ) {
     if ui.add_enabled(!studio.busy()&&studio.current.is_some()&&!studio.mix_dirty,crystal_button::primary("Export current preview")).on_hover_text("Save the materialized Studio preview and a report. Rendering/preview and exporting are separate.").clicked() {studio.export_preview(ctx);}
     ui.separator();
+    ui.horizontal_wrapped(|ui| {
+        if ui.add_enabled(!studio.busy(),crystal_button::secondary("Open project…")).clicked() && let Some(path)=rfd::FileDialog::new().add_filter("Studio project",&["json"]).pick_file(){studio.load_project(path,ctx);}
+        if ui.add_enabled(!studio.busy()&&studio.current.is_some()&&!studio.mix_dirty,crystal_button::secondary("Save project…")).on_hover_text("Save self-contained source/stem/preview working copies, settings and hashes in a new folder. No model download is needed to reopen it.").clicked() && let Some(folder)=rfd::FileDialog::new().pick_folder(){studio.save_project(folder,ctx);}
+    });
     egui::ScrollArea::vertical().show(ui,|ui| {
         theme::eyebrow(ui,"STUDIO SOURCE");
         ui.add_enabled_ui(!studio.busy(),|ui| {
@@ -36,6 +40,20 @@ pub fn show(
 }
 
 fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
+    ui.collapsing("Import your own stems",|ui| {
+        use crate::studio::stem_mix::StemKind;
+        ui.small("Works without a model. Choose aligned files with matching rate, channels and duration.");
+        let required=if studio.two_stems {vec![StemKind::Vocals,StemKind::Instrumental]}else{vec![StemKind::Vocals,StemKind::Drums,StemKind::Bass,StemKind::Other]};
+        for kind in &required {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(kind.name());
+                if ui.small_button("Choose…").clicked()&&let Some(path)=rfd::FileDialog::new().add_filter("Audio",crate::audio::EXTENSIONS).pick_file(){studio.import_files.insert(*kind,path);}
+                if let Some(path)=studio.import_files.get(kind){ui.small(path.file_name().unwrap_or_default().to_string_lossy());}
+            });
+        }
+        if ui.add_enabled(required.iter().all(|kind|studio.import_files.contains_key(kind)),crystal_button::secondary("Import aligned stems")).clicked(){let files=required.iter().map(|kind|(*kind,studio.import_files[kind].clone())).collect();studio.import_aligned_stems(files,ctx);}
+    });
+    ui.separator();
     theme::eyebrow(ui, "LOCAL STEM ENGINE");
     let ready = studio.runtime.is_ready();
     ui.label(

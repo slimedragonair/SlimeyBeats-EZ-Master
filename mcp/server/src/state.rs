@@ -21,6 +21,7 @@ pub struct Input {
     pub id: String,
     pub source: SessionSource,
     pub audio: Arc<Audio>,
+    pub generated: Option<Arc<TempPath>>,
 }
 pub struct Reference {
     pub source: SessionSource,

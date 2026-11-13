@@ -102,6 +102,7 @@ impl Companion {
                         id: format!("studio-{}", ctx.id),
                         label: "Imported stem mix".into(),
                         audio: Arc::new(audio),
+                        before: bank.original_mix.clone(),
                         file: Some(file),
                         steps: vec![json!({"operation":"import_stems"})],
                         notes: vec![],

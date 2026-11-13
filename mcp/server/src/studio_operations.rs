@@ -32,6 +32,7 @@ pub fn finish(
             id: step["input_audio_id"].as_str().unwrap_or("original").into(),
             label: target.label.clone(),
             audio: target.audio.clone(),
+            before: target.audio.clone(),
             file: None,
             steps: target.steps.clone(),
             notes: vec![],
@@ -47,6 +48,7 @@ pub fn finish(
         id,
         label: target.label,
         audio: Arc::new(audio),
+        before: target.audio.clone(),
         file: Some(file),
         steps,
         notes,
@@ -113,7 +115,7 @@ pub fn separate(ctx: ContextData, source_id: String, mode: SeparationMode) -> Re
     };
     let id = format!("studio-{}", ctx.id);
     let file = artifact_files::preview(&ctx.engine, &audio)?;
-    studio.current=Some(Arc::new(EditedAudio {id:id.clone(),label:"Stem mix".into(),audio:Arc::new(audio),file:Some(file),steps:vec![json!({"operation":"separate_stems","source_id":source_id,"source_sha256":source.source.identity.sha256,"mode":mode})],notes:vec!["Separation is an estimate, not perfect isolation. Reconstruction residual is retained in instrumental/other so the neutral mix preserves the source.".into()],bank_snapshot:Some(bank.clone())}));
+    studio.current=Some(Arc::new(EditedAudio {id:id.clone(),label:"Stem mix".into(),audio:Arc::new(audio),before:source.audio.clone(),file:Some(file),steps:vec![json!({"operation":"separate_stems","source_id":source_id,"source_sha256":source.source.identity.sha256,"mode":mode})],notes:vec!["Separation is an estimate, not perfect isolation. Reconstruction residual is retained in instrumental/other so the neutral mix preserves the source.".into()],bank_snapshot:Some(bank.clone())}));
     let result = studio.summary(&ctx.engine, &ctx.snapshot)?;
     ctx.check()?;
     Ok(Product {
