@@ -10,6 +10,7 @@ import threading
 from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright, expect
+from browser_capture import BrowserDiagnostics
 
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser()
@@ -41,14 +42,13 @@ try:
         result['browser'] = args.browser+' '+browser.version
         page = browser.new_page(viewport={'width':1480,'height':1000})
         page.add_init_script("""window.dspJobs=[];const post=Worker.prototype.postMessage;Worker.prototype.postMessage=function(message,...args){window.dspJobs.push(message.action);return post.call(this,message,...args);};""")
-        page.on('pageerror',lambda error:result['errors'].append(str(error)))
-        page.on('console',lambda message:result['errors'].append(message.text) if message.type=='error' else None)
+        diagnostics=BrowserDiagnostics(page,args.browser,result)
         page.on('request',lambda r:result['requests'].append({'method':r.method,'url':r.url,'body_bytes':len(r.post_data_buffer or b'')}))
         try:
             base = f'http://127.0.0.1:{server.server_address[1]}/'
             page.goto(base,wait_until='networkidle')
             expect(page.locator('#engine-status')).to_have_text('RUST · LOCAL',timeout=30000)
-            page.screenshot(path=str(args.out/'desktop-welcome.png'),full_page=True,caret="initial")
+            diagnostics.capture(args.out/'desktop-welcome.png',full_page=True)
             page.locator('#demo').click()
             expect(page.locator('#analyze')).to_be_enabled(timeout=30000)
             expect(page.locator('#export')).to_be_disabled()
@@ -57,7 +57,7 @@ try:
             expect(page.locator('#master')).to_be_enabled(timeout=120000)
             page.locator('#master').click()
             expect(page.locator('#export')).to_be_enabled(timeout=240000)
-            page.screenshot(path=str(args.out/'desktop-master.png'),full_page=True,caret="initial")
+            diagnostics.capture(args.out/'desktop-master.png',full_page=True)
             page.locator('#tab-eq').click()
             page.locator('#play').click()
             expect(page.locator('#play')).to_have_text('Ⅱ Pause',timeout=30000)
@@ -66,7 +66,7 @@ try:
             page.wait_for_timeout(1200)
             assert not any(action in ['master','export'] for action in page.evaluate('n=>window.dspJobs.slice(n)',baseline))
             expect(page.locator('#play')).to_have_text('Ⅱ Pause')
-            page.screenshot(path=str(args.out/'desktop-live-eq.png'),full_page=True,caret="initial")
+            diagnostics.capture(args.out/'desktop-live-eq.png',full_page=True)
             assert 'EQ live' in page.locator('#live-state').inner_text()
             assert page.locator('#clock').inner_text() != '0:00 / 0:00'
             page.locator('#stop').click()
@@ -94,23 +94,23 @@ try:
             page.locator('#tab-eq').click()
             page.evaluate('()=>window.scrollTo(0,0)')
             page.wait_for_timeout(250)
-            page.screenshot(path=str(args.out/'phone-eq-viewport.png'),caret='initial')
-            page.screenshot(path=str(args.out/'phone-eq.png'),full_page=True,caret="initial")
+            diagnostics.capture(args.out/'phone-eq-viewport.png')
+            diagnostics.capture(args.out/'phone-eq.png',full_page=True)
             assert not page.evaluate('()=>document.documentElement.scrollWidth>innerWidth')
             page.locator('.plot-wrap').evaluate("el=>{const r=el.getBoundingClientRect(),dock=document.querySelector('.playback').getBoundingClientRect().height;window.scrollTo(0,scrollY+r.top-(innerHeight-dock-r.height)/2);}")
-            page.screenshot(path=str(args.out/'phone-eq-graph.png'),caret='initial')
+            diagnostics.capture(args.out/'phone-eq-graph.png')
             page.locator('#band-picker button').nth(2).click()
             page.locator('.band.active').scroll_into_view_if_needed()
-            page.screenshot(path=str(args.out/'phone-eq-controls.png'),caret='initial')
+            diagnostics.capture(args.out/'phone-eq-controls.png')
             player_box=page.locator('.playback').bounding_box()
             assert player_box['y']>=0 and player_box['y']+player_box['height']<=845
             page.locator('#tab-overview').click()
             page.evaluate('()=>window.scrollTo(0,0)')
-            page.screenshot(path=str(args.out/'phone-master.png'),full_page=True,caret="initial")
+            diagnostics.capture(args.out/'phone-master.png',full_page=True)
             page.locator('#output-section').evaluate("el=>{const r=el.getBoundingClientRect(),dock=document.querySelector('.playback').getBoundingClientRect().height;window.scrollTo(0,scrollY+r.top-(innerHeight-dock-r.height)/2);}")
-            page.screenshot(path=str(args.out/'phone-master-results.png'),caret='initial')
+            diagnostics.capture(args.out/'phone-master-results.png')
             page.locator('.statusbar').scroll_into_view_if_needed()
-            page.screenshot(path=str(args.out/'phone-settings-bottom.png'),caret='initial')
+            diagnostics.capture(args.out/'phone-settings-bottom.png')
             # Actual shared DSP and AudioWorklet rendering: no mocked audio API.
             page.add_script_tag(type='module',url=base+'tools/browser_audit.js')
             page.wait_for_function('()=>typeof window.runAudit === "function"')
@@ -144,7 +144,7 @@ try:
             result['success']=False
             result['failure']=str(error)
             result['status']=page.locator('#status').inner_text()
-            page.screenshot(path=str(args.out/'failure.png'),full_page=True,caret="initial")
+            diagnostics.capture(args.out/'failure.png',full_page=True)
         finally:
             browser.close()
 finally:

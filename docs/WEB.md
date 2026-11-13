@@ -59,7 +59,7 @@ python -m playwright install --with-deps chromium
 python web/tools/verify_browser.py --out /tmp/slimeybeats-browser-checks
 ```
 
-The verification exercises the actual application, worker and AudioWorklet, compares worklet PCM with direct shared-Rust processing, checks deterministic suggestions and exports, tests mono/silence, verifies all three WAV formats using FFmpeg, and records all request methods/hosts. FFmpeg is a test tool, not a browser runtime dependency. `--browser firefox` and `--browser webkit` select other installed Playwright engines; those desktop engines do not stand in for physical mobile devices.
+The verification exercises the actual application, worker and AudioWorklet, compares worklet PCM with direct shared-Rust processing, checks deterministic suggestions and exports, tests mono/silence, verifies all three WAV formats using FFmpeg, and records all request methods/hosts. FFmpeg is a test tool, not a browser runtime dependency. The harness separately records Playwright 1.57’s WebKit screenshot synchronization warning only when it observes the matching empty style insertion; the production security policy stays unchanged, and other application errors still fail verification. `--browser firefox` and `--browser webkit` select other installed Playwright engines; those desktop engines do not stand in for physical mobile devices.
 
 ## Architecture and extension points
 
