@@ -4,7 +4,8 @@
 
 [![Native checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/ci.yml)
 [![Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml/badge.svg?branch=main)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml)
-[![Latest release](https://img.shields.io/github/v/release/slimedragonair/SlimeyBeats-EZ-Master?color=8b5cf6)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/latest)
+[![Studio Preview](https://img.shields.io/badge/Studio_Preview-0.5.0--beta.3-8b5cf6)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3)
+[![Stable release](https://img.shields.io/github/v/release/slimedragonair/SlimeyBeats-EZ-Master?label=stable&color=14b8a6)](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-14b8a6)](LICENSE)
 
 **Local song mastering. Real-time EQ. Your music stays yours.**
@@ -13,13 +14,13 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-[Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe) · [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
-**Studio Preview 0.5.0-beta.3 — current source; beta.3 binaries are not yet published as a GitHub release:** import aligned stems or mix tracks from multiple files or a Suno/stem ZIP, with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save self-contained projects. Desktop also supports local two/four-stem separation and optional isolated VST3 effects. The matching MCP companion **0.2.0-beta.3** exposes **38 tools**; browser Studio **0.3.0-beta.3** supports imported-stem editing with shared Rust DSP. Preview installs separately from stable; Studio is **not included in the v0.4.2 installer**. See the [Studio guide and validation](docs/STUDIO.md).
+**Studio Preview 0.5.0-beta.3** includes the guided desktop interface, Studio, the **0.2.0-beta.3 MCP companion** and the isolated VST3 worker. Import aligned stems from multiple files or a Suno/stem ZIP with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save projects. Optional local separation produces two/four stems. Browser Studio **0.3.0-beta.3** shares Rust DSP for imported-stem editing. Preview installs separately from stable. [Release notes and downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) · [Studio guide](docs/STUDIO.md).
 
-[Studio implementation and review #8](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/pull/8) · [Older beta.1 release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.1). Beta.1 predates the nine-part and bulk/ZIP import changes. The stable download below remains v0.4.2. For the current Studio/MCP features, [build this source](docs/BUILDING.md); the browser workflow deploys the current `main` source after its checks pass.
+Prefer the earlier mastering-only release? [Stable v0.4.2](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.4.2) remains available; it does not include Studio, MCP or the new tour. The hosted browser updates from `main` after its checks pass. Desktop remains the flagship for neural extraction, native effects and larger projects.
 
-**Bulk import:** choose several stem files at once or open a Suno/stem ZIP, review the parts, then import explicitly. Earlier beta.2 packages keep their original nine-part behavior; these larger-bank changes are in the current beta.3 source. Within one logical source folder, matching WAV/MP3 basenames count as one part: WAV is preferred, MP3 is optional, and a missing preferred encoding falls back to the available one. Prefer a consistent encoding across the bank; fallback can fail alignment when decoded lengths differ. Guitar, piano, synth, strings and percussion have named types; extensible `part_N` IDs cover repeated/custom instruments. Mixing, direct edits, raw stem exports and desktop projects retain the selected bank, subject to available memory and input safety budgets. All discovered parts start selected for review; uncheck anything you do not want. **Automatic model separation still produces only two/four stems.** Import needs no model.
+**Bulk import:** choose several stem files at once or open a Suno/stem ZIP, review the parts, then import explicitly. Within one logical source folder, matching WAV/MP3 basenames count as one part: WAV is preferred, MP3 is optional, and a missing preferred encoding falls back to the available one. Prefer a consistent encoding across the bank; fallback can fail alignment when decoded lengths differ. Guitar, piano, synth, strings and percussion have named types; extensible `part_N` IDs cover repeated/custom instruments. Mixing, direct edits, raw stem exports and desktop projects retain the selected bank, subject to available memory and input safety budgets. All discovered parts start selected for review; uncheck anything you do not want. **Automatic model separation still produces only two/four stems.** Import needs no model.
 
 Native imports retain **512 MiB decoded per input by default**, with a separate **4 GiB decoded-bank guard**; processing needs additional RAM. Owner-configured MCP settings can change the per-input limit. Browser Studio retains its **128 MiB combined decoded-input limit**; desktop is recommended for full-length sets. [Import workflow and limits](docs/STUDIO.md#import-a-whole-stem-set).
 
@@ -27,19 +28,17 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Installer note:** these Windows builds are unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
 
-![SlimeyBeats welcome screen, with Analyze at the top right and separate Master and Export actions](docs/images/welcome.png)
 
-**Analyze → Master → Export.** Analyze is at the top right. Master queue prepares a preview; the separate Export selected master button saves it when you are ready. You can tweak Manual EQ or re-master in between. This image shows the earlier stable layout. [Open the welcome screen at full size](docs/images/welcome.png).
 
-## In-development UX/learning preview
+## Start simple, go deeper
 
-The separate `feature/ux-learning` branch adds **Basic/Advanced controls**, an optional **eight-step tour**, and **bottom-right Help** with plain-language terms, troubleshooting and desktop MCP setup. Basic starts first; changing views preserves your exact audio settings. Finishing or declining the tour is remembered across restarts; Help can replay it whenever you want.
+The desktop preview starts with **Basic controls**, an optional **eight-step tour**, and **bottom-right Help** with plain-language terms, troubleshooting and desktop MCP setup. **Advanced** reveals detailed controls; changing views preserves your exact audio settings. Finishing or declining the tour is remembered across restarts; Help can replay it whenever you want.
 
 Studio puts active cleanup/repair editors in the workspace and keeps **Preview before Export** visible. Compact stem rows show level, mute and solo together; optional waveforms expand when needed. Manual EQ keeps the spectrum on its curve graph and gives the selected band a sidebar inspector.
 
-**This feature branch is not merged or released.** Public v0.4.2, published beta.1 packages and the public browser deployment retain their own behavior. Desktop source still identifies as beta.3. The captures below show this development candidate; older images and qualification figures elsewhere describe their named versions. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
+**Analyze → Master → Export.** Analyze is at the top right. Master prepares a preview; Export saves it when you are ready. Tweak Manual EQ or re-master in between. The captures below show the beta.3 interface. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
 
-To try the pictured interface, [download this branch's source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/archive/refs/heads/feature/ux-learning.zip), extract it, then follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source). You can also [browse the preview source](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/feature/ux-learning). The default `main` branch does not contain this unmerged interface.
+Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe), or download the [release source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Source.zip) and follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source).
 
 ![The optional first-run introduction with visible tour and decline choices](docs/images/ux-first-run.png)
 
@@ -62,36 +61,34 @@ To try the pictured interface, [download this branch's source ZIP](https://githu
 - **Compare fairly.** Original/master and pre-EQ/live-EQ comparisons support listening-only loudness matching.
 - **Export carefully.** WAV, FLAC and MP3 options, decoded-file peak checks, optional integer dither and filenames that preserve existing outputs.
 - **Learn as you go.** Hover control names for plain-language explanations of LUFS, peak ceilings, frequency, gain, Q and other terms.
-- **Edit parts and recordings (Studio source preview).** Rebalance stems, clean a voice, repair a selected time/frequency region, undo, compare and export separately. Neural extraction and compatible VST3 effects target desktop; imported-stem editing also works in the browser. [Workflows and limits](docs/STUDIO.md).
-- **Connect an AI assistant (source preview).** The optional local MCP companion exposes analysis, mastering previews, editable EQ and explicit exports through the desktop Rust engine. Open a prepared session in the desktop app to listen and refine it. [Setup, tools and privacy](docs/MCP.md).
+- **Edit parts and recordings (Studio Preview).** Rebalance stems, clean a voice, repair a selected time/frequency region, undo, compare and export separately. Neural extraction and compatible VST3 effects target desktop; imported-stem editing also works in the browser. [Workflows and limits](docs/STUDIO.md).
+- **Connect an AI assistant (desktop preview).** The optional local MCP companion exposes analysis, mastering previews, editable EQ and explicit exports through the desktop Rust engine. Open a prepared session in the desktop app to listen and refine it. [Setup, tools and privacy](docs/MCP.md).
 
-![Closer view of the actual Manual EQ graph, numeric controls, waveform and playback controls](docs/images/manual-eq-detail.png)
 
-**EQ while listening:** seven bands share a graph with the spectrum; the waveform and playback controls stay below. [Open the EQ detail at full size](docs/images/manual-eq-detail.png) or [the complete Manual EQ screen](docs/images/manual-eq.png). The detail above is a crop of the native app capture; no controls or measurements were redrawn.
 
 ## Get started
 
-1. Download the [Windows Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) for Windows x64. A [portable ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2.zip) is available too.
-2. Run Setup. It installs for your current Windows account without requiring administrator access.
-3. Open the app and add or drop a mono/stereo audio file.
-4. Click **Analyze** at the top right. Choose a profile, loudness mode and peak ceiling, then **Master queue**.
+1. Download [Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe) for Windows x64. A [portable ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3.zip) is available too.
+2. Run Setup. It installs for your current Windows account without requiring administrator access, separately from stable.
+3. Take or skip the optional tour, then add or drop a mono/stereo audio file.
+4. Click **Analyze** at the top right. Choose a profile and loudness mode, then **Master track** or **Master queue**.
 5. Compare, adjust Manual EQ or re-master. Expand **Export settings** to choose formats and a folder, then **Export selected master**.
 
 WAV input and output work immediately, without Python or FFmpeg. Compressed formats and sample-rate conversion require FFmpeg/ffprobe installed separately. See [installation and codec setup](docs/INSTALLATION.md).
 
-**Remembered preferences (current desktop source):** mastering settings, separate master/Studio export destinations and formats, listening volume, level matching and the two/four-stem choice survive normal restarts. Changes save automatically; **Save settings** saves both preference files immediately. Audio, queues and Studio projects are not recovered automatically; use **Save project** to continue Studio work later. [What is remembered and where](docs/USER_GUIDE.md#remembering-desktop-settings). Older downloaded binaries do not gain this source fix automatically.
+**Remembered preferences (desktop beta.3):** mastering settings, separate master/Studio export destinations and formats, listening volume, level matching and the two/four-stem choice survive normal restarts. Changes save automatically; **Save settings** saves both preference files immediately. Audio, queues and Studio projects are not recovered automatically; use **Save project** to continue Studio work later. [What is remembered and where](docs/USER_GUIDE.md#remembering-desktop-settings). Install beta.3 for these preferences and the guided interface; older packages retain their own behavior.
 
 ## Studio Preview
 
 Import aligned stems or mix tracks with **Choose stem files…** or **Choose Suno / stem ZIP…**. There is no fixed nine-part import limit; practical capacity depends on hardware, decoded audio and working memory. On desktop, dropping a ZIP anywhere opens Studio review; dropping several audio files in Studio also prepares a review. Confirm the parts and encoding in the center workspace, then click **Import selected stems**. Leave an original/full mix out when importing its constituent stems. Alternatively, separate a mix into vocals/instrumental or four stems with the optional local model. Rebalance, clean or repair, compare and undo before saving. Imported parts must have identical decoded sample rate, channel count and frame count. This is an aligned mixer: removing the count limit does not add a free timeline, beat matching or new resampling controls. **Use for mastering** sends the prepared mix into the mastering workflow; Export remains separate.
 
-![Actual beta.3 native import review with all 96 synthetic parts selected](docs/images/studio-large-import.png)
+![Current Studio Preview mixing four synthetic parts, with paired gain, mute and solo controls](docs/images/studio-stems.png)
 
-**Beta.3 large-bank import:** an actual native renderer capture of a synthetic 96-part bank, all 96 selected for review before import. [Open the capture at full size](docs/images/studio-large-import.png).
+**Rebalance in one place.** Each part has a named row; optional waveforms expand when needed. [Open the current mix capture](docs/images/studio-stems.png). The [earlier 96-part import capture](docs/images/studio-large-import.png) records the larger-bank validation and uses the earlier interface.
 
 ![Actual Studio Preview spectral repair screen, with time/frequency selection and pinned listening controls](docs/images/studio-repair.png)
 
-[Open the native capture at full size](docs/images/studio-repair.png) · [Stem Studio capture](docs/images/studio-stems.png) · [VST3 controls capture](docs/images/studio-plugins.png). These earlier beta.1 renderer captures use the credited example audio. [Workflow, model setup, limits and validation](docs/STUDIO.md).
+[Open the repair capture](docs/images/studio-repair.png) · [Stem Studio capture](docs/images/studio-stems.png) · [Plugin selection capture](docs/images/studio-plugins.png). These current beta.3 captures use generated test audio; the plugin image shows the initial file/bundle choices, not a loaded third-party effect. [Workflow, model setup, limits and validation](docs/STUDIO.md).
 
 The Preview package includes the desktop, MCP companion and effect worker and uses separate folders/shortcuts from stable. Model setup is optional; imported stems, cleanup and repair work without it. ZIP import reads only selected WAV/MP3 audio locally, ignores cover/metadata files and uploads nothing. Desktop MP3 decoding still requires FFmpeg. The browser's editing subset retains its **128 MiB combined decoded-input budget** and **15-minute per-track guard**. Adding more tracks divides the same input budget; a small compressed archive can still decode beyond it. ZIP byte/metadata inspection limits also remain in force. Use desktop for larger or full-length sets; available RAM still matters.
 
@@ -130,7 +127,7 @@ The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mast
 
 Linux source builds have passed Ubuntu 24.04 x86_64 CI and a separate maintainer-reported Linux-server check. On that server, **all 79 tests and lint checks passed**, mastering and all six export formats were verified, and the GUI passed launch, audio import, mastering and EQ-control checks. Desktop and application-menu launchers were installed. **No application source changes were needed.** See the [Linux validation guide](docs/LINUX.md#additional-linux-server-check).
 
-The server reported **Dummy Output**, with no headphones or speakers connected, so audible hardware playback remains unverified. The file-picker portal was not verified either. The downloadable v0.4.2 installer above remains Windows-only; this server check validates the Linux source build and desktop workflow.
+The server reported **Dummy Output**, with no headphones or speakers connected, so audible hardware playback remains unverified. The file-picker portal was not verified either. The Windows installer channels remain Windows-only; this earlier server check qualifies its named Linux source build and desktop workflow.
 
 ## Browser preview
 
@@ -152,7 +149,7 @@ Audio and measurements stay in tab memory until you download them. There are no 
 
 The figures below qualify their named candidates.
 
-**UI/learning preview, November 14:** 171 Windows and 173 Linux native tests, strict Clippy and optimized builds passed. Independent reviews scored the inspected native/browser layouts 9/10 for readability, task clarity, layout/usability and polish. The final browser build also passed its learning/audio and landscape/tablet checks. This remains unmerged development work. [Exact artifacts, input coverage and remaining limits](docs/UX_VALIDATION.md). These local results are separate from the hosted main-branch badges above.
+**Beta.3 UI and workflow qualification, November 14:** 171 Windows and 173 Linux native tests, strict Clippy and optimized builds passed. [Native release-profile CI #50](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43587342464) and [browser CI #33](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43587342485) passed on the qualified UI source: Chromium, Firefox and WebKit each completed 20 learning groups alongside import/mastering/Studio checks. Independent reviews scored the inspected native/browser layouts 9/10 for readability, task clarity, layout/usability and polish, with candidate-specific scope. [Exact artifacts, input coverage and remaining limits](docs/UX_VALIDATION.md). These results remain distinct from historical reports below.
 
 **Initial beta.3 larger-bank results:** **115 Windows / 117 Linux native tests** passed in the debug/test profile, plus **9 Windows / 10 Linux MCP regressions** and **11 native-host web-DSP binding tests**. Windows native used the `schemas` feature. Live 38-tool checks passed 24/64/100-part loose and paired-ZIP banks; release data/project checks passed eleven-part full-length and 96-part synthetic banks with original inputs unchanged. Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 workflow groups**. [Measured scope, fresh-agent results and remaining qualification](docs/STUDIO_BETA3_VALIDATION.md).
 

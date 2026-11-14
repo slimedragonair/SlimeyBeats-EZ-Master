@@ -1,10 +1,10 @@
 # Learning and Help
 
-**In-development UX/learning preview:** these changes are on `feature/ux-learning`, pending review and not merged or released. They do not update public v0.4.2 stable or published v0.5.0-beta.1 Preview. Desktop source still identifies as 0.5.0-beta.3; a new release version has not been decided. Existing screenshots and beta qualification reports describe their named candidates, not acceptance of this pass.
+The [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) includes Basic/Advanced controls, a persistent optional eight-step tour and bottom-right Help. Versions are desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Stable v0.4.2 remains a separate fallback.
 
 For your first file, follow [the mastering workflow](USER_GUIDE.md). For individual parts, use [Studio](STUDIO.md). This page covers the optional guidance and interface choices.
 
-To obtain this interface, use [the learning preview source](BUILDING.md#get-the-learning-preview-source) before building. The default repository branch does not include this unmerged pass.
+Use the [Windows installation guide](INSTALLATION.md), or [build from main or the release tag](BUILDING.md#get-the-source). Linux currently requires a source build.
 
 ## Basic and Advanced
 
@@ -37,7 +37,7 @@ Help and the tour preserve your audio session. Closing a tutorial records dismis
 
 ## Connect a desktop AI client
 
-In the desktop preview, **Help → AI setup** can generate a connection example when the MCP companion is present. Choose the audio and export folders, generate the JSON, then copy it into your compatible client's supported MCP setup. The helper uses the real companion's `--print-config` output. It does not edit an AI client's settings or start an MCP server connection. Your client launches the configured local stdio companion when you connect it.
+On desktop, **Help → AI setup** can generate a connection example when the MCP companion is present. Choose the audio and export folders, generate the JSON, then copy it into your compatible client's supported MCP setup. The helper uses the real companion's `--print-config` output. It does not edit an AI client's settings or start an MCP server connection. Your client launches the configured local stdio companion when you connect it.
 
 See [the in-app setup steps](MCP.md#in-app-setup-preview) for button names, missing-companion recovery and privacy. Browser **AI / MCP setup** is desktop-only guidance: the web app has no upload or localhost bridge to the companion. Use [the desktop connection guide](MCP.md#set-up-a-connection); no browser connection is required for audio editing.
 
@@ -68,4 +68,4 @@ Steps, glossary and MCP copy share one source: [`rust/assets/learning-guide.json
 | Browser choices, visibility and dialogs | [`ui-preferences.js`](../web/site/ui-preferences.js), [`control-visibility.js`](../web/site/control-visibility.js), [`learning.js`](../web/site/learning.js), [`learning-content.js`](../web/site/learning-content.js), [`dialog-focus.js`](../web/site/dialog-focus.js) |
 | Shared-copy web packaging | [`web/tools/build.py`](../web/tools/build.py) |
 
-Keep preference writes separate from audio operations, retain terminal tutorial choices across stale windows/tabs, and keep MCP setup explicit. The final qualification matrix belongs to the reviewed candidate; this document makes no new test-count, visual-score or physical-device claim.
+Keep preference writes separate from audio operations, retain terminal tutorial choices across stale windows/tabs, and keep MCP setup explicit. The [UI validation record](UX_VALIDATION.md) preserves the reviewed candidates, scores and physical-device limits separately from release packaging checks.

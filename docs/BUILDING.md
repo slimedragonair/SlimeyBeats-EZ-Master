@@ -1,12 +1,14 @@
 # Build and package
 
-The native Rust application is the maintained desktop. Current source targets Studio **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**; beta.3 binaries have not been publicly released. Stable v0.4.2 remains separate. The older Python implementation has a [separate historical guide](legacy/python-guide.md).
+The native Rust application is the maintained desktop. The [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) contains Studio **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and the Basic/Advanced interface, persistent optional eight-step tour and Help. The matching browser Studio is **0.3.0-beta.3**. Stable v0.4.2 remains the fallback. The older Python implementation has a [separate historical guide](legacy/python-guide.md).
 
-For the Ubuntu source-build and validation commands, see [Linux checks](LINUX.md). The published v0.4.2 installer is for Windows.
+For Ubuntu source-build and validation commands, see [Linux checks](LINUX.md). Current binary release packages are for Windows; Linux is source-build only.
 
-## Get the learning preview source
+<a id="get-the-learning-preview-source"></a>
 
-The pictured Basic/Advanced interface, optional tour and bottom-right Help are on the unmerged [`feature/ux-learning` branch](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/feature/ux-learning). [Download its source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/archive/refs/heads/feature/ux-learning.zip) and extract it before using the commands below. Start from the extracted folder containing `rust/`, `mcp/` and `web/`. The ordinary `main` checkout and published packages retain their own interface until this work is merged/released.
+## Get the source
+
+Use [`main`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/main) for ongoing development, or the exact [`v0.5.0-beta.3` tag](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/v0.5.0-beta.3) to reproduce this release. [Download the beta.3 source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Source.zip) and extract it before using the commands below. Start from the folder containing `rust/`, `mcp/` and `web/`.
 
 ## Native development
 

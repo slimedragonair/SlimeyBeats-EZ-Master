@@ -2,13 +2,11 @@
 
 SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **38 tools** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
-Beta.3 is available in the current repository source; its binary packages have **not been published as a GitHub release**. [Build the current source](BUILDING.md). Earlier beta.2 packages retain their original nine-part import behavior. **The stable v0.4.2 Windows installer does not include MCP or session handoff.** Use the desktop binary built alongside the companion. Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
+The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) includes the matching desktop, companion and VST3 worker. Follow [Windows installation](INSTALLATION.md) or [build from main or the release tag](BUILDING.md#get-the-source); Linux currently requires a source build. **The stable v0.4.2 fallback does not include MCP or session handoff.** Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
 ## In-app setup preview
 
-The **in-development UX/learning preview** on `feature/ux-learning` adds this desktop route. It is pending review and not merged or released; existing public packages do not gain it automatically.
-
-Get [the learning preview source](BUILDING.md#get-the-learning-preview-source) to build the interface described here.
+Beta.3 includes this route in bottom-right Help, alongside Basic/Advanced controls and the optional eight-step tour. Completed, declined and dismissed tour choices persist when storage succeeds; manual replay stays available in Help.
 
 1. Open bottom-right **Help** (**F1**), then **AI setup**.
 2. Choose **1. Choose audio folder…** and **2. Choose export folder…**. Authorize only the library you want the assistant to use.
@@ -66,7 +64,7 @@ The Studio Preview installer also includes the companion and VST3 worker. Open *
 
 ## Tools
 
-The current development companion exposes **38 tools**, including read-only ZIP inspection and job-based ZIP import. Published v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+The beta.3 companion exposes **38 tools**, including read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
 
 | Tool | Purpose |
 |---|---|
@@ -167,7 +165,7 @@ When its stdio connection closes, the companion requests cancellation and allows
 
 ## Beta.3 qualification
 
-These results predate the in-development in-app setup/learning pass. They are not a final qualification matrix for that UI.
+The results below qualify the earlier beta.3 import/MCP candidate. The released in-app setup and learning interface have a separate [UI validation record](UX_VALIDATION.md), with frozen runtime hashes and hosted CI results. Rebuilt release packaging requires its own artifact and installer checks.
 
 Confirmed MCP results include **9 Windows / 10 Linux regressions**, live **38-tool** discovery and 24/64/100-part loose/paired-ZIP banks. Raw exports were sample-exact; a 64-part project retained IDs/faders, and a targeted edit retained the other 63 raw parts exactly. Approximately 9.6 MB combined input passed an 8 MiB per-input setting, confirming that the setting is not the whole-bank allowance. Release checks also passed full eleven-part and 96-part data/project workflows with unchanged original inputs. A fresh agent imported all 96 ZIP parts and adjusted only `part_96` without exporting; after a separate explicit request, it saved 24-bit WAV, all 96 raw stems and a self-contained project, retained the other 95 controls and closed the bridge cleanly with exit code 0. Windows MCP formatting/strict Clippy and current host/plugin null-factory, exit and cancellation checks also passed. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) for scope and remaining checks.
 

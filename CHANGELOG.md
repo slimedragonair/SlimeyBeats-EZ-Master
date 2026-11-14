@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.5.0-beta.3 — 2026-11-14
 
-### In-development UX/learning preview
+### Guided interface and Help
 
-This pass is on `feature/ux-learning`, pending review and not merged or released. No new version has been assigned; public v0.4.2, published beta.1 and existing beta.3 source identifiers remain separate.
+Studio Preview beta.3 includes the guided desktop interface, bulk stem imports and remembered preferences. Its installer remains separate from stable v0.4.2; the MCP companion is 0.2.0-beta.3 and browser Studio is 0.3.0-beta.3. Earlier releases retain their original binaries and qualification records.
 
 - Start in Basic, reveal detailed controls with Advanced, and flag active hidden custom settings without resetting audio settings. Pair native Studio stem waveforms and faders in the workspace while retaining explicit preview/apply/export actions.
 - Add bottom-right Help, native F1 access and an optional eight-step tour with replay, terms and troubleshooting. Save completed, declined and dismissed choices immediately, with separate native interface preferences and a tutorial-history marker that protects against stale windows.
@@ -16,9 +16,9 @@ This pass is on `feature/ux-learning`, pending review and not merged or released
 - Keep modified Space chords out of transport handling, prevent held-key playback toggles, and reserve Alt+Space for the native window menu without activating a focused tutorial choice.
 - Reveal completed spectrograms once, retain independent Studio page positions, and put plugin choices/controls in the workspace. Add current illustrated guidance and [candidate-specific UI validation](docs/UX_VALIDATION.md).
 
-### Earlier beta.3 source changes
+### Studio, imports and remembered preferences
 
-- Update the Studio development source to desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Beta.3 binaries have not been publicly released; stable v0.4.2 and earlier beta packages remain unchanged.
+- Release desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Stable v0.4.2 and earlier beta packages remain unchanged.
 - Remove the fixed count cap for aligned imported stems/mix tracks. Loose-file and Suno/stem ZIP imports select all distinct parts by default, with optional selection and unique `part_N` identities for additional parts. At least two parts with matching sample rate, channels and frame count are still required; neural separation remains two/four stems.
 - Keep separate import budgets: native defaults to 512 MiB decoded PCM per input and a 4 GiB aggregate decoded bank; browser Studio retains 128 MiB combined decoded input and 15 minutes per track. Available RAM, archive/metadata budgets and working buffers still constrain capacity.
 - Expand the optional local MCP companion to 38 tools, including read-only stem ZIP inspection and job-based import. Preview preparation and explicit audio/project saving remain separate. See the [current Studio guide](docs/STUDIO.md) for workflows and qualification scope.

@@ -1,12 +1,16 @@
 # Studio editing preview
 
-Studio Preview **0.5.0-beta.3** supports aligned imported stems and mix tracks with **no fixed imported-part count**, including multi-file and Suno/stem ZIP import. Practical capacity depends on hardware, decoded input and processing memory; byte/metadata safety budgets still apply. Its matching companion is **MCP 0.2.0-beta.3** and its browser Studio version is **0.3.0-beta.3**. Beta.3 is available in the current repository source; its binary packages have **not been published as a GitHub release**. [Build the current source](BUILDING.md). Earlier beta.2 packages retain their original nine-part import behavior; stable v0.4.2 does not include Studio. Preview uses a separate install identity and can coexist with stable. Existing mastering and Manual EQ remain available; preparing a preview and exporting remain separate actions.
+Studio Preview **0.5.0-beta.3** supports aligned imported stems and mix tracks with **no fixed imported-part count**, including multi-file and Suno/stem ZIP import. Practical capacity depends on hardware, decoded input and processing memory; byte/metadata safety budgets still apply. Its matching companion is **MCP 0.2.0-beta.3** and its browser Studio version is **0.3.0-beta.3**. Get the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3), follow [Windows installation](INSTALLATION.md), or [build from main or the release tag](BUILDING.md#get-the-source). Linux currently requires a source build. Stable v0.4.2 remains the fallback and does not include Studio. Preview uses a separate install identity and can coexist with stable. Existing mastering and Manual EQ remain available; preparing a preview and exporting remain separate actions.
 
-## In-development controls and Help
+## Controls and Help
 
-The unmerged `feature/ux-learning` preview starts in **Basic**, with custom-setting hints and detailed controls in **Advanced**. Switching does not reset audio settings. Native Studio gives editing space to rows that pair each stem's waveform with its level/mute/solo controls; stereo balance is in Advanced. Project/import/render actions and export options remain accessible. Bottom-right **Help** (**F1** on desktop) offers a tour, terms and AI setup. This UI pass is pending review, not a released beta or a new qualification claim. [Learning, Help and storage](LEARNING_AND_HELP.md).
+Beta.3 starts in **Basic**, with custom-setting hints and detailed controls in **Advanced**. Switching does not reset audio settings. Native Studio keeps essential level/mute/solo controls together; **Show part waveforms** and **Comparison waveform** reveal larger plots when wanted. Stereo balance is in Advanced. Voice, Repair and Plugins editors occupy the workspace; Preview remains separate from Export. Project/import/render actions and export options remain accessible. Bottom-right **Help** (**F1** on desktop) offers the persistent optional eight-step tour, terms and AI setup. [Learning, Help and storage](LEARNING_AND_HELP.md).
 
 ## Desktop workflow
+
+![Actual beta.3 Studio mix workspace with four synthetic imported parts](images/studio-stems.png)
+
+[Open the stem workspace at full size](images/studio-stems.png). The four synthetic imported parts illustrate the mixer; model separation still offers only two/four stems.
 
 1. Open **Studio**, choose a local recording, or use the selected mastering-queue track. **Analyze** at the top right measures the selected Studio input.
 2. In **Stem Studio**, choose **Vocal + instrumental** or **Four stems** (vocals, drums, bass and other). Install the optional local engine once, then **Separate source**. Setup downloads a private CPU runtime and verified upstream model; separation uses local files. The optional environment does not alter global Python.
@@ -20,7 +24,7 @@ The unmerged `feature/ux-learning` preview starts in **Basic**, with custom-sett
 
 **Save project** writes a new self-contained folder with source, stem, before/preview WAVs, mix controls and hashes. Open its `session.studio.json` to continue without the original library files or model runtime. Projects contain private audio: share them only intentionally. The existing 1 MiB session-JSON and per-asset safeguards remain; removing the imported count ceiling does not bypass project resource checks. They retain the prepared audio and mix, not an entire undo history or vendor-plugin state.
 
-**Remembered desktop preferences:** the current source keeps Studio's export folder/format independent of mastering, along with Studio/master listening volume and level matching and the two/four-stem choice. Changes save after 750 ms of quiet and on normal close; **Save settings** saves both preference files immediately. This does not reopen audio, queues or projects: **Save project** is still required to continue editing later. [File locations and load/save errors](USER_GUIDE.md#remembering-desktop-settings). Older downloaded binaries retain their original behavior; browser and MCP session workflows are unchanged.
+**Remembered desktop preferences:** beta.3 keeps Studio's export folder/format independent of mastering, along with Studio/master listening volume and level matching and the two/four-stem choice. Changes save after 750 ms of quiet and on normal close; **Save settings** saves both preference files immediately. This does not reopen audio, queues or projects: **Save project** is still required to continue editing later. [File locations and load/save errors](USER_GUIDE.md#remembering-desktop-settings). Browser and MCP session workflows remain separate.
 
 The engine maintenance disclosure offers **Verify installed model** and **Repair stem engine**. Verification checks the installed model files. Repair reinstalls the isolated dependencies and model; unknown/user-added cache files are preserved in a backup. Setup and inference have cancellation and process supervision. Readiness is a quick status check, rather than continuous hashing of model files.
 
@@ -61,9 +65,9 @@ The desktop also accepts a ZIP as a startup file. With multiple loose inputs, `-
 
 ## Optional VST3 effects
 
-![The actual four-stem workspace](images/studio-stems.png)
+![Actual beta.3 Plugins workspace with an effect choice](images/studio-plugins.png)
 
-[Open the stem workspace at full size](images/studio-stems.png). This earlier beta.1 capture illustrates four-stem editing; the instructions above describe the current import workflow.
+[Open the Plugins workspace at full size](images/studio-plugins.png). A visible effect choice does not establish compatibility with every VST3 plugin.
 
 Build/install the `plugins/host` helper beside the desktop/MCP binaries. Choose a trusted VST3 file or x64 bundle, probe its audio-effect classes, adjust discovered generic parameters and **Preview plugin effect**. Values use each plugin's normalized 0–1 mapping. Compare before exporting.
 
@@ -71,7 +75,7 @@ The initial host supports compatible mono/stereo float32 audio effects and offli
 
 ## Browser Studio
 
-[Native repair view](images/studio-repair.png) · [Native effect controls](images/studio-plugins.png) · [Responsive browser repair view](images/studio-web-phone.png).
+[Native repair view with spectrogram](images/studio-repair.png) · [Native Plugins workspace and effect choice](images/studio-plugins.png) · [Earlier browser repair capture](images/studio-web-phone.png). The native captures show the beta.3 interface; the browser repair capture is a legacy illustration, not the final learning-interface evidence.
 
 The browser **Studio** tab supports a recording or a bank of **aligned imported stems/mix tracks without a fixed part-count ceiling**, rebalancing, voice cleanup, a selectable spectrogram, repair, A/B playback, undo/redo, WAV export and a raw stem ZIP. Use **Choose stem files** to select several files, **Choose Suno / stem ZIP** for an archive, or drop files onto **Import a whole stem set**. Review the parts and preferred encoding, then **Import selected stems**. The same grouping and selection rules above apply: all discovered parts are shown and selected by default, and the previous preview remains available during review or after an invalid/cancelled import. The individual-file panel also supports a **Custom stem set** with additional rows. Browser bulk file pickers expose filenames without their original folders; for repeated basenames, use a ZIP with distinct source folders or assign the files individually. Each selected part needs a unique type. The summary beside **Import selected stems** shows selected/omitted counts, preferred encoding and fallback use. Expand **Left out** to inspect every omitted part; the disclosure also works from the keyboard. Review this summary before importing.
 
@@ -95,7 +99,7 @@ Plugin execution additionally requires owner-configured `--plugin-root` folders;
 
 ## Beta.3 qualification
 
-These results describe the earlier beta.3 candidate; they do not qualify the in-development learning/layout changes above.
+These results describe the earlier beta.3 import candidate. The released Basic/Advanced, tour, Help and layout changes have a separate [UI validation record](UX_VALIDATION.md), preserving the tested runtime hashes, inspected states and hosted CI. New release packaging requires fresh artifact and installer verification.
 
 Confirmed results include **115 Windows / 117 Linux native tests in the debug/test profile**, **9 Windows / 10 Linux MCP regressions**, **11 native-host web-DSP binding tests**, live 38-tool workflows with **24/64/100-part loose and paired-ZIP banks**, and release data/project checks for full eleven-part and 96-part banks. Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 complete workflow groups**. The native per-input/bank-budget distinction was exercised explicitly. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) for test configurations, fresh-agent discovery, evidence boundaries and the final independent review of the supplied native/browser states.
 
@@ -148,7 +152,7 @@ Reproduce browser checks with `python web/tools/verify_studio_browser.py --out P
 
 ## Implementation
 
-The learning preview keeps interface state/copy separate from Studio processing and audio preferences. See the [contributor map](LEARNING_AND_HELP.md#contributor-map) for native and browser file ownership and shared-copy packaging.
+The interface keeps learning state/copy separate from Studio processing and audio preferences. See the [contributor map](LEARNING_AND_HELP.md#contributor-map) for native and browser file ownership and shared-copy packaging.
 
 Shared DSP lives in `rust/src/studio`; `stem_import_plan.rs` groups alternate encodings and validates selection, while `stem_archive.rs` bounds ZIP inspection/reads. Native runtime, project and plugin adapters live in `rust/src/studio_native`; `stem_bundle.rs` extracts only selected audio and uses the existing decoder. Desktop state/jobs/controls/plots live in `rust/src/gui/studio`, with review cards in `stem_bulk_import.rs`. The VST3 worker is a separate crate in `plugins/host`. MCP Studio routes are separate from mastering routes; `stem_bundle_protocol.rs` owns ZIP inspection/import.
 

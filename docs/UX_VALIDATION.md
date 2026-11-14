@@ -1,8 +1,8 @@
 # UI and learning validation — November 14, 2026
 
-This record qualifies the unmerged UI/learning preview. It does not update published Windows packages or the public browser deployment. Desktop, MCP and browser source still identify as 0.5.0-beta.3, 0.2.0-beta.3 and 0.3.0-beta.3. Hashes distinguish the tested builds.
+This historical record qualifies the prerelease UI/learning candidates whose features are included in the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3): desktop 0.5.0-beta.3, MCP 0.2.0-beta.3 and browser Studio 0.3.0-beta.3. Frozen hashes distinguish the tested builds. Final release packaging, hosted CI and public deployment are separate evidence; new guides/images do not transfer an earlier installer result to a rebuilt Setup.exe.
 
-## Final candidate
+## Frozen prerelease candidate
 
 Native runtime source: 8f9f7c2b55ec5bbb5d5c457f71623d4bf09375f9. Later documentation and packaging edits do not change that runtime source.
 
@@ -30,6 +30,14 @@ The independently scored browser runtime was b71aebbf97338c92. Comparing all 47 
 | Source and offline documentation | Guides, images and canonical JSON are included by explicit source/runtime packaging lists. Release verification scans every shipped guide's local targets, original dependency notices and the source audio allowlist. |
 
 Native totals above use the ordinary test profile. Optimized binaries were built separately. Hosted release-profile CI and installer lifecycle results are separate qualification; a local test total is not a hosted-CI result.
+
+## Hosted CI on November 14, 2026
+
+The recorded source head is `48015f0a7a8afac22b89a8986c51c274e4029233`. Its tested PR merge tree matched the feature head exactly. [Native checks #50](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43587342464) passed, including **171 Windows / 173 Linux release-profile native tests**, formatting, strict Clippy, optimized builds, MCP and worker checks. [Browser preview #33](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43587342485) passed its main workflows and **20 learning groups each** in Chromium 143, Firefox 144 and WebKit 26, plus the import/replacement/Studio checks recorded in that run. Production deployment was skipped.
+
+These results are recorded in the dated qualification package's `GitHub-Checks/final-summary.json` and `UI-UX-Report.md`. They qualify that source head, independently of the local candidate checks and final a2 browser comparison. Any subsequent documentation head, rebuilt release package or deployment needs its own applicable checks; no result for those later artifacts is asserted here.
+
+## Settings and session checks
 
 The checks retain exact high-precision settings across untouched rendering, Basic/Advanced and page changes. They cover terminal tutorial choices against stale windows/tabs, damaged/unavailable storage, partial write failures and manual replay. Pending mix edits and changed mastering directions remain distinct from the prepared preview.
 
@@ -67,6 +75,12 @@ python web/tools/verify_learning_browser.py --browser chromium --site YOUR_FRESH
 python rust/tools/verify_release_contents.py --folder YOUR_PORTABLE_FOLDER --source YOUR_SOURCE_ZIP --report NEW_REPORT.json
 ```
 
-Installer lifecycle qualification uses the production NSIS template and a byte-identical runtime payload under a separate QA registration/menu identity when an existing Preview must be preserved. It checks native WAV processing, installed MCP workflows, project reopen, upgrade, actual restored settings and data-preserving uninstall. Diagnostic captures suppress the automatic offer, so the live restart checks above establish tutorial persistence separately. See [release verification](RELEASING.md); artifact checksums and lifecycle reports belong beside the prepared artifacts.
+## Historical installer and rebuilt release assets
 
-Remaining boundaries are physical iPhone/Android behavior, hardware listening quality, complete screen-reader sessions and Linux file-picker portals. This UI pass does not requalify long-track memory maxima, neural model quality or arbitrary VST3 compatibility. Existing named Studio/Linux/audio reports retain their historical scope.
+The earlier production Setup SHA-256 was `979b5069f25663583f6d06e98f6840a0e6675d084542793e40abf08b3554bbad`. GUI-enabled lifecycle qualification used the production NSIS template and a byte-identical **2,012-file payload** under a separate private QA registration/menu identity to preserve existing installations. The QA Setup checksum differed from that production Setup. It checked native WAV processing without FFmpeg, installed MCP workflows, GUI processing, project reopen, actual restored settings and data-preserving uninstall. Reinstall used the **same candidate**; production Preview registration and migration from every older version were not established.
+
+Final documentation/images require rebuilt public packages and fresh content/installer checks. Use the [beta.3 release assets](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) and their [versioned SHA-256 list](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-SHA256SUMS.txt) to identify that packaging. The frozen hash above and earlier lifecycle evidence remain historical; they do not qualify a new Setup hash. See [release verification](RELEASING.md) for the required checks and keep their results beside the exact rebuilt artifacts.
+
+Diagnostic captures suppress the automatic offer, so the live restart checks above establish tutorial persistence separately.
+
+Remaining boundaries are physical iPhone/Android behavior, hardware listening quality, complete assistive-technology/screen-reader sessions and Linux file-picker portals. This UI pass does not requalify long-track memory maxima, neural model quality or arbitrary VST3 compatibility. Linux GUI hashes and synthetic renderer results identify validation builds, not a Linux binary release; Linux currently uses source builds. Existing named Studio/Linux/audio reports retain their historical scope.

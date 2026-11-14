@@ -1,37 +1,70 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SlimeyBeats-EZ-Master — Get started</title>
 <style>body{font:17px/1.6 system-ui,sans-serif;max-width:1060px;margin:32px auto;padding:0 24px;color:#eee8f7;background:#130e1d}h1,h2{line-height:1.2;color:#d1a3f8}a{color:#7de2d8}img{max-width:100%;border:1px solid #59436b;border-radius:8px}li{margin:10px 0}section{margin:30px 0}code{background:#251a33;padding:2px 5px}</style>
-<h1>SlimeyBeats-EZ-Master</h1><p>Local song mastering. Real-time EQ. Your music stays yours.</p>
-<section><h2>Your first master</h2><ol><li>Add or drop your mono/stereo audio.</li><li>Click <strong>Analyze</strong> at the top right.</li><li>Choose a tonal profile and Gentler/Louder, then use the <strong>Master</strong> track or queue button. In the learning preview, Advanced reveals precise targets and the peak ceiling.</li><li>Compare at matched loudness. Tweak Manual EQ or re-master before saving anything.</li><li>Expand <strong>Export settings</strong>, select formats/folder, then <strong>Export selected master</strong>.</li></ol><img src="images/welcome.png" alt="The earlier mastering layout with separate Analyze, Master and Export controls"><p>This image illustrates the earlier stable layout. The learning-preview captures below show the revised interface.</p></section>
-<section><h2>Learning preview: start at your pace</h2>
-<p>The unmerged <code>feature/ux-learning</code> branch adds an optional eight-step tour, Basic/Advanced controls and bottom-right <strong>Help</strong> (<strong>F1</strong> on desktop). These changes are not part of published stable/preview packages or the public browser deployment yet.</p>
-<p>Choose <strong>Show me around</strong> or <strong>I'll explore on my own</strong>. Finishing or dismissing the tour saves that choice immediately when storage succeeds. It will not offer itself again; Help can replay it manually. The tour never starts processing, downloads a model or saves audio for you.</p>
-<a href="images/ux-first-run.png"><img src="images/ux-first-run.png" alt="Actual optional first-run tour with both start and decline choices visible"></a>
-<p><a href="images/ux-first-run.png">Open the introduction at full size</a>. Basic keeps common choices in view; Advanced reveals detail without resetting audio settings. Notices identify active hidden custom settings.</p>
-<p>In compact Overview, <strong>Frequency balance · spectrum</strong> opens its graph. Manual EQ puts the selected band's frequency/gain in the sidebar; its curve and spectrum still share one graph. In Studio, voice/repair settings occupy the workspace and <strong>Preview</strong> stays beside <strong>Export</strong>. Compact stem rows show level, mute and solo together, with optional full-size waveforms.</p>
-<a href="images/ux-manual-eq.png"><img src="images/ux-manual-eq.png" alt="Actual source-preview EQ graph and selected-band inspector"></a>
-<p><a href="images/ux-manual-eq.png">Open the EQ capture at full size</a>. The EQ capture uses the CC0 example; neither image contains redrawn controls. <a href="LEARNING_AND_HELP.md">Tour, Help and remembered-choice details</a>. To obtain this interface, follow <a href="BUILDING.md#get-the-learning-preview-source">the learning preview source instructions</a>.</p>
+<h1>SlimeyBeats-EZ-Master</h1>
+<p>Local song mastering. Real-time EQ. Your music stays yours.</p>
+<section>
+<h2>Get Studio Preview beta.3</h2>
+<p><a href="https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe">Download the Windows installer</a> or open the <a href="https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3">beta.3 release page</a>. Start <strong>SlimeyBeats-EZ-Master Studio Preview</strong> from the Start menu. The installer includes desktop <strong>0.5.0-beta.3</strong> and optional MCP companion <strong>0.2.0-beta.3</strong>; the matching browser Studio is <strong>0.3.0-beta.3</strong>.</p>
+<p><a href="INSTALLATION.md">Installation and codec help</a> includes the separate <strong>stable v0.4.2 fallback</strong>, which has mastering but no Studio or MCP. Linux currently requires a <a href="BUILDING.md#get-the-source">source build</a>.</p>
 </section>
-<section><h2>Try the included example</h2><p>Open <a href="../examples/audio/Listen.html">the example listening page</a>, or add <code>examples/audio/demo-input.wav</code> to the app. These WAV files work without extra codecs. The example's recording is CC0; source and modifications are in its credits.</p></section>
-<section><h2>Use your ears and the meters</h2><p>Hover control names for help. Gentler/Louder are different loudness intents, not quality scores. Suggested EQ is an editable rule-based starting point. The spectrum and the EQ response have different scales. Listening loudness match does not change your export.</p><img src="images/manual-eq.png" alt="Manual EQ response and live spectrum on one graph, with waveform and pinned playback"></section>
-<section><h2>Studio: work on the parts</h2>
-<p>These instructions cover the current source preview: desktop <strong>0.5.0-beta.3</strong>, MCP <strong>0.2.0-beta.3</strong> and browser Studio <strong>0.3.0-beta.3</strong>. Beta.3 binary packages have not been published as a GitHub release; build the current source for these features. Earlier beta.2 packages retain their original behavior; stable v0.4.2 does not include Studio.</p>
-<p><a href="images/studio-repair.png"><img src="images/studio-repair.png" alt="Actual Studio Preview repair view with the precise selection and listening dock"></a> <a href="images/studio-repair.png">Open the repair capture at full size</a>.</p>
+<section>
+<h2>Start at your pace</h2>
+<p>Choose <strong>Show me around</strong> for the optional eight-step tour, or <strong>I'll explore on my own</strong>. Finishing, declining or dismissing saves your choice immediately when storage succeeds. Help can replay the tour whenever you want. The tour never starts processing, downloads a model or saves audio for you.</p>
+<a href="images/ux-first-run.png"><img src="images/ux-first-run.png" alt="Beta.3 first-run introduction with start and decline choices"></a>
+<p><strong>Basic</strong> keeps common choices in view. <strong>Advanced</strong> reveals detail without resetting audio settings. Notices identify active custom settings whose editors are hidden.</p>
+<p>Open bottom-right <strong>Help</strong> (<strong>F1</strong> on desktop) for the tour, plain-language terms, troubleshooting or AI setup. If browser storage is unavailable, a notice explains that choices last only for the current tab; Help and manual replay remain available. <a href="LEARNING_AND_HELP.md">Tour, Help and remembered choices</a>.</p>
+</section>
+<section>
+<h2>Your first master</h2>
 <ol>
-<li>Open <strong>Studio → Stem Studio</strong>. Click <strong>Choose stem files…</strong> to select several aligned files together, or <strong>Choose Suno / stem ZIP…</strong>. Dropping one ZIP anywhere in the desktop app, or several audio files in Studio, opens a review.</li>
-<li>Review the cards in the <strong>center workspace</strong>. Within one logical source folder, matching WAV/MP3 basenames count once, ignoring case; matching <code>wav/</code> and <code>mp3/</code> encoding folders under the same parent are paired too. Distinct source folders keep separate parts even when friendly names repeat. WAV is preferred; choose MP3 if wanted. Missing preferred encodings fall back to the available version. Duplicate encodings within one logical group remain ambiguous.</li>
-<li><strong>All discovered parts start selected</strong>; there is no fixed imported-part ceiling. Uncheck anything you do not want, retain at least two aligned parts, then click <strong>Import selected stems</strong>. Filename-based role suggestions are a naming heuristic, not audio inference; review the selection. Named instrument types and extensible <code>part_N</code> IDs cover repeated/custom instruments. IDs must be unique even when friendly names repeat. Exclude an original/full mix when importing its stems. Review, discard, cancellation or invalid files leave the previous preview intact.</li>
-<li>Adjust levels, mute/solo and stereo balance, then update the mix preview. Use Voice cleanup or Spectral repair on a recording, stem or current preview. Compare Before and Preview; apply a direct edit back to its part while retaining the other stems.</li>
-<li>Use <strong>To master / Use for mastering</strong> to continue in the mastering queue, or export the current Studio preview. Raw stem exports and desktop projects retain the selected bank, subject to memory and file safeguards. Saving and processing are separate.</li>
+<li><strong>Add your audio.</strong> Add or drop a mono/stereo file. WAV works without extra codecs.</li>
+<li><strong>Analyze.</strong> Use the top-right button to measure the source.</li>
+<li><strong>Choose a direction and Master.</strong> Choose a tonal profile and Gentler/Louder, then use the Master track or queue button. Advanced reveals precise targets and the peak ceiling. Master prepares a preview.</li>
+<li><strong>Listen and refine.</strong> Compare Original/Master at matched loudness. Adjust Manual EQ or re-master before saving.</li>
+<li><strong>Export when ready.</strong> Expand Export settings, choose formats/folder, then Export selected master. Existing output files receive unique names.</li>
 </ol>
-<p>Imported stems or mix tracks need identical decoded sample rate, channel count and frame count, but no model. This remains an aligned mixer: removing the count ceiling adds no free timeline, beat matching, automatic alignment or new resampling controls. Prefer WAV consistently when available; different decoded lengths can make mixed-encoding fallback fail alignment. Friendly names survive edits/undo, raw manifests and desktop projects; stable IDs still address each part. In <strong>Assign files individually</strong>, choose <strong>Custom stem set</strong> and add slots as needed. Optional neural separation still produces <strong>vocal/instrumental or four stems only</strong>. Save a self-contained project to resume the prepared audio and mix. Compatible desktop VST3 effects use the included worker.</p>
-<p>ZIP import reads WAV/MP3 only, ignores cover art/metadata and extracts selected audio privately, with no uploads. Native limits are <strong>512 MiB decoded per input by default</strong> plus a separate <strong>4 GiB decoded-bank guard</strong>; processing needs additional RAM. Desktop/MCP ZIP limits remain <strong>1 GiB per archive</strong> and <strong>512 MiB per expanded audio entry</strong>. Inspection has an <strong>8 MiB metadata budget</strong>, counting UTF-8 filename bytes plus 256 bytes per file/entry, including ignored entries. Native MP3 decoding requires FFmpeg/ffprobe. <a href="STUDIO.md">Full Studio workflow, resource limits and qualification scope</a>.</p>
+<p>In compact Overview, <strong>Frequency balance · spectrum</strong> opens its graph. Manual EQ puts the selected band's controls beside the curve and spectrum. Playback remains available below the scrolling workspace.</p>
+<a href="images/ux-manual-eq.png"><img src="images/ux-manual-eq.png" alt="Beta.3 Manual EQ graph, selected-band controls and playback"></a>
+<p>Hover control names for help. Gentler/Louder are different loudness intents, not quality scores. Suggested EQ is an editable starting point; <strong>Apply curve</strong> copies it into the editor. Listening loudness match does not change your export. <a href="USER_GUIDE.md">Full mastering guide</a>.</p>
 </section>
-<section><h2>Browser Studio</h2>
-<p>Use <strong>Choose stem files</strong>, <strong>Choose Suno / stem ZIP</strong>, or drop files onto <strong>Import a whole stem set</strong>. All discovered parts start selected; review the parts and encoding, uncheck anything unwanted, then <strong>Import selected stems</strong>. Browser bulk pickers expose filenames without original folders; use a ZIP with distinct source folders or individual assignments for repeated basenames. Check selected/omitted counts, preferred encoding and fallback use beside Import. Expand <strong>Left out</strong> to inspect all omitted names; the disclosure also works from the keyboard. Review or invalid/cancelled imports retain the previous preview.</p>
-<p>Browser ZIPs and each decompressed audio entry are limited to <strong>128 MiB</strong>. The existing <strong>128 MiB combined decoded-input budget across all stems</strong> and <strong>15-minute per-file guard</strong> still apply. More tracks share the same decoded-input allowance; compressed size does not measure PCM memory. Actual capacity also depends on hardware and processing buffers. Use desktop for larger banks, subject to its own resource limits. Raw stem ZIPs contain one WAV per selected part plus <code>stems.json</code>, mapping stable filenames/kinds to friendly <code>display_name</code> values. Audio stays local. Save/download before closing or reloading the tab.</p>
+<section>
+<h2>Try the included example</h2>
+<p>Open <a href="../examples/audio/Listen.html">the example listening page</a>, or add <code>examples/audio/demo-input.wav</code> to the app. These WAV files work without extra codecs. The recording is CC0; source and modifications are in its credits. The EQ capture above uses this example; the images show actual app controls.</p>
 </section>
-<section><h2>Let an AI assistant help</h2><p>In the desktop learning preview, open <strong>Help → AI setup</strong>, choose dedicated audio/export folders, generate the connection example, then copy it into your compatible client's supported MCP setup. The in-app helper uses the real companion's print-config command; it does not change client settings or start a server connection. <strong>Connect AI assistant</strong> in the Start menu provides the standalone setup helper.</p><p>Ask the assistant to prepare a preview before exporting. For ZIP stems, <code>get_help</code> topic <code>stems</code> explains read-only <code>inspect_stem_bundle</code>, selection and <code>import_stem_bundle</code>; exporting remains a separate request. Audio processing is local; the AI client controls metadata sent to its provider. Browser Help explains the desktop companion; it adds no upload or browser connection bridge. <a href="MCP.md">Connection and tool guide</a>.</p></section>
-<section><h2>Files and codecs</h2><p>WAV is native. MP3/FLAC, other compressed inputs and resampling require separate FFmpeg/ffprobe installation. Settings and the default output folder stay beside an ordinary installed copy; choose another export folder if you prefer. Uninstall preserves user data and Examples.</p></section>
-<section><h2>Your music stays yours</h2><p>The project claims no ownership or royalties in your audio and requires no music credit, watermark or revenue share. Software copies retain MIT notices. Third-party recordings/samples retain their own rights. See <a href="../OUTPUT_OWNERSHIP.md">the ownership policy</a> and <a href="../LICENSE">MIT license</a>.</p></section></html>
+<section>
+<h2>Studio: work on the parts</h2>
+<ol>
+<li>Open <strong>Studio → Stem Studio</strong>. Choose several aligned files with <strong>Choose stem files…</strong>, or use <strong>Choose Suno / stem ZIP…</strong>.</li>
+<li>Review the names and encoding in the center workspace. All discovered parts start selected; matching WAV/MP3 versions count as one part. Leave out anything unwanted, including the full mix when importing its stems, then choose <strong>Import selected stems</strong>.</li>
+<li>Adjust levels, mute/solo and stereo balance, then <strong>Update mix preview</strong>. Optional part/comparison waveforms give the plots more room.</li>
+<li>Use <strong>Voice cleanup</strong>, <strong>Spectral repair</strong> or a compatible desktop VST3 effect. Preview, compare Before/Preview, and apply a direct stem edit back to its part if wanted.</li>
+<li><strong>Use for mastering</strong> continues in the mastering queue. <strong>Export current preview</strong> saves audio. <strong>Save project</strong> keeps a self-contained desktop project for later editing.</li>
+</ol>
+<p>Imported parts need no model and have no fixed count ceiling. At least two parts must have identical decoded sample rate, channel count and frame count; imports do not align or stretch tracks. Prefer WAV consistently when available. Optional neural separation produces vocal/instrumental or four stems only.</p>
+<p>Native defaults allow <strong>512 MiB decoded PCM per input</strong> and a separate <strong>4 GiB decoded-bank budget</strong>. Processing needs additional RAM, and ZIP/metadata limits also apply. <a href="STUDIO.md">Studio workflow and resource limits</a>.</p>
+</section>
+<section>
+<h2>Browser Studio and Help</h2>
+<p>Choose stem files or a Suno/stem ZIP, review the selected parts and encoding, then import. Use a ZIP with distinct source folders or individual assignments when filenames repeat. Audio stays local. Save/download before closing or reloading the tab.</p>
+<p>Browser Studio shares <strong>128 MiB of decoded input across all parts</strong> and allows up to <strong>15 minutes per track</strong>; ZIPs and decompressed entries also have 128 MiB limits. More tracks share the same budget, and processing needs additional memory. Desktop is better suited to larger banks, subject to its own limits. Neural separation and VST3 hosting are desktop features.</p>
+<a href="images/ux-web-help.png"><img src="images/ux-web-help.png" alt="Browser Help with searchable guidance and tour replay"></a>
+<p>Use bottom-right <strong>Help</strong> to find an answer or replay the tour without losing your current audio session.</p>
+</section>
+<section>
+<h2>Let an AI assistant help</h2>
+<p>On desktop, open <strong>Help → AI setup</strong>, choose dedicated audio/export folders, generate the connection example, then copy it into your compatible client's MCP setup. The helper does not change client settings or start a server connection. <strong>Connect AI assistant</strong> in the Start menu provides a standalone helper.</p>
+<p>The optional companion exposes 38 tools. Ask the assistant to prepare a preview so you can listen before an explicit export. Processing is local; the AI client controls metadata sent to its provider. Browser Help explains desktop setup and has no connection bridge. <a href="MCP.md">Connection and tool guide</a>.</p>
+</section>
+<section>
+<h2>Files and codecs</h2>
+<p>WAV is native. Compressed inputs, FLAC/MP3 exports and resampling require separate FFmpeg/ffprobe installation. Settings and the default output folder stay beside an ordinary installed Windows copy; choose another export folder if you prefer. Uninstall preserves user data and Examples. Saved preferences do not restore loaded audio or prepared previews; use Save project for Studio work.</p>
+</section>
+<section>
+<h2>Your music stays yours</h2>
+<p>The project claims no ownership or royalties in your audio and requires no music credit, watermark or revenue share. Software copies retain MIT notices. Third-party recordings/samples retain their own rights. See <a href="../OUTPUT_OWNERSHIP.md">the ownership policy</a> and <a href="../LICENSE">MIT license</a>.</p>
+</section>
+</html>

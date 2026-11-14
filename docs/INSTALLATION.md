@@ -1,16 +1,14 @@
 # Install SlimeyBeats-EZ-Master
 
-## Stable Windows installer — v0.4.2
+## Windows Studio Preview installer — v0.5.0-beta.3
 
-Download `SlimeyBeats-EZ-Master-0.4.2-Setup.exe` from the repository's Releases page. Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
+Download [SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe) from the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3). Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
 
 The installer is unsigned. Check that it came from the project's own release before choosing to run it; Windows can show an unknown-publisher notice. No signing certificate is bundled or purchased by the project.
 
-Start **SlimeyBeats-EZ-Master** from the Start menu. The example WAV works without installing anything else. The Start menu also contains an example-audio link and the uninstaller.
+Start **SlimeyBeats-EZ-Master Studio Preview** from the Start menu. The example WAV works without installing anything else. The Start menu also contains an example-audio link and the uninstaller.
 
-## Studio Preview — current development
-
-The current source targets desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Beta.3 binaries have not been publicly released. Use the [source-build instructions](BUILDING.md) for this development source; the stable v0.4.2 installer above does not contain Studio or MCP. Earlier beta packages retain their original behavior.
+Beta.3 includes desktop **0.5.0-beta.3** and optional MCP companion **0.2.0-beta.3**; the matching browser Studio is **0.3.0-beta.3**. Basic/Advanced controls, a persistent optional eight-step tour and bottom-right Help are included. Use Help (**F1** on desktop) to replay the tour or open AI setup. [Learning and Help](LEARNING_AND_HELP.md).
 
 The Studio Preview installer includes the desktop app, MCP companion and VST3 worker. It uses **SlimeyBeats-EZ-Master Studio Preview** in Apps and the Start menu, a separate installation folder and separate registration from stable v0.4.2. Both can coexist. Upgrade a preview in its preview folder; the installer rejects the other channel's marked folder. Preview uninstall preserves settings, exports, profiles, example edits and saved Studio projects.
 
@@ -18,9 +16,17 @@ Open **Connect AI assistant** from its Start menu group to prepare a local conne
 
 Imported stems need no model and have no fixed part-count cap in beta.3. At least two parts must share sample rate, channel count and frame count. Desktop defaults to 512 MiB decoded PCM per input and a separate 4 GiB decoded-bank budget; browser Studio shares 128 MiB across all decoded parts and allows up to 15 minutes per track. Processing needs additional RAM. Automatic model separation remains vocal/instrumental or four stems. The bundled MCP companion is optional to use and exposes 38 tools; see [MCP setup](MCP.md).
 
+## Stable Windows fallback — v0.4.2
+
+If you prefer the stable mastering release, download `SlimeyBeats-EZ-Master-0.4.2-Setup.exe` from the [v0.4.2 release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.4.2). Start **SlimeyBeats-EZ-Master** from its own Start menu group. Stable does not include Studio, MCP or the beta.3 learning interface. Keep its installation folder separate from Studio Preview.
+
 ## Portable ZIP
 
-Extract the complete ZIP to a writable folder. Open `Start SlimeyBeats.bat` or `SlimeyBeats-EZ-Master.exe`. Keep its documentation, license and notice files together if redistributing it.
+Download the portable `SlimeyBeats-EZ-Master-0.5.0-beta.3.zip` from the [beta.3 release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) and extract the complete ZIP to a writable folder. Open `Start SlimeyBeats.bat` or `SlimeyBeats-EZ-Master.exe`. Keep its documentation, license and notice files together if redistributing it.
+
+## Linux
+
+Linux currently uses a [source build](BUILDING.md#get-the-source), with dependencies and desktop setup in [LINUX.md](LINUX.md). The beta.3 release downloads above are Windows packages; no Linux binary release is supplied.
 
 ## Optional codecs
 
