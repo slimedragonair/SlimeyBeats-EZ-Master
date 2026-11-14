@@ -19,9 +19,11 @@ impl eframe::App for MasterCraftApp {
 
 impl MasterCraftApp {
     pub(super) fn render_frame(&mut self, ui: &mut egui::Ui) {
+        self.enforce_playback_owner();
         self.poll();
         let ctx = ui.ctx().clone();
         self.studio.poll(&ctx);
+        self.enforce_playback_owner();
         self.experience
             .offer_when_idle(!self.busy && !self.studio.busy() && self.capture.is_none());
         if ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::F1)) {
@@ -52,7 +54,7 @@ impl MasterCraftApp {
                     })
                     .count();
                 if archives > 0 {
-                    self.tab = 3;
+                    self.activate_workspace(3);
                     if files.len() == 1 {
                         self.studio.prepare_stem_archive(files[0].clone(), &ctx);
                     } else {
@@ -87,6 +89,7 @@ impl MasterCraftApp {
             })
         });
         if plain_space && !ctx.egui_wants_keyboard_input() && !self.experience.has_modal() {
+            self.enforce_playback_owner();
             if self.tab == 3 {
                 if self.studio.current.is_some() {
                     self.studio.player.toggle();
@@ -493,6 +496,7 @@ impl MasterCraftApp {
         super::workspace_tabs::show(self, ui, compact_height);
         ui.separator();
         if self.tab == 3 {
+            self.enforce_playback_owner();
             if super::studio::workspace::show(
                 &mut self.studio,
                 ui,
@@ -501,10 +505,9 @@ impl MasterCraftApp {
             ) {
                 match self.studio.working_copy() {
                     Ok(path) => {
-                        self.studio.player.stop();
                         self.add_paths(vec![path]);
                         self.selected = self.tracks.len().checked_sub(1);
-                        self.tab = 0;
+                        self.activate_workspace(0);
                         self.status =
                             "Studio working copy added · Analyze or Master when ready".into();
                     }
@@ -522,6 +525,7 @@ impl MasterCraftApp {
                     super::timeline_panel::show(self, ui);
                     ui.separator();
                 }
+                self.enforce_playback_owner();
                 super::transport::show(self, ui);
             });
         let mut scroll = egui::ScrollArea::vertical()

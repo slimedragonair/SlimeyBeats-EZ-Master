@@ -10,7 +10,7 @@ ${bulkImportTemplate}
 <div class="edit-actions"><button id="s-undo" disabled>Undo</button><button id="s-redo" disabled>Redo</button><label class="edit-target">Process this source<select id="s-target"><option value="source">Original source</option><option value="preview">Current preview</option></select></label></div>
 <div class="edit-grid">
  <div class="edit-visual">
-  <div id="s-mix-page"><h3>Balance the parts</h3><p class="small">Gain changes are rendered from the immutable stem bank. Update the preview before exporting.</p><div id="s-faders"></div><button id="s-mix" class="primary" disabled>Update mix preview</button></div>
+  <div id="s-mix-page"><h3>Balance the parts</h3><p class="small">Gain, mute, solo and balance are live on B from the immutable stems. Update mix preview to commit before further edits or exporting. Live monitoring uses conservative sample headroom; the saved mix has the final true-peak guard.</p><div id="s-faders"></div><button id="s-mix" class="primary" disabled>Update mix preview</button></div>
   <div id="s-voice-page" hidden><h3>A clearer voice</h3><p>Use a voice recording or vocal stem. Cleanup reduces rumble, stationary noise and strong S sounds; it does not isolate speech from music.</p><div class="edit-fields">
    <label data-advanced title="High-pass filter removes low rumble. 0 switches it off; avoid cutting into a low voice.">Rumble removal / Hz<input id="s-highpass" type="number" min="0" max="300" value="75"></label>
    <label title="0–1 strength. Auto learning skips tonal/unreliable noise profiles; use a noise-only region for room tone.">Noise reduction<input id="s-noise" type="range" min="0" max="1" step="0.05" value="0.3"></label>
@@ -27,7 +27,7 @@ ${bulkImportTemplate}
 </div>
 <details id="s-playback-details" class="playback-details">
  <summary>Waveforms, volume &amp; seeking</summary>
- <div class="edit-wave-legend" aria-label="Waveform lanes"><span>Before · upper waveform</span><span>Preview · lower waveform</span></div>
+ <div class="edit-wave-legend" aria-label="Waveform lanes"><span>Before · upper waveform</span><span>Saved preview · lower waveform</span></div>
  <canvas id="s-wave" width="640" height="100" aria-label="Before and preview waveform"></canvas>
  <div class="edit-detail-controls"><label>Volume<input id="s-volume" type="range" min="0" max="1" step="0.01" value="0.7"></label><time id="s-clock">0:00 / 0:00</time></div>
  <label class="edit-seek">Position<input id="s-seek" type="range" min="0" max="1" step="0.01" value="0" disabled aria-label="Studio playback position"></label>

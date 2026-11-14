@@ -1,11 +1,16 @@
 use super::{
     audio_source::{ABSource, LivePath},
+    live_stem_path::{LiveStemPath, MixMailbox},
     playback_tap::PlaybackTap,
 };
 use crate::{
     audio::Audio,
     dsp::{eq_chain::EqParameters, realtime_eq::RealtimeEq},
     meters::lin,
+    studio::{
+        realtime_mix::{MixTargets, RealtimeMix},
+        stem_mix::{MixSettings, StemSet},
+    },
 };
 use anyhow::Result;
 use rodio::{OutputStream, OutputStreamBuilder, Sink};
@@ -16,6 +21,7 @@ use std::sync::{
 };
 
 pub struct Controls {
+    pub audible: AtomicBool,
     pub playing: AtomicBool,
     pub after: AtomicBool,
     pub matched: AtomicBool,
@@ -29,6 +35,7 @@ pub struct Controls {
 impl Default for Controls {
     fn default() -> Self {
         Self {
+            audible: AtomicBool::new(true),
             playing: AtomicBool::new(false),
             after: AtomicBool::new(true),
             matched: AtomicBool::new(true),
@@ -50,10 +57,15 @@ pub struct Player {
     pub rate: u32,
     pub tap: Arc<PlaybackTap>,
     live_sender: Option<Sender<EqParameters>>,
+    mix_sender: Option<MixMailbox>,
     #[cfg(test)]
     without_output_device: bool,
     #[cfg(test)]
     test_live_receiver: Option<mpsc::Receiver<EqParameters>>,
+}
+enum RealtimeInput {
+    Eq(Arc<Audio>, Box<EqParameters>),
+    Stems(Arc<StemSet>, MixSettings),
 }
 impl Player {
     #[cfg(test)]
@@ -69,6 +81,7 @@ impl Player {
             sink.stop();
         }
         self.live_sender = None;
+        self.mix_sender = None;
         #[cfg(test)]
         {
             self.test_live_receiver = None;
@@ -86,6 +99,45 @@ impl Player {
         after_lufs: f64,
         live_input: Option<(Arc<Audio>, EqParameters)>,
     ) -> Result<()> {
+        self.load_inner(
+            before,
+            after,
+            before_lufs,
+            after_lufs,
+            live_input.map(|(audio, parameters)| RealtimeInput::Eq(audio, Box::new(parameters))),
+        )
+    }
+    pub fn load_stems(
+        &mut self,
+        before: Arc<Audio>,
+        after: Arc<Audio>,
+        levels: (f64, f64),
+        bank: Arc<StemSet>,
+        settings: &MixSettings,
+    ) -> Result<()> {
+        settings.validate(&bank)?;
+        anyhow::ensure!(
+            bank.tracks[0].audio.sample_rate == before.sample_rate
+                && bank.tracks[0].audio.channels == before.channels
+                && bank.tracks[0].audio.frames() == before.frames(),
+            "Live mix and comparison must be aligned"
+        );
+        self.load_inner(
+            before,
+            Some(after),
+            levels.0,
+            levels.1,
+            Some(RealtimeInput::Stems(bank, settings.clone())),
+        )
+    }
+    fn load_inner(
+        &mut self,
+        before: Arc<Audio>,
+        after: Option<Arc<Audio>>,
+        before_lufs: f64,
+        after_lufs: f64,
+        live_input: Option<RealtimeInput>,
+    ) -> Result<()> {
         self.controls.playing.store(false, Ordering::Relaxed);
         self.controls.position.store(0, Ordering::Relaxed);
         self.controls.seek.store(u64::MAX, Ordering::Relaxed);
@@ -96,12 +148,16 @@ impl Player {
             self.duration = before.duration();
             self.rate = before.sample_rate;
             self.live_sender = None;
+            self.mix_sender = None;
             self.test_live_receiver = None;
-            if live_input.is_some() {
+            if matches!(live_input, Some(RealtimeInput::Eq(..))) {
                 // Keep a real control channel for UI tests; no audio stream is opened.
                 let (sender, receiver) = mpsc::channel();
                 self.live_sender = Some(sender);
                 self.test_live_receiver = Some(receiver);
+            }
+            if matches!(live_input, Some(RealtimeInput::Stems(..))) {
+                self.mix_sender = Some(MixMailbox::default());
             }
             return Ok(());
         }
@@ -117,15 +173,31 @@ impl Player {
         self.controls.failure.store(false, Ordering::Relaxed);
         self.tap.clear();
         self.live_sender = None;
-        let live = live_input.map(|(raw, parameters)| {
-            let (tx, rx) = mpsc::channel();
-            self.live_sender = Some(tx);
-            LivePath {
-                processor: RealtimeEq::new(raw.sample_rate, raw.channels, parameters),
-                raw,
-                updates: rx,
+        self.mix_sender = None;
+        let mut live = None;
+        let mut stems = None;
+        if let Some(input) = live_input {
+            match input {
+                RealtimeInput::Eq(raw, parameters) => {
+                    let (tx, rx) = mpsc::channel();
+                    self.live_sender = Some(tx);
+                    live = Some(LivePath {
+                        processor: RealtimeEq::new(raw.sample_rate, raw.channels, *parameters),
+                        raw,
+                        updates: rx,
+                    });
+                }
+                RealtimeInput::Stems(bank, settings) => {
+                    let mailbox = MixMailbox::default();
+                    stems = Some(LiveStemPath {
+                        processor: RealtimeMix::new(bank, &settings)?,
+                        updates: mailbox.clone(),
+                        active: false,
+                    });
+                    self.mix_sender = Some(mailbox);
+                }
             }
-        });
+        }
         let common = before_lufs.min(after_lufs);
         let a = lin((common - before_lufs).min(0.)) as f32;
         let b = lin((common - after_lufs).min(0.)) as f32;
@@ -143,6 +215,7 @@ impl Player {
             gain_a: a,
             gain_b: b,
             live,
+            stems,
             tap: self.tap.clone(),
             cached_frame: None,
             frame_a: [0.; 2],
@@ -169,9 +242,25 @@ impl Player {
             Ordering::Relaxed,
         );
     }
+    pub fn set_mix(&self, bank: &StemSet, settings: &MixSettings) -> Result<bool> {
+        let targets = MixTargets::new(bank, settings)?;
+        Ok(self
+            .mix_sender
+            .as_ref()
+            .is_some_and(|sender| sender.send(targets)))
+    }
+    pub fn has_live_mix(&self) -> bool {
+        self.mix_sender.is_some()
+    }
     pub fn toggle(&self) {
         let now = self.controls.playing.load(Ordering::Relaxed);
         self.controls.playing.store(!now, Ordering::Relaxed);
+    }
+    pub fn set_audible(&self, audible: bool) {
+        let previous = self.controls.audible.swap(audible, Ordering::Relaxed);
+        if !audible || !previous {
+            self.controls.playing.store(false, Ordering::Relaxed);
+        }
     }
     pub fn stop(&self) {
         self.controls.playing.store(false, Ordering::Relaxed);
@@ -257,6 +346,7 @@ mod tests {
             gain_a: 1.,
             gain_b: 0.5,
             live: None,
+            stems: None,
             tap: Arc::new(PlaybackTap::default()),
             cached_frame: None,
             frame_a: [0.; 2],

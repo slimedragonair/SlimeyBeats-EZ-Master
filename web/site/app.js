@@ -68,6 +68,7 @@ const studio = createStudio({
     },
     onState: syncControls,
 });
+player.onPlaybackRequest = () => studio.pause();
 document.addEventListener("studio-page", (event) => {
     studio.activate(event.detail === "studio-tools");
     if (event.detail !== "studio-tools") {
@@ -258,6 +259,7 @@ async function loadWorker(buffer = player.original) {
 }
 async function loadFile(file) {
     if (!file) return;
+    studio.pause();
     await job(async (ensureCurrent) => {
         status("Decoding your track locally…");
         const buffer = await player.decode(file);

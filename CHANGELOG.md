@@ -25,6 +25,13 @@ Studio Preview beta.3 includes the guided desktop interface, bulk stem imports a
 - Preserve accented/CJK paths in Windows MCP setup, require pending faders to be applied before further Studio edits/saving, and keep saved MCP projects tied to the current preview's actual source and stem bank. Add native, Windows PowerShell and three-engine browser regressions; see [merge validation and availability](docs/MERGE_VALIDATION.md).
 - Remember desktop mastering settings and independent Studio export preferences, master/Studio listening controls and the two/four-stem choice across normal restarts. Save changes atomically after 750 ms of quiet and flush on normal close; **Save settings** saves both files immediately. Preserve corrupt files and block their autosave until an explicit save, with visible errors. This does not recover audio, queues or projects; Studio work still needs **Save project**. Browser and MCP workflows and older released binaries are unchanged. [Details](docs/USER_GUIDE.md#remembering-desktop-settings).
 
+### Live stem monitoring hotfix — same version
+
+- Make stem gain, mute, solo and stereo balance audible during native and browser playback without rendering a preview first. Changing a stem control selects Preview/B automatically; settled B contains only the preview/live mix, with no hidden Before layer. Native gain changes use a 5 ms ramp and streaming peak guard; browser monitoring uses smoothed gains and conservative sample headroom, with final true-peak protection on materialized mixes/exports.
+- Keep **Update mix preview** explicit to render and measure the current balance before preview exports, project saving, mastering handoff or further voice/repair/plugin processing. Disable native level matching for the unmeasured live mix; label the comparison waveform as the saved preview while live faders are not drawn.
+- Centralize native playback ownership across workspace tabs, ZIP-drop navigation and tutorial navigation so hidden mastering and Studio players cannot overlap. Preserve aligned-bank requirements, input/memory budgets, unrestricted imported-part counts and two/four-stem model scope. [Behavior and implementation](docs/STEM_LIVE_MONITORING.md).
+- Retain desktop **0.5.0-beta.3**, browser Studio **0.3.0-beta.3** and companion **0.2.0-beta.3**. This source hotfix does not establish new test results, installer qualification or publication; earlier beta.3 validation applies only to its recorded candidates.
+
 ## 0.5.0-beta.1 — Studio Preview
 
 - Add desktop vocal/instrumental and four-stem separation with optional isolated CPU engine setup, verification/repair and preserved model provenance. Import aligned user stems without a model; rebalance, compare, undo and export separately.

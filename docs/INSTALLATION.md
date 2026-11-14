@@ -2,7 +2,7 @@
 
 ## Windows Studio Preview installer — v0.5.0-beta.3
 
-Download [SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe) from the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3). Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
+Download [SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe) from the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3). Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
 
 The installer is unsigned. Check that it came from the project's own release before choosing to run it; Windows can show an unknown-publisher notice. No signing certificate is bundled or purchased by the project.
 

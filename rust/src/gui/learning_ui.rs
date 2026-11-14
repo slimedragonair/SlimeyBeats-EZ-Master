@@ -145,11 +145,12 @@ fn tour(app: &mut MasterCraftApp, ctx: &egui::Context) {
         }
         Some(TourAction::Next) => app.experience.finish_tour(true),
         Some(TourAction::Show) => {
-            app.tab = match step.desktop_target.as_str() {
+            let tab = match step.desktop_target.as_str() {
                 "eq" => 1,
                 "stems" => 3,
                 _ => 0,
             };
+            app.activate_workspace(tab);
             app.experience.pause_tour();
         }
         Some(TourAction::Leave) => app.experience.finish_tour(false),

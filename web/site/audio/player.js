@@ -81,9 +81,12 @@ export class Player {
             : this.offset;
     }
     async play() {
+        if (!this.original) return;
+        this.onPlaybackRequest?.();
+        const request = ++this.generation;
         const context = this.context();
         await context.resume();
-        if (!this.original) return;
+        if (request !== this.generation || !this.original) return;
         this.pause();
         const generation = ++this.generation;
         if (this.offset >= this.original.duration - 0.01) this.offset = 0;

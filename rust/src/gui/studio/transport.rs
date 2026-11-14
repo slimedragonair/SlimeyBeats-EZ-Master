@@ -37,7 +37,7 @@ fn comparison(studio: &mut Studio, ui: &mut egui::Ui) {
             (
                 "BEFORE",
                 if studio.mix_dirty {
-                    "PREVIOUS PREVIEW"
+                    "SAVED PREVIEW (LIVE FADERS NOT DRAWN)"
                 } else {
                     "PREVIEW"
                 },
@@ -55,11 +55,11 @@ fn show(studio: &mut Studio, ui: &mut egui::Ui) -> egui::Rect {
             let playing=studio.player.controls.playing.load(Ordering::Relaxed);
             if ui.add(crystal_button::secondary(if playing{"Pause"}else{"Play"})).clicked() {if studio.player.seconds()>=studio.player.duration {studio.player.seek(0.);}studio.player.toggle();}
             if ui.add(crystal_button::secondary("Stop")).clicked() {studio.player.stop();}
-            if ui.add(crystal_button::secondary("A · Before").selected(!studio.player.controls.after.load(Ordering::Relaxed))).on_hover_text("Compare with the input used for this revision, without changing saved samples.").clicked() {studio.player.controls.after.store(false,Ordering::Relaxed);}
-            if ui.add(crystal_button::secondary(if studio.mix_dirty {"B · Previous"} else {"B · Preview"}).selected(studio.player.controls.after.load(Ordering::Relaxed))).clicked() {studio.player.controls.after.store(true,Ordering::Relaxed);}
+            if ui.add(crystal_button::secondary("A · Before").selected(!studio.player.controls.after.load(Ordering::Relaxed))).on_hover_text("Hear only this revision's input, bypassing stem controls. Choose B to hear the live mix. Changing a stem control selects B automatically.").clicked() {studio.player.controls.after.store(false,Ordering::Relaxed);}
+            if ui.add(crystal_button::secondary(if studio.monitoring_mix {"B · Live mix"} else if studio.mix_dirty {"B · Previous"} else {"B · Preview"}).selected(studio.player.controls.after.load(Ordering::Relaxed))).on_hover_text("Hear only the preview or live stem mix; Before is not layered underneath.").clicked() {studio.player.controls.after.store(true,Ordering::Relaxed);}
         });
         ui.horizontal_wrapped(|ui| {
-            ui.checkbox(&mut studio.match_levels,"Level match").on_hover_text("Listening-only loudness matching. It never alters the saved Studio audio.");
+            ui.add_enabled(!studio.monitoring_mix, egui::Checkbox::new(&mut studio.match_levels,"Level match")).on_hover_text("Listening-only matching for measured previews. Disabled during live stem changes until Update mix preview measures the new mix.");
             ui.label("Volume").on_hover_text("Listening volume only; saved samples are unchanged.");
             ui.spacing_mut().slider_width=90.;
             ui.add(CrystalSlider::new(&mut studio.volume,0. ..=1.).show_value(false));
@@ -71,11 +71,10 @@ fn show(studio: &mut Studio, ui: &mut egui::Ui) -> egui::Rect {
         .controls
         .volume
         .store(studio.volume.to_bits(), Ordering::Relaxed);
-    studio
-        .player
-        .controls
-        .matched
-        .store(studio.match_levels, Ordering::Relaxed);
+    studio.player.controls.matched.store(
+        studio.match_levels && !studio.monitoring_mix,
+        Ordering::Relaxed,
+    );
     controls
 }
 

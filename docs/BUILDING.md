@@ -8,7 +8,7 @@ For Ubuntu source-build and validation commands, see [Linux checks](LINUX.md). C
 
 ## Get the source
 
-Use [`main`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/main) for ongoing development, or the exact [`v0.5.0-beta.3` tag](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/v0.5.0-beta.3) to reproduce this release. [Download the beta.3 source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Source.zip) and extract it before using the commands below. Start from the folder containing `rust/`, `mcp/` and `web/`.
+Use [`main`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/main) for ongoing development. [Download the beta.3 Hotfix source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Source.zip) for the same-version live-stem fix; its exact commit and checksums are recorded in the release's Hotfix validation assets. The original [`v0.5.0-beta.3` tag](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/v0.5.0-beta.3) reproduces the initial beta.3 source and is not retargeted by this hotfix. Extract the ZIP before using the commands below. Start from the folder containing `rust/`, `mcp/` and `web/`.
 
 ## Native development
 

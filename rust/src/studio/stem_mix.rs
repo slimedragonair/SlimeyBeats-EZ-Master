@@ -338,6 +338,33 @@ impl MixSettings {
     }
 }
 
+/// Shared routing rule for rendered and live mixes. Mute always wins over solo.
+pub(super) fn channel_levels(control: &StemControl, output_gain: f64, solo: bool) -> [f64; 2] {
+    if !audible(control, solo) {
+        return [0.; 2];
+    }
+    let gain = lin(control.gain_db + output_gain);
+    let [left, right] = balance_levels(control.balance);
+    [gain * left, gain * right]
+}
+fn audible(control: &StemControl, solo: bool) -> bool {
+    !control.mute && (!solo || control.solo)
+}
+fn balance_levels(balance: f64) -> [f64; 2] {
+    [
+        if balance > 0. {
+            (balance * std::f64::consts::FRAC_PI_2).cos()
+        } else {
+            1.
+        },
+        if balance < 0. {
+            (-balance * std::f64::consts::FRAC_PI_2).cos()
+        } else {
+            1.
+        },
+    ]
+}
+
 /// Every revision starts from the immutable stems; muting takes precedence over solo.
 pub fn render(stems: &StemSet, settings: &MixSettings, cancel: &dyn Fn() -> bool) -> Result<Audio> {
     settings.validate(stems)?;
@@ -350,21 +377,12 @@ pub fn render(stems: &StemSet, settings: &MixSettings, cancel: &dyn Fn() -> bool
         first.channels,
     )?;
     for control in &settings.tracks {
-        if control.mute || (solo && !control.solo) {
+        if !audible(control, solo) {
             continue;
         }
         let source = &stems.track(control.kind)?.audio;
         let gain = lin(control.gain_db + settings.output_gain_db) as f32;
-        let left = if control.balance > 0. {
-            (control.balance * std::f64::consts::FRAC_PI_2).cos() as f32
-        } else {
-            1.
-        };
-        let right = if control.balance < 0. {
-            (-control.balance * std::f64::consts::FRAC_PI_2).cos() as f32
-        } else {
-            1.
-        };
+        let [left, right] = balance_levels(control.balance).map(|level| level as f32);
         for (i, (out, &sample)) in output.samples.iter_mut().zip(&source.samples).enumerate() {
             if i % 65536 == 0 {
                 ensure!(!cancel(), "Cancelled");

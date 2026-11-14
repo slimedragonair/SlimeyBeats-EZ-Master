@@ -1,4 +1,4 @@
-use super::{playback_tap::PlaybackTap, player::Controls};
+use super::{live_stem_path::LiveStemPath, playback_tap::PlaybackTap, player::Controls};
 use crate::{
     audio::Audio,
     dsp::{
@@ -23,6 +23,7 @@ pub(super) struct ABSource {
     pub controls: Arc<Controls>,
     pub tap: Arc<PlaybackTap>,
     pub live: Option<LivePath>,
+    pub stems: Option<LiveStemPath>,
     pub cursor: usize,
     pub blend: f32,
     pub gain: f32,
@@ -59,6 +60,19 @@ impl ABSource {
                 live.processor.process(frame(&live.raw, index));
             }
             self.cursor = end * self.channels;
+        } else if let Some(stems) = &mut self.stems {
+            if let Some(targets) = stems.updates.take() {
+                stems.processor.set_targets(targets);
+                stems.active = true;
+            }
+            stems.processor.reset();
+            let end = position + stems.processor.delay();
+            if stems.active {
+                for index in position..end {
+                    stems.processor.process(index);
+                }
+            }
+            self.cursor = end * self.channels;
         } else {
             self.cursor = position * self.channels;
         }
@@ -82,6 +96,28 @@ impl ABSource {
             }
             self.frame_b = live.processor.process(frame(&live.raw, index));
             live.processor.delay()
+        } else if let Some(stems) = &mut self.stems {
+            if index.is_multiple_of(64)
+                && let Some(targets) = stems.updates.take()
+            {
+                if !stems.active {
+                    stems.processor.reset();
+                    for frame in index.saturating_sub(stems.processor.delay())..index {
+                        stems.processor.process(frame);
+                    }
+                    stems.active = true;
+                }
+                stems.processor.set_targets(targets);
+            }
+            self.frame_b = if stems.active {
+                stems.processor.process(index)
+            } else {
+                self.after
+                    .as_ref()
+                    .map(|audio| frame(audio, index.saturating_sub(stems.processor.delay())))
+                    .unwrap_or([0.; 2])
+            };
+            stems.processor.delay()
         } else {
             self.frame_b = self
                 .after
@@ -116,7 +152,12 @@ impl Iterator for ABSource {
         }
         let index = self.cursor / self.channels;
         let channel = self.cursor % self.channels;
-        let delay = self.live.as_ref().map(|l| l.processor.delay()).unwrap_or(0);
+        let delay = self
+            .live
+            .as_ref()
+            .map(|l| l.processor.delay())
+            .or_else(|| self.stems.as_ref().map(|s| s.processor.delay()))
+            .unwrap_or(0);
         let end = index >= self.before.frames() + delay;
         if end {
             self.controls.playing.store(false, Ordering::Relaxed);
@@ -162,7 +203,11 @@ impl Iterator for ABSource {
                 );
             }
         }
-        Some(output.clamp(-1., 1.))
+        Some(if self.controls.audible.load(Ordering::Relaxed) {
+            output.clamp(-1., 1.)
+        } else {
+            0.
+        })
     }
 }
 impl Source for ABSource {
@@ -218,6 +263,7 @@ mod tests {
                 processor: RealtimeEq::new(48000, 2, parameters),
                 updates: rx,
             }),
+            stems: None,
             cursor: 0,
             blend: 1.,
             gain: 1.,

@@ -55,7 +55,7 @@ def check_pending_mix(page, ready, save, raw_before, out, capture):
 
     def pending():
         expect(page.locator('#s-pending')).to_be_visible()
-        expect(page.locator('#s-pending')).to_contain_text('Stem mix → Update mix preview')
+        expect(page.locator('#s-pending')).to_contain_text('Stem changes are live on B')
         assert page.evaluate('() => pendingMixProbe.controls()') == pending_controls
         assert page.evaluate('() => pendingMixProbe.before === pendingMixProbe.playback.before && pendingMixProbe.after === pendingMixProbe.playback.after')
         for action in ['voice', 'repair', 'apply-stem', 'export', 'promote', 'undo', 'redo']:

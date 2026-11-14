@@ -18,10 +18,14 @@ mod keyboard_interaction_tests;
 mod learning_interaction_tests;
 mod learning_ui;
 mod live_spectrum;
+mod live_stem_path;
+#[cfg(test)]
+mod live_stem_tests;
 mod mastering_controls;
 mod mastering_preview_state;
 mod mcp_setup;
 mod overview;
+mod playback_owner;
 mod playback_tap;
 mod player;
 mod plots;
