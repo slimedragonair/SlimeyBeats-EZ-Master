@@ -4,6 +4,16 @@ import init, {
     plan_stem_files,
 } from "./pkg/dsp.js";
 const ready = init();
+function liveStems(candidate, previous, wasm) {
+    const previousKinds = new Set(previous ? JSON.parse(previous.info()).stems : []);
+    return JSON.parse(candidate.info()).stems.map((kind) => {
+        const pointer = candidate.stem_ptr(kind), length = candidate.stem_len(kind);
+        const unchanged = previousKinds.has(kind) && pointer === previous.stem_ptr(kind) && length === previous.stem_len(kind);
+        return { kind, length, identity: `${pointer}:${length}`,
+            ...(unchanged ? {} : { samples: new Float32Array(wasm.memory.buffer, pointer, length).slice() }),
+        };
+    });
+}
 let studio;
 let proposal;
 let archive;
@@ -159,6 +169,7 @@ self.onmessage = async ({ data: m }) => {
         }
         if (audio)
             result = {
+                stems: liveStems(candidate, studio, wasm),
                 info: JSON.parse(candidate.info()),
                 samples: new Float32Array(
                     wasm.memory.buffer,
@@ -179,6 +190,8 @@ self.onmessage = async ({ data: m }) => {
         const transfer = [];
         if (result?.samples) transfer.push(result.samples.buffer);
         if (result?.before) transfer.push(result.before.buffer);
+        for (const stem of result?.stems || [])
+            if (stem.samples) transfer.push(stem.samples.buffer);
         if (result?.bytes) transfer.push(result.bytes.buffer);
         for (const file of result?.files || [])
             transfer.push(file.bytes.buffer);

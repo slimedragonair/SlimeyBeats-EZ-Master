@@ -1,14 +1,17 @@
-export const MIX_PENDING_NOTICE = "Mix edits pending. Playback uses the previous preview. Update mix preview to hear your changes.";
+export const MIX_PENDING_NOTICE = "Stem controls are live on B. Update mix preview to commit before further edits or saving.";
 const $ = (id) => document.getElementById(`s-${id}`);
 
 export function wireStudioPreviewStatus() {
     $("quick-mix").onclick = () => $("mix").click();
-    return function refresh(pendingMix) {
+    return function refresh(pendingMix, monitorMix) {
         $("quick-mix-row").hidden = !pendingMix;
         $("quick-mix").disabled = $("mix").disabled;
-        $("compare-state").textContent = pendingMix ? "A Before · B Old mix" : "A Before · B Preview";
-        $("after").querySelector(".compare-long").textContent = pendingMix ? "B · Previous preview" : "B · Preview";
-        $("after").setAttribute("aria-label", pendingMix ? "B · Previous preview, mix edits pending" : "B · Preview");
-        $("preview-heading").textContent = pendingMix ? "Previous preview · edits pending" : "Current preview";
+        $("compare-state").textContent = monitorMix
+            ? "A Before · B Live stems · sample headroom; final true-peak guard on render/export"
+            : "A Before · B Preview";
+        const label = monitorMix ? "B · Live stem mix" : "B · Preview";
+        $("after").querySelector(".compare-long").textContent = label;
+        $("after").setAttribute("aria-label", label);
+        $("preview-heading").textContent = pendingMix ? "Live mix · saved preview pending" : "Current preview";
     };
 }

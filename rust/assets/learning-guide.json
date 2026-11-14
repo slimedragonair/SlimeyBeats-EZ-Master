@@ -58,7 +58,7 @@
       "id": "studio",
       "title": "7. Explore Studio when you need it",
       "body": "Studio helps you rebalance aligned stems, clean a voice or repair a small audio problem. Import several stem files or a Suno ZIP together. Start with the names you recognize.",
-      "detail": "Imported stems must have matching timing, sample rate and channel count. Render pending fader changes before another edit or export. Desktop Save project keeps a working session you can reopen; exporting a mix is a separate action. Model separation and VST3 effects are desktop features.",
+      "detail": "Imported stems must have matching timing, sample rate and channel count. Faders, mute and solo update live on B; Before bypasses them. Update mix preview before another edit or saving. Desktop Save project keeps a working session you can reopen; exporting a mix is a separate action. Model separation and VST3 effects are desktop features.",
       "desktop_target": "stems",
       "web_target": "studio-tools"
     },

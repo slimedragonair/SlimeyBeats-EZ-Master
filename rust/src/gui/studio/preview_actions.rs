@@ -7,7 +7,9 @@ pub(super) fn preview_unavailable(studio: &Studio) -> Option<&'static str> {
     if studio.busy() {
         Some("Wait for the current job or cancel it first.")
     } else if studio.mix_dirty {
-        Some("Update mix preview to include pending fader changes.")
+        Some(
+            "Live stem changes are audible. Update mix preview before saving or further processing.",
+        )
     } else if studio.current.is_none() {
         Some("Load audio or import stems to prepare a preview.")
     } else {
@@ -28,7 +30,7 @@ pub(super) fn dock(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) 
         ui.separator();
         if (studio.page == Page::Stems || studio.mix_dirty) && studio.bank.is_some() && studio.bulk_import.is_none() {
             let label = if studio.mix_dirty { "Update mix preview · pending" } else { "Update mix preview" };
-            if ui.add_enabled(!studio.busy(), crystal_button::primary(label)).on_hover_text("Render the current fader, mute, solo and balance settings from the stem bank. This does not export.").clicked() { studio.render_mix(ctx); }
+            if ui.add_enabled(!studio.busy(), crystal_button::primary(label)).on_hover_text("Prepare and measure the current live fader, mute, solo and balance settings for saving or further processing. Listening updates live without this step. This does not export.").clicked() { studio.render_mix(ctx); }
         }
         let action = match studio.page {
             Page::Voice => Some(("Preview voice cleanup", Studio::clean_voice as fn(&mut Studio, &egui::Context))),

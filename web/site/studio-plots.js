@@ -74,7 +74,7 @@ export function waveform(canvas, playback) {
         }
         ctx.stroke();
         ctx.fillStyle = index ? "#78dbd0" : "#bcb0c8";
-        ctx.fillText(index ? "PREVIEW" : "BEFORE", 6, index * lane + 12);
+        ctx.fillText(index ? "SAVED PREVIEW" : "BEFORE", 6, index * lane + 12);
     }
     if (playback.after) {
         const x = (playback.position() / playback.after.duration) * width;

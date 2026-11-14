@@ -67,6 +67,11 @@ jobs:
           python3 web/tools/verify_studio_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-webkit'
       - name: Verify Studio replacement and decoded input bounds
         run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
+      - name: Verify audible live stems and exclusive playback in three engines
+        run: |
+          python3 web/tools/verify_studio_live.py --out '${{ runner.temp }}/browser-checks/studio-live-chromium'
+          python3 web/tools/verify_studio_live.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-live-firefox'
+          python3 web/tools/verify_studio_live.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-live-webkit'
       - name: Verify learning, persistent choices and compact layouts
         run: |
           python3 web/tools/verify_learning_browser.py --out '${{ runner.temp }}/browser-checks/learning-chromium'

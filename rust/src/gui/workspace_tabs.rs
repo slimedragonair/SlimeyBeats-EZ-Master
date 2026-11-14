@@ -69,12 +69,7 @@ pub(super) fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, compact: bool) {
                 ))
                 .clicked()
             {
-                if tab == 3 {
-                    app.player.stop();
-                } else {
-                    app.studio.player.stop();
-                }
-                app.tab = tab;
+                app.activate_workspace(tab);
             }
         }
     });

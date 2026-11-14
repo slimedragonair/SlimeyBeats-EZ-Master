@@ -20,7 +20,7 @@ import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-st
 const $ = (id) => document.getElementById(`s-${id}`);
 const EMPTY = { loaded: false, stems: [], controls: { tracks: [] }, notes: [] };
 const PENDING_MIX =
-    "Mix controls have pending changes. Go to Stem mix → Update mix preview before further edits or saving.";
+    "Stem changes are live on B. Update mix preview to commit this balance before further edits or saving. The waveform shows the saved preview.";
 export function createStudio({
     getMainAudio,
     promote,
@@ -34,7 +34,7 @@ export function createStudio({
         playback = new StudioPlayback((error) => {
             if (error) notice(error.message, true);
             sync();
-        });
+        }, pauseMain);
     let info = EMPTY,
         defaults,
         controls,
@@ -98,7 +98,7 @@ export function createStudio({
         $("pending").textContent = pendingMix
             ? PENDING_MIX
             : "Settings changed. Run the tool to hear them. Export saves the existing preview.";
-        previewStatus(pendingMix);
+        previewStatus(pendingMix, playback.monitorMix);
     }
     function requireUpdatedMix() {
         if (!pendingMix) return true;
@@ -112,6 +112,7 @@ export function createStudio({
         if (requiresMix && !requireUpdatedMix()) return;
         busy = true;
         cancelled = false;
+        pauseMain();
         playback.pause();
         notice(text);
         sync();
@@ -139,7 +140,7 @@ export function createStudio({
         reset = false,
         label = filename,
     ) {
-        // Every non-mix revision replaces controls with the committed settings.
+        // Non-mix revisions must not discard the uncommitted live controls.
         if (action !== "mix" && !requireUpdatedMix()) return false;
         const result = await client.call(action, values, transfer);
         if (cancelled) {
@@ -211,6 +212,8 @@ export function createStudio({
     }
     function mixChanged() {
         pendingMix = true;
+        pauseMain();
+        playback.setMix(controls);
         notice(MIX_PENDING_NOTICE);
         changed();
     }
@@ -267,7 +270,7 @@ export function createStudio({
     });
     $("mix").onclick = () =>
         job("Rendering the stem balance…", async () => {
-            await mutate("mix", { settings: controls });
+            await mutate("mix", { settings: structuredClone(controls) });
         });
     for (const kind of ["voice", "repair"])
         $(kind).onclick = () =>
@@ -454,6 +457,7 @@ export function createStudio({
             requestAnimationFrame(draw);
         },
         load,
+        pause() { playback.pause(); },
         analyze() {
             return job(
                 "Measuring the selected Studio input locally…",

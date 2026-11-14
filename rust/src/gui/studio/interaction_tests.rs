@@ -74,6 +74,19 @@ pub(super) fn fixture(parts: u32) -> Studio {
         bank: studio.bank.clone(),
         mix: studio.mix.clone(),
     });
+    if let Some(bank) = &studio.bank {
+        let current = studio.current.as_ref().unwrap();
+        studio
+            .player
+            .load_stems(
+                current.before.clone(),
+                current.audio.clone(),
+                (-20., -20.),
+                bank.clone(),
+                &studio.mix,
+            )
+            .unwrap();
+    }
     studio
 }
 
@@ -414,6 +427,17 @@ fn mute_checkbox_accepts_keyboard_activation_and_marks_mix_pending() {
         vec![key(egui::Key::Space, true)],
     );
     assert!(studio.mix.tracks[0].mute);
+    assert!(
+        studio.monitoring_mix,
+        "A real live control mailbox must receive keyboard edits"
+    );
+    assert!(
+        studio
+            .player
+            .controls
+            .after
+            .load(std::sync::atomic::Ordering::Relaxed)
+    );
     frame(
         &ctx,
         &mut studio,

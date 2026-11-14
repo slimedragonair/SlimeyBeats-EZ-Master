@@ -21,6 +21,10 @@ Use desktop **0.5.0-beta.3** from the [beta.3 Preview release](https://github.co
 
 Desktop defaults to **512 MiB decoded PCM per input** and a separate **4 GiB aggregate decoded-bank budget**. Browser Studio retains **128 MiB combined decoded input** and **15 minutes per track**. More parts share those budgets; mixes, processing, undo and export need additional RAM. Archive/metadata limits also apply. The optional [MCP companion](MCP.md) exposes 38 tools for the same local workflows; an AI client connection is not needed to use Studio directly.
 
+With the [same-version live monitoring hotfix](STEM_LIVE_MONITORING.md), Studio gain, mute, solo and stereo balance changes are audible immediately during native and browser playback. Changing a stem control automatically selects **B · Preview / Live mix**; settled B plays only that mix, with no hidden Before layer. Choose **A · Before** to hear the revision's input separately. Native workspace switching also pauses and silences the outgoing mastering/Studio player, including ZIP-drop and tutorial navigation.
+
+Use **Update mix preview** to render and measure the live balance before exporting the preview, saving a desktop project, sending it to mastering or applying further voice/repair/plugin processing. Native **Level match** is disabled for the unmeasured live mix until that update completes. The Studio comparison waveform remains the **saved preview**; live fader changes are not plotted. Voice/repair/plugin settings still need an explicit **Preview** action. The hotfix keeps the app versions unchanged; the release link above does not establish that a hotfix installer has been published.
+
 | Control | Meaning |
 |---|---|
 | Integrated LUFS | Average programme loudness with weighting/gating; not a quality score or a universal release target |
@@ -30,7 +34,7 @@ Desktop defaults to **512 MiB decoded PCM per input** and a separate **4 GiB agg
 | Gain | How much that band boosts/cuts, in decibels |
 | Q / width | How narrow or broad the band is; higher Q is narrower |
 | Compensate EQ level | Adjusts the actual processed level to offset EQ's loudness change, subject to peak/gain limits |
-| Loudness match | Listening-only attenuation for A/B comparison; does not change exports |
+| Loudness match | Listening-only attenuation for measured A/B comparison; does not change exports. Native Studio disables it for an unmeasured live mix until Update mix preview |
 
 Hover names and controls for explanations in the app.
 
@@ -57,7 +61,7 @@ This saves preferences, not loaded audio, prepared previews, the queue or Studio
 
 The purple curve shows EQ gain. The gray/teal spectrum uses a separate power scale. During playback, the output trace reads the actual live stream before listening volume/A-B matching. At the paused start it shows a full-track average; a paused seek shows the local playback window. These displays answer different questions and can differ.
 
-The pinned waveform shows the latest full-track measured revision and updates after edits settle. It remains seekable while compact-window controls scroll. Export resolves the selected revision if background preparation is not current.
+In mastering/Manual EQ, the pinned waveform shows the latest full-track measured revision and updates after edits settle. It remains seekable while compact-window controls scroll. Mastering export resolves the selected revision if background preparation is not current. Studio's comparison waveform instead remains the saved preview while faders are live; **Update mix preview** explicitly prepares those changes for saving and further processing.
 
 ## Example and troubleshooting
 

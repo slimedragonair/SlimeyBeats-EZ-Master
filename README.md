@@ -14,11 +14,13 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe) · [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe) · [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
 **Studio Preview 0.5.0-beta.3** includes the guided desktop interface, Studio, the **0.2.0-beta.3 MCP companion** and the isolated VST3 worker. Import aligned stems from multiple files or a Suno/stem ZIP with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save projects. Optional local separation produces two/four stems. Browser Studio **0.3.0-beta.3** shares Rust DSP for imported-stem editing. Preview installs separately from stable. [Release notes and downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) · [Studio guide](docs/STUDIO.md).
 
 Prefer the earlier mastering-only release? [Stable v0.4.2](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.4.2) remains available; it does not include Studio, MCP or the new tour. The hosted browser updates from `main` after its checks pass. Desktop remains the flagship for neural extraction, native effects and larger projects.
+
+**Same-version beta.3 hotfix:** stem gain, mute, solo and balance now update during playback. Editing selects B automatically; Before and the live mix are separate listening choices. Studio also prevents a hidden mastering player from sounding underneath it. **Update mix preview** prepares the current balance for saving or further effects; it is no longer needed just to hear fader changes. [Live monitoring and save workflow](docs/STEM_LIVE_MONITORING.md). The download filename includes **Hotfix**; the app version stays 0.5.0-beta.3.
 
 **Bulk import:** choose several stem files at once or open a Suno/stem ZIP, review the parts, then import explicitly. Within one logical source folder, matching WAV/MP3 basenames count as one part: WAV is preferred, MP3 is optional, and a missing preferred encoding falls back to the available one. Prefer a consistent encoding across the bank; fallback can fail alignment when decoded lengths differ. Guitar, piano, synth, strings and percussion have named types; extensible `part_N` IDs cover repeated/custom instruments. Mixing, direct edits, raw stem exports and desktop projects retain the selected bank, subject to available memory and input safety budgets. All discovered parts start selected for review; uncheck anything you do not want. **Automatic model separation still produces only two/four stems.** Import needs no model.
 
@@ -38,7 +40,7 @@ Studio puts active cleanup/repair editors in the workspace and keeps **Preview b
 
 **Analyze → Master → Export.** Analyze is at the top right. Master prepares a preview; Export saves it when you are ready. Tweak Manual EQ or re-master in between. The captures below show the beta.3 interface. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
 
-Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe), or download the [release source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Source.zip) and follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source).
+Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe), or download the [release source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Source.zip) and follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source).
 
 ![The optional first-run introduction with visible tour and decline choices](docs/images/ux-first-run.png)
 
@@ -68,7 +70,7 @@ Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Mas
 
 ## Get started
 
-1. Download [Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Setup.exe) for Windows x64. A [portable ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3.zip) is available too.
+1. Download [Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe) for Windows x64. A [portable ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix.zip) is available too.
 2. Run Setup. It installs for your current Windows account without requiring administrator access, separately from stable.
 3. Take or skip the optional tour, then add or drop a mono/stereo audio file.
 4. Click **Analyze** at the top right. Choose a profile and loudness mode, then **Master track** or **Master queue**.

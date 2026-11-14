@@ -16,6 +16,7 @@ mod transport;
 pub mod workspace;
 pub use state::Studio;
 
+mod live_mix;
 mod mix_controls;
 mod preview_actions;
 mod repair_controls;

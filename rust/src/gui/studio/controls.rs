@@ -42,7 +42,7 @@ pub fn show(
 fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     if studio.bank.is_some() && studio.bulk_import.is_none() {
         ui.label(format!("{} stems loaded", studio.mix.tracks.len()));
-        ui.small("Adjust each part beside its waveform in the workspace. Update the mix preview to hear changes.");
+        ui.small("Adjust parts live beside their waveforms. Update mix preview before saving or further processing.");
         section_header(ui, "Import another stem set").show(ui, |ui| {
             super::stem_bulk_import::show(studio, ui, ctx);
             super::stem_import::show(studio, ui, ctx);

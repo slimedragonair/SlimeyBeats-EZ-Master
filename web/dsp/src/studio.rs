@@ -18,6 +18,7 @@ const MAX_STUDIO_BYTES: usize = 128 * 1024 * 1024;
 #[derive(Clone)]
 struct Revision {
     audio: Arc<Audio>,
+    preview_is_mix: bool,
     before: Option<Arc<Audio>>,
     bank: Option<StemSet>,
     mix: MixSettings,
@@ -26,6 +27,7 @@ struct Revision {
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct BrowserStudio {
+    preview_is_mix: bool,
     source: Option<Arc<Audio>>,
     bank: Option<StemSet>,
     staged: Vec<Stem>,
@@ -104,6 +106,7 @@ impl BrowserStudio {
         self.source = Some(original);
         self.before = self.source.clone();
         self.current = Some(preview);
+        self.preview_is_mix = true;
         self.mix = controls;
         self.undo.clear();
         self.redo.clear();
@@ -113,6 +116,7 @@ impl BrowserStudio {
         if let Some(previous) = self.current.take() {
             self.undo.push(Revision {
                 audio: previous,
+                preview_is_mix: self.preview_is_mix,
                 before: self.before.clone(),
                 bank: self.bank.clone(),
                 mix: self.mix.clone(),
@@ -161,6 +165,7 @@ impl BrowserStudio {
     #[wasm_bindgen(constructor)]
     pub fn new() -> BrowserStudio {
         Self {
+            preview_is_mix: false,
             source: None,
             bank: None,
             staged: vec![],
@@ -180,6 +185,7 @@ impl BrowserStudio {
         self.source = Some(audio.clone());
         self.current = Some(audio.clone());
         self.before = Some(audio);
+        self.preview_is_mix = false;
         self.bank = None;
         self.staged.clear();
         self.undo.clear();
@@ -219,6 +225,7 @@ impl BrowserStudio {
             .ok_or_else(|| failure("Import stems first"))?;
         let audio = stem_mix::render(bank, &settings, &|| false).map_err(failure)?;
         self.push(audio);
+        self.preview_is_mix = true;
         self.before = self.source.clone();
         self.mix = settings;
         self.notes.clear();
@@ -229,6 +236,7 @@ impl BrowserStudio {
         let settings: VoiceSettings = serde_json::from_str(json).map_err(failure)?;
         let result = voice_cleanup::render(&input, &settings, &|| false).map_err(failure)?;
         self.push(result.audio);
+        self.preview_is_mix = false;
         self.before = Some(input);
         self.notes = result.notes;
         self.info()
@@ -238,6 +246,7 @@ impl BrowserStudio {
         let selection: RepairSelection = serde_json::from_str(json).map_err(failure)?;
         let result = spectral_repair::render(&input, &selection, &|| false).map_err(failure)?;
         self.push(result);
+        self.preview_is_mix = false;
         self.before = Some(input);
         self.notes.clear();
         self.info()
@@ -262,6 +271,7 @@ impl BrowserStudio {
             .map_err(failure)?;
         let mixed = stem_mix::render(&bank, &self.mix, &|| false).map_err(failure)?;
         self.push(mixed);
+        self.preview_is_mix = true;
         self.before = self.source.clone();
         self.bank = Some(bank);
         self.info()
@@ -276,6 +286,7 @@ impl BrowserStudio {
         if let Some(current) = self.current.replace(next.audio) {
             let current = Revision {
                 audio: current,
+                preview_is_mix: self.preview_is_mix,
                 before: self.before.take(),
                 bank: self.bank.take(),
                 mix: self.mix.clone(),
@@ -288,6 +299,7 @@ impl BrowserStudio {
             }
         }
         self.bank = next.bank;
+        self.preview_is_mix = next.preview_is_mix;
         self.before = next.before;
         self.mix = next.mix;
         self.notes = next.notes;
@@ -313,6 +325,7 @@ impl BrowserStudio {
             "sample_rate":a.map(|a|a.sample_rate),
             "channels":a.map(|a|a.channels),
             "controls":self.mix,
+            "preview_is_mix":self.preview_is_mix,
             "notes":self.notes,
             "direct_edit_stems":self.direct_edit_stems(),
             "can_undo":!self.undo.is_empty(),
@@ -331,6 +344,13 @@ impl BrowserStudio {
             .ok_or_else(|| failure("Load Studio audio first"))?
             .samples
             .as_ptr())
+    }
+    /// Read-only bank views; the worker copies only stems changed by a revision.
+    pub fn stem_ptr(&self, kind: &str) -> Result<*const f32, JsValue> {
+        Ok(self.audio(kind).map_err(failure)?.samples.as_ptr())
+    }
+    pub fn stem_len(&self, kind: &str) -> Result<usize, JsValue> {
+        Ok(self.audio(kind).map_err(failure)?.samples.len())
     }
     pub fn before_ptr(&self) -> Result<*const f32, JsValue> {
         Ok(self
@@ -405,6 +425,10 @@ impl Default for BrowserStudio {
 #[cfg(test)]
 #[path = "studio_large_stem_tests.rs"]
 mod large_stem_tests;
+
+#[cfg(test)]
+#[path = "studio_monitor_tests.rs"]
+mod monitor_tests;
 
 #[cfg(test)]
 mod tests {

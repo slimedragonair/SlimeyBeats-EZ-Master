@@ -11,7 +11,7 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, advanced: bool, compa
         return;
     };
     ui.small(format!(
-        "{} parts · adjust levels, then Update mix preview",
+        "{} parts · levels, mute and solo update live",
         bank.tracks.len()
     ));
     let graph_id = ui.make_persistent_id("studio-part-waveforms");
@@ -107,7 +107,9 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, advanced: bool, compa
             });
         }
     });
-    studio.mix_dirty |= changed;
+    if changed {
+        studio.monitor_mix_changes();
+    }
 }
 
 fn gain(track: &mut StemControl, ui: &mut egui::Ui, name: &str, max_width: f32) -> bool {
@@ -117,7 +119,7 @@ fn gain(track: &mut StemControl, ui: &mut egui::Ui, name: &str, max_width: f32) 
         ui.set_width(ui.available_width().min(max_width));
         bounded_slider(ui, &mut track.gain_db, -60. ..=12., " dB", None)
             .on_hover_text(format!(
-                "{name} gain, dB. Lower or raise this part, then Update mix preview to hear it."
+                "{name} gain, dB. Hear changes live; update mix preview before saving."
             ))
             .changed()
     })

@@ -88,6 +88,7 @@ pub struct Studio {
     pub error: Option<String>,
     pub two_stems: bool,
     pub mix_dirty: bool,
+    pub monitoring_mix: bool,
     pub volume: f32,
     pub match_levels: bool,
     pub output_dir: PathBuf,
@@ -146,6 +147,7 @@ impl Studio {
             error,
             two_stems: true,
             mix_dirty: false,
+            monitoring_mix: false,
             volume: 0.5,
             match_levels: false,
             output_dir,
@@ -374,6 +376,7 @@ impl Studio {
         }
     }
     fn load_player(&mut self) {
+        self.monitoring_mix = false;
         self.analysis = None;
         self.reveal_spectrogram = false;
         if !self
@@ -396,13 +399,24 @@ impl Studio {
             self.waveform = Waveform::new(&revision.before, Some(&revision.audio));
             self.spectrogram = None;
             self.texture = None;
-            if let Err(error) = self.player.load(
-                revision.before.clone(),
-                Some(revision.audio.clone()),
-                revision.before_lufs,
-                revision.after_lufs,
-                None,
-            ) {
+            let loaded = if let Some(bank) = &self.bank {
+                self.player.load_stems(
+                    revision.before.clone(),
+                    revision.audio.clone(),
+                    (revision.before_lufs, revision.after_lufs),
+                    bank.clone(),
+                    &self.mix,
+                )
+            } else {
+                self.player.load(
+                    revision.before.clone(),
+                    Some(revision.audio.clone()),
+                    revision.before_lufs,
+                    revision.after_lufs,
+                    None,
+                )
+            };
+            if let Err(error) = loaded {
                 self.error = Some(format!(
                     "Playback unavailable: {error:#}. Processing/export remain available."
                 ));
