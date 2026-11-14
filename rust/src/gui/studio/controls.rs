@@ -32,7 +32,7 @@ pub fn show(
         let available = !studio.busy();
         ui.add_enabled_ui(available, |ui| match studio.page {
             Page::Stems => stems(studio, ui, ctx),
-            Page::Plugins => super::plugin_controls::show(studio, ui, ctx),
+            Page::Plugins => { ui.small("Choose an effect and adjust its controls in the workspace. Preview prepares audio; Export saves it."); },
             Page::Voice => { ui.small("Edit voice cleanup in the workspace. Preview prepares audio; Export saves it."); },
             Page::Repair => { ui.small("Set the time and frequency region in the workspace, then Preview spectral repair."); },
         });

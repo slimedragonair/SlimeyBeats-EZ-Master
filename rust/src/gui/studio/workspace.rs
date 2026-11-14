@@ -7,6 +7,9 @@ use eframe::egui::{self, RichText};
 
 /// Returns true when the user explicitly sends the prepared mix to mastering.
 pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advanced: bool) -> bool {
+    if studio.spectrogram.is_none() {
+        studio.reveal_spectrogram = false;
+    }
     let mut promote = false;
     let compact = ui.available_height() < 800.;
     transport::dock(studio, ui, compact);
@@ -113,7 +116,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
         ));
     }
     let workspace_height = ui.available_height().max(0.);
-    egui::ScrollArea::vertical().id_salt("studio-workspace").max_height(workspace_height).show(ui,|ui| {
+    egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page)).max_height(workspace_height).show(ui,|ui| {
         match studio.page {
             Page::Stems=>{
                 if studio.bulk_import.is_some() {
@@ -147,9 +150,17 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                     super::tool_inputs::target(studio, ui);
                     super::repair_controls::show(studio, ui, ctx, advanced);
                 });
-                if studio.spectrogram.is_some() { super::spectral_view::show(studio,ui,if compact {180.} else {280.}); }
+                if studio.spectrogram.is_some() {
+                    let graph = ui.scope(|ui| super::spectral_view::show(studio,ui,if compact {180.} else {280.}));
+                    // A completed analysis should expose its result once, without
+                    // fighting later manual scrolling or changing the graph size.
+                    if std::mem::take(&mut studio.reveal_spectrogram) { graph.response.scroll_to_me(Some(egui::Align::Min)); }
+                }
             },
-            Page::Plugins=>{ui.label(theme::display("Your effects. Your workflow.",24.));ui.label("Choose a trusted VST3 effect, adjust its generic controls, and render a preview. The helper compensates reported latency and retains the source duration.");ui.small("Compatible mono/stereo float32 audio effects are supported. Native vendor editors and MIDI/instrument sequencing are outside this host's scope.");},
+            Page::Plugins=>{
+                let available = !studio.busy();
+                ui.add_enabled_ui(available, |ui| super::plugin_controls::show(studio, ui, ctx));
+            },
         }
         if let Some(preview)=&studio.current {
             ui.separator();ui.label(RichText::new(format!("Current preview · {}",preview.label)).color(theme::SLIME));

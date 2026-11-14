@@ -7,6 +7,9 @@ use crate::gui::theme;
 use eframe::egui;
 use std::collections::HashMap;
 
+#[path = "navigation_tests.rs"]
+mod navigation_tests;
+
 fn visible<'a>(output: &'a egui::FullOutput, label: &str) -> Vec<&'a egui::epaint::ClippedShape> {
     output
         .shapes
