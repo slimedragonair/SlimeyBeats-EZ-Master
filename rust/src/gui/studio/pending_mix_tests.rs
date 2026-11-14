@@ -61,14 +61,23 @@ fn loaded_studio(output: PathBuf) -> Studio {
     studio
 }
 
-fn finish(studio: &mut Studio, context: &egui::Context) {
+fn finish(studio: &mut Studio, context: &egui::Context, expected_label: &str) {
     let deadline = Instant::now() + Duration::from_secs(10);
     while studio.busy() && Instant::now() < deadline {
         studio.poll(context);
         std::thread::sleep(Duration::from_millis(2));
     }
     assert!(!studio.busy(), "Studio job did not finish");
-    assert!(studio.error.is_none(), "{:?}", studio.error);
+    // A headless runner may report missing playback hardware after a successful
+    // render. Processing still has to advance to the expected revision and PCM.
+    if let Some(error) = &studio.error {
+        assert!(
+            error.starts_with("Playback unavailable: ")
+                && error.ends_with("Processing/export remain available."),
+            "{error}"
+        );
+    }
+    assert_eq!(studio.current.as_ref().unwrap().label, expected_label);
 }
 
 #[test]
@@ -130,7 +139,7 @@ fn rendering_pending_faders_then_editing_keeps_the_materialized_mix_and_project_
     }
     studio.target = Target::Preview;
     studio.render_mix(&context);
-    finish(&mut studio, &context);
+    finish(&mut studio, &context, "Rebalanced stem mix");
     assert!(!studio.mix_dirty);
     let preview = studio.current.as_ref().unwrap();
     let vocals = &bank.track(StemKind::Vocals).unwrap().audio;
@@ -141,7 +150,7 @@ fn rendering_pending_faders_then_editing_keeps_the_materialized_mix_and_project_
     }
     let applied = preview.audio.clone();
     studio.clean_voice(&context);
-    finish(&mut studio, &context);
+    finish(&mut studio, &context, "Voice cleanup");
     assert!(!studio.mix_dirty);
     let current = studio.current.as_ref().unwrap();
     assert!(Arc::ptr_eq(&current.before, &applied));
