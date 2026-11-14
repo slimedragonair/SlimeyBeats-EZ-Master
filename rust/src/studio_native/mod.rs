@@ -6,4 +6,5 @@ mod install;
 pub mod plugins;
 pub mod runtime;
 pub mod session;
+pub mod stem_bundle;
 pub mod stem_files;

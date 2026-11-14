@@ -9,7 +9,7 @@ use eframe::egui::{self, RichText};
 /// Returns true when the user explicitly sends the prepared mix to mastering.
 pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool {
     let mut promote = false;
-    let compact = ctx.viewport_rect().height() < 800.;
+    let compact = ui.available_height() < 800.;
     transport::dock(studio, ui, compact);
     if !compact {
         ui.horizontal_wrapped(|ui| {
@@ -107,12 +107,23 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool
     egui::ScrollArea::vertical().id_salt("studio-workspace").max_height(workspace_height).show(ui,|ui| {
         match studio.page {
             Page::Stems=>{
+                if studio.bulk_import.is_some() {
+                    ui.label(theme::display("Review your stem set.",if compact {20.} else {24.}));
+                    if compact {
+                        ui.small("Choose parts and format, then import from the right panel.");
+                    } else {
+                        ui.label("Each selected part is imported once. Leave the full mix out when importing its individual stems.");
+                    }
+                    let available = !studio.busy();
+                    ui.add_enabled_ui(available, |ui| super::stem_bulk_import::review(studio,ui,ctx,compact));
+                } else {
                 ui.label(theme::display("Separate. Rebalance. Refine.",24.));
-                ui.label("Prepare vocal/instrumental or four stems, compare the mix, and save when you are ready.");
-                if studio.bank.is_none(){ui.add_space(12.);ui.label(RichText::new("01  Load a music source\n02  Separate locally\n03  Balance parts, compare, then export").color(theme::AMETHYST));}
+                ui.label("Import up to 9 aligned parts or separate two/four stems locally. Compare the mix and save when ready.");
+                if studio.bank.is_none(){ui.add_space(12.);ui.label(RichText::new("01  Choose stem files / a Suno ZIP, or load a music mix\n02  Import aligned parts or separate the mix locally\n03  Balance parts, compare, then export").color(theme::AMETHYST));}
                 for (kind,waveform) in &studio.stem_waveforms {
-                    ui.add_space(6.);theme::eyebrow(ui,kind.name());
+                    ui.add_space(6.);theme::eyebrow(ui,studio.bank.as_ref().map_or(kind.name(), |bank| bank.display_name(*kind)));
                     waveform.show_labeled(ui,0.,studio.source.as_ref().map_or(1.,|s|s.audio.duration()),("STEM",""),76.);
+                }
                 }
             },
             Page::Voice=>{

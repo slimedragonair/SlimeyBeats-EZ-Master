@@ -83,8 +83,16 @@ impl FilePolicy {
                 entries.push(
                     json!({"path":path.strip_prefix(root)?.to_string_lossy(),"directory":true}),
                 );
-            } else if path.is_file() && audio::supported(&path) {
-                entries.push(json!({"path":path.strip_prefix(root)?.to_string_lossy(),"bytes":path.metadata()?.len()}));
+            } else if path.is_file()
+                && (audio::supported(&path)
+                    || path
+                        .extension()
+                        .is_some_and(|ext| ext.eq_ignore_ascii_case("zip")))
+            {
+                let archive = path
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
+                entries.push(json!({"path":path.strip_prefix(root)?.to_string_lossy(),"bytes":path.metadata()?.len(),"stem_archive":archive}));
             }
         }
         entries.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));

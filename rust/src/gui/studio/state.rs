@@ -56,7 +56,8 @@ pub struct Revision {
 }
 
 pub struct Studio {
-    pub import_files: std::collections::BTreeMap<StemKind, PathBuf>,
+    pub stem_import: super::stem_import::StemImport,
+    pub bulk_import: Option<super::stem_bulk_import::Review>,
     pub plugin_host: Option<crate::studio_native::plugins::VstHost>,
     pub plugin_path: Option<PathBuf>,
     pub plugin_probe: Option<crate::studio_native::plugins::Probe>,
@@ -105,7 +106,8 @@ impl Studio {
             .err()
             .map(|e| format!("Cannot create a private Studio cache: {e}"));
         Self {
-            import_files: Default::default(),
+            stem_import: Default::default(),
+            bulk_import: None,
             plugin_host: crate::studio_native::plugins::VstHost::find(),
             plugin_path: None,
             plugin_probe: None,
@@ -204,6 +206,11 @@ impl Studio {
                         Err(error) => {
                             self.error = Some(error);
                             self.status = "Studio job stopped; previous audio preserved".into();
+                        }
+                        Ok(Change::StemImport(prepared)) => {
+                            self.page = Page::Stems;
+                            self.bulk_import = Some(super::stem_bulk_import::Review::new(prepared));
+                            self.status = "Review stem selection · audio unchanged.".into();
                         }
                         Ok(Change::Source(source)) => {
                             self.bank = None;

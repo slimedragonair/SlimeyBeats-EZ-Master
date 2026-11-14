@@ -41,19 +41,14 @@ pub fn show(
 }
 
 fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
-    ui.collapsing("Import your own stems",|ui| {
-        use crate::studio::stem_mix::StemKind;
-        ui.small("Works without a model. Choose aligned files with matching rate, channels and duration.");
-        let required=if studio.two_stems {vec![StemKind::Vocals,StemKind::Instrumental]}else{vec![StemKind::Vocals,StemKind::Drums,StemKind::Bass,StemKind::Other]};
-        for kind in &required {
-            ui.horizontal_wrapped(|ui| {
-                ui.label(kind.name());
-                if ui.small_button("Choose…").clicked()&&let Some(path)=rfd::FileDialog::new().add_filter("Audio",crate::audio::EXTENSIONS).pick_file(){studio.import_files.insert(*kind,path);}
-                if let Some(path)=studio.import_files.get(kind){ui.small(path.file_name().unwrap_or_default().to_string_lossy());}
-            });
-        }
-        if ui.add_enabled(required.iter().all(|kind|studio.import_files.contains_key(kind)),crystal_button::secondary("Import aligned stems")).clicked(){let files=required.iter().map(|kind|(*kind,studio.import_files[kind].clone())).collect();studio.import_aligned_stems(files,ctx);}
-    });
+    super::stem_bulk_import::show(studio, ui, ctx);
+    if studio.bulk_import.is_some() {
+        ui.small(
+            "Review the parts in the workspace. No stem engine download is needed for import.",
+        );
+        return;
+    }
+    super::stem_import::show(studio, ui, ctx);
     ui.separator();
     theme::eyebrow(ui, "LOCAL STEM ENGINE");
     let ready = studio.runtime.is_ready();
@@ -93,7 +88,7 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     let busy = studio.busy();
     ui.add_enabled_ui(!busy,|ui| {
         for track in &mut studio.mix.tracks {
-            ui.label(RichText::new(track.kind.name()).color(theme::AMETHYST));
+            ui.label(RichText::new(studio.bank.as_ref().map_or(track.kind.name(), |bank| bank.display_name(track.kind))).color(theme::AMETHYST));
             studio.mix_dirty|=ui.add(CrystalSlider::new(&mut track.gain_db,-60. ..=12.).suffix(" dB")).on_hover_text("Stem level: negative lowers this part, positive raises it. This changes the saved mix after Update preview.").changed();
             ui.horizontal(|ui| {
                 studio.mix_dirty|=ui.checkbox(&mut track.mute,"Mute").on_hover_text("Remove this part from the preview mix. Its original stem remains intact.").changed();
@@ -122,7 +117,10 @@ pub fn target(studio: &mut Studio, ui: &mut egui::Ui) {
     let name = match studio.target {
         Target::Source => "Original source".into(),
         Target::Preview => "Current preview".into(),
-        Target::Stem(kind) => kind.name().to_string(),
+        Target::Stem(kind) => studio.bank.as_ref().map_or_else(
+            || kind.name().to_string(),
+            |bank| bank.display_name(kind).to_string(),
+        ),
     };
     egui::ComboBox::from_id_salt("studio-target")
         .selected_text(name)
@@ -134,7 +132,7 @@ pub fn target(studio: &mut Studio, ui: &mut egui::Ui) {
                     ui.selectable_value(
                         &mut studio.target,
                         Target::Stem(stem.kind),
-                        stem.kind.name(),
+                        bank.display_name(stem.kind),
                     );
                 }
             }

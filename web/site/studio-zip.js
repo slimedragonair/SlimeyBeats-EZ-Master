@@ -1,3 +1,4 @@
+import { MAX_STEMS } from "./studio-stems.js";
 // A bounded, uncompressed ZIP keeps raw stems aligned without another dependency.
 const table = Uint32Array.from({ length: 256 }, (_, n) => {
     let c = n;
@@ -9,11 +10,37 @@ function crc32(bytes) {
     for (const b of bytes) c = table[(c ^ b) & 255] ^ (c >>> 8);
     return (c ^ 0xffffffff) >>> 0;
 }
-export function stemZip(files) {
-    if (files.length < 2 || files.length > 4)
-        throw new Error("Export two to four stems");
+export function stemZip(files, manifest) {
+    if (files.length < 2 || files.length > MAX_STEMS)
+        throw new Error("Export two to nine stems");
     const encoder = new TextEncoder();
-    const entries = files.map((file) => ({
+    if (
+        new Set(files.map((file) => file.name)).size !== files.length ||
+        files.some((file) => !/^[a-z0-9_]+\.wav$/i.test(file.name))
+    )
+        throw new Error("Stem ZIP requires unique, simple WAV filenames");
+    const contents = [...files];
+    if (manifest !== undefined) {
+        if (
+            manifest?.format !== "wav32f" ||
+            !Array.isArray(manifest.stems) ||
+            manifest.stems.length !== files.length ||
+            new Set(manifest.stems.map((stem) => stem.file)).size !==
+                files.length ||
+            manifest.stems.some(
+                (stem) =>
+                    !files.some((file) => file.name === stem.file) ||
+                    typeof stem.kind !== "string" ||
+                    typeof stem.display_name !== "string",
+            )
+        )
+            throw new Error("Stem ZIP manifest does not match its audio files");
+        const bytes = encoder.encode(JSON.stringify(manifest, null, 2));
+        if (bytes.length > 1024 * 1024)
+            throw new Error("Stem ZIP manifest is too large");
+        contents.push({ name: "stems.json", bytes });
+    }
+    const entries = contents.map((file) => ({
         ...file,
         nameBytes: encoder.encode(file.name),
         crc: crc32(file.bytes),

@@ -16,6 +16,8 @@ pub(super) struct CaptureState {
     pub error: Option<String>,
     pub preview_ready: bool,
     pub playback_ready: bool,
+    pub pending_stem_parts: usize,
+    pub selected_stem_parts: usize,
 }
 
 pub(super) struct UiCapture {

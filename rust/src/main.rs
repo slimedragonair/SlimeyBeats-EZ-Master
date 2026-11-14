@@ -67,6 +67,11 @@ fn main() -> eframe::Result {
         [1480., 940.]
     };
     let studio_source = files.first().cloned();
+    let studio_inputs = files.clone();
+    let studio_archive = files.len() == 1
+        && files[0]
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
     let capture_failed = Arc::new(AtomicBool::new(false));
     let capture_result = capture_failed.clone();
     let result = eframe::run_native(
@@ -80,17 +85,27 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(move |cc| {
+            let queue_files = if studio_archive || (args.view == "stems" && studio_inputs.len() > 1)
+            {
+                vec![]
+            } else {
+                files
+            };
             let mut app = mastercraft::gui::MasterCraftApp::with_initial_settings(
                 cc,
-                files,
+                queue_files,
                 args.auto_master,
                 initial,
             );
-            app.tab = match args.view.as_str() {
-                "eq" => 1,
-                "report" => 2,
-                "stems" | "voice" | "repair" | "plugins" => 3,
-                _ => 0,
+            app.tab = if studio_archive {
+                3
+            } else {
+                match args.view.as_str() {
+                    "eq" => 1,
+                    "report" => 2,
+                    "stems" | "voice" | "repair" | "plugins" => 3,
+                    _ => 0,
+                }
             };
             if let Some(base) = args.studio_data {
                 app.studio.runtime = mastercraft::studio_native::runtime::RuntimePaths { base };
@@ -117,7 +132,15 @@ fn main() -> eframe::Result {
                     _ => AutoAction::Separate,
                 });
                 if let Some(path) = studio_source {
-                    app.studio.load(path, &cc.egui_ctx);
+                    if studio_archive {
+                        app.studio.auto_action = None;
+                        app.studio.prepare_stem_archive(path, &cc.egui_ctx);
+                    } else if studio_inputs.len() > 1 && app.studio.page == Page::Stems {
+                        app.studio.auto_action = None;
+                        app.studio.prepare_stem_files(studio_inputs, &cc.egui_ctx);
+                    } else {
+                        app.studio.load(path, &cc.egui_ctx);
+                    }
                 }
             }
             if args.capture_save_settings {

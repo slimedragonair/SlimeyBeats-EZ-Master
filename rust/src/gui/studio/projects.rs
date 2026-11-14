@@ -90,6 +90,7 @@ impl Studio {
             loudness: source_lufs,
         });
         self.bank = bank.clone();
+        self.bulk_import = None;
         self.undo.clear();
         self.redo.clear();
         self.target = super::state::Target::Preview;

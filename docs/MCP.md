@@ -1,8 +1,8 @@
 # AI assistant connection — desktop MCP preview
 
-SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.1.0 preview** lets an MCP-compatible AI client use the same Rust engine to analyze audio, propose changes, prepare a master, adjust EQ and export. You can open the prepared settings in the desktop app to listen and continue editing.
+SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.2** exposes **38 tools** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.2**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
-This is available in current source and companion preview builds. **The published v0.4.2 Windows installer does not include MCP or session handoff.** Use the desktop binary built alongside the companion. There is no native phone MCP server or browser-to-desktop bridge in this milestone. Stem separation, voice isolation, spectral repair and plugin hosting are planned ideas, not included tools.
+Beta.2 is available in current development source and local preview builds; it is **not yet publicly released**. Published beta.1 predates nine-part and bulk/ZIP import. **The stable v0.4.2 Windows installer does not include MCP or session handoff.** Use the desktop binary built alongside the companion. Studio includes two/four-stem local separation, **2–9 imported stems**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
 ## Set up a connection
 
@@ -51,13 +51,13 @@ The Studio Preview installer also includes the companion and VST3 worker. Open *
 
 ## Tools
 
-The current development companion exposes **36 tools**, including the Studio additions below. Published v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+The current development companion exposes **38 tools**, including read-only ZIP inspection and job-based ZIP import. Published v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
 
 | Tool | Purpose |
 |---|---|
 | `get_capabilities` | Bundled profile names/IDs, defaults, formats, library indexes and configured limits |
 | `get_help` | Self-contained quick start, examples, mastering/EQ units, export, troubleshooting and privacy |
-| `list_audio_files` | A bounded, non-recursive page of supported files in one library folder |
+| `list_audio_files` | A bounded, non-recursive page of supported files in one library folder; ZIPs are marked `stem_archive: true` |
 | `load_audio` | Import one source; replace the session only after successful decode |
 | `load_reference`, `clear_reference` | Change the tonal reference and invalidate the old preview |
 | `analyze_audio` | Measure the original track without applying mastering |
@@ -68,11 +68,13 @@ The current development companion exposes **36 tools**, including the Studio add
 | `get_job_status`, `cancel_job` | Poll progress/results or request cooperative cancellation |
 | `open_in_desktop` | Verify the sources and launch a new desktop session with these settings |
 | `export_audio` | Explicitly save one chosen format plus a report, preserving existing files |
-| `clear_session` | Cancel pending processing and release source/preview memory |
+| `clear_session` | Cancel processing and release source/preview memory |
 | `get_stem_engine_status`, `install_stem_engine` | Inspect/setup the optional local CPU separation engine; setup verifies an existing model, and `repair: true` reinstalls a damaged private engine/model |
-| `get_studio_session` | Current editing audio IDs, stem bank/controls, preview and undo/redo |
+| `get_studio_session` | Current editing audio IDs, stem bank/controls, preview and undo/redo; stem assets add friendly `display_name` while `label` retains the stable kind |
 | `analyze_studio_audio` | Measure an available original, stem or Studio preview without changing it |
-| `separate_stems`, `import_stems` | Real model separation in two/four modes, or aligned user stems without a model |
+| `separate_stems`, `import_stems` | Real model separation in two/four modes, or batch **2–9 aligned loose files** with explicit unique kinds, without a model |
+| `inspect_stem_bundle` | Read-only ZIP metadata inspection: zero-based part positions, names, suggested kinds and available WAV/MP3 versions; does not decode or replace Studio |
+| `import_stem_bundle` | Import 2–9 selected ZIP parts as a job; prefer WAV or MP3, with fallback to an available encoding |
 | `mix_stems` | Patch gain, mute/solo, stereo balance and output/peak settings; prepare a mix preview |
 | `clean_voice`, `repair_audio` | Voice cleanup or a precise time/frequency repair on a current source/stem/Studio preview |
 | `undo_studio_edit`, `redo_studio_edit` | Restore a retained editing revision and its bank/controls |
@@ -85,6 +87,48 @@ The current development companion exposes **36 tools**, including the Studio add
 Long operations return a job ID promptly. Poll `get_job_status` with a short delay between polls until `completed`, `failed` or `cancelled`. Only one audio job runs at once. Cancellation waits for DSP checkpoints; it is not an immediate interruption of every calculation. Decoder subprocesses have a timeout and are killed when cancellation is requested. If audio was already durably saved when cancellation arrives, the job reports its saved output. History retains the latest 64 jobs, not their PCM buffers.
 
 Use the current `source_id` for analysis/mastering and current `preview_id` for EQ/export. Stale IDs are rejected. EQ patches retain omitted settings; a provided band list must contain exactly seven bands. Re-mastering retains manual EQ. Changing a reference invalidates the preview and requires re-mastering. Built-in profile IDs and weighted blends are accepted; arbitrary profile files are deliberately outside this API.
+
+## Import loose stems or a Suno/stem ZIP
+
+No neural model is needed for imported stems. All parts must match sample rate, channels and frame count. Automatic `separate_stems` remains limited to vocal/instrumental or four stems; it cannot generate nine instruments itself.
+
+For a ZIP, begin with `get_help` topic `stems` and `list_audio_files`. Archives are marked `stem_archive: true`. Call **`inspect_stem_bundle`** using the listed library index and relative path:
+
+```json
+{"library": 0, "path": "My Song stems.zip"}
+```
+
+Inspection returns `parts[]` with names, suggested `kind` values and `versions`, plus `skipped_files`. **`part_index` is the zero-based position in `parts[]`**, not an encoding's file index. A WAV and MP3 with the same case-insensitive basename count as one part, even across ZIP folders. Multiple files with the same basename and extension are ambiguous: rename them before importing.
+
+Call **`import_stem_bundle`** with the same `library`/`path`. `preferred_format` accepts `"wav"` (default) or `"mp3"`; a missing preferred version falls back to the available encoding. Omit `parts` only when importing all of a 2–9-part bundle. If more than nine are found, explicitly select **2–9 inspected positions**; the tool does not silently drop extras. For example, after confirming positions 0 and 1 are wanted:
+
+```json
+{
+  "library": 0,
+  "path": "My Song stems.zip",
+  "preferred_format": "wav",
+  "parts": [{"part_index": 0}, {"part_index": 1, "kind": "part_1"}]
+}
+```
+
+Filename-based role suggestions use a trailing Suno role where present, keep backing/harmony on generic parts and reserve `vocals` for the lead. Suggested review order prioritizes common instruments and lead/backing ahead of Brass/FX; all parts remain available. This is a filename heuristic, not audio inference: review names, types and the explicit selection before importing.
+
+Each `kind` override is optional. Kinds must be unique: vocals, instrumental, drums, bass, other, guitar, piano, synth, strings, percussion, or `part_1`…`part_9`. Use generic parts for repeated/custom instruments. **Exclude the original/full mix when importing its constituent stems.**
+
+Poll `get_job_status`, inspect the resulting IDs with `get_studio_session`, then mix/audition. Import prepares a temporary preview; saving uses `export_studio_audio`, `export_stems` or `save_studio_project` only on the user's export/save request. ZIPs accept WAV/MP3 only and ignore cover art/metadata. Only selected audio is extracted privately; no uploads occur. FFmpeg/ffprobe is still needed for native MP3 decoding. Prefer a consistent encoding, ideally WAV when available: WAV/MP3 counterparts can decode to different lengths, so available-format fallback can fail the alignment check.
+
+For loose files, **`import_stems` already accepts a batch** and requires an explicit kind for each file. Choose one encoding per logical part:
+
+```json
+{
+  "files": [
+    {"library": 0, "path": "guitar-left.wav", "kind": "guitar"},
+    {"library": 0, "path": "guitar-right.wav", "kind": "part_1"}
+  ]
+}
+```
+
+Mixing, direct stem edits, raw exports and self-contained desktop projects support all selected parts, up to nine. Original friendly names stay with the selected bank through edits/undo and project reopening. `get_studio_session` exposes them through stem `assets[].display_name` and the bank's `stem_names` mapping. Stem `assets[].label` retains the stable kind for compatibility; use the returned IDs/kinds to address audio and controls. Raw WAV filenames remain based on stable kinds, and native `stems.json` adds `display_name` beside `file` and `kind`. Browser raw ZIPs similarly contain one WAV per part plus that friendly-name manifest. [Desktop/browser import workflow and limits](STUDIO.md#import-a-whole-stem-set).
 
 ## Desktop handoff and saved files
 
@@ -100,9 +144,14 @@ When its stdio connection closes, the companion requests cancellation and allows
 
 - Processing is local. This companion contains no upload endpoint, HTTP listener or telemetry. **Your AI client may send filenames, measurements, requests and tool results to its model provider.** Its privacy policy is separate. No audio bytes are returned in MCP tool results.
 - One active source and one master are kept per connection. Decoding another source only commits after success; previous state survives failed imports. Multiple AI-client connections are separate server processes and can multiply memory use.
-- The default decoded input limit is **512 MiB**, configurable with `--max-decoded-mib 8..4096`. This is an input PCM bound, **not a total RAM cap**. Source, pre-EQ master, current master and DSP/export scratch buffers can use several times that amount. A stereo 48 kHz float input uses about 22 MiB per minute; the default input-only bound is about 23 minutes. Higher rates use more memory. No universal duration guarantee is claimed.
-- Encoded inputs are also bounded to four times the decoded-byte allowance. External import decoder/probe calls default to 300 seconds each (`--decode-timeout-seconds 5..3600`). Native export codec/resampling calls currently use the existing desktop exporter and do not have that import timeout; cancellation waits until they return.
+- The default decoded input limit is **512 MiB per input**, including each imported stem, configurable with `--max-decoded-mib 8..4096`. This is an input PCM bound, **not a total RAM cap**; a nine-part bank needs adequate RAM for all parts and working buffers. Source, pre-EQ master, current master and DSP/export scratch buffers can use several times that amount. A stereo 48 kHz float input uses about 22 MiB per minute; the default input-only bound is about 23 minutes. Higher rates use more memory. No universal duration guarantee is claimed.
+- Stem ZIPs are limited to **1 GiB**, **512 entries / 64 distinct parts** and **512 MiB per WAV/MP3 entry** after ZIP decompression. Only 2–9 parts can be imported together. Unencrypted stored/deflate ZIPs are supported. Inspection, decoding and selection errors or cancellation retain the previous Studio preview.
+- Encoded audio inputs are also bounded to four times the decoded-byte allowance. External import decoder/probe calls default to 300 seconds each (`--decode-timeout-seconds 5..3600`). Native export codec/resampling calls currently use the existing desktop exporter and do not have that import timeout; cancellation waits until they return.
 - File paths are canonicalized and checked against configured roots; symlink escapes are rejected. Compressed imports force a matching media demuxer and permit local file/pipe protocols, blocking a renamed network playlist. These are application access rules, **not an OS sandbox** against another process modifying the same user's filesystem. Keep codecs current and use trusted source files.
 - The assistant cannot choose executable paths, run shell commands, expand its root folders or overwrite arbitrary files through these tools. Only the executable trusted at startup can be launched by desktop handoff. Do not authorize an entire drive when a smaller audio folder will do.
 
-See [validation and remaining checks](MCP_VALIDATION.md). MIT software attribution stays with software copies; [your music has no app ownership, royalties or required app credit](../OUTPUT_OWNERSHIP.md).
+Beta.2 focused stdio checks passed with **38 tools**, nine WAV/MP3 pairs with sample-exact WAV import, real MP3/fallback, selection of nine from twelve parts, unchanged source hashes and error-state retention. Final suites passed **107 Windows / 109 Linux native tests and nine Windows / ten Linux MCP regressions**, with format checks, strict Clippy and locked release builds. The follow-up also passed **21 focused tests**. The refreshed browser distribution passed **18 Studio groups each in Chrome 156, Firefox 144 and Linux WebKit 26**; source-site **Chromium 143 also passed 18 groups**. The release VST3 host passed strict Clippy and host tests; null-factory, worker-exit and stalled-plugin cancellation checks retained the MCP source. All four actual native/browser views independently scored **9/9/9**. A **20-check actual-data retest** passed default lead/backing role assignment without kind overrides, named edits/exports/projects and unchanged original inputs. Earlier and newly named projects reopened without errors with preview/playback ready; the named project retained all nine original part names. Linux also passed its named eleven-part/core-nine workflow and twelve GUI state captures. Installer lifecycle passed under an **isolated QA app ID/menu group**, using the production NSIS template and byte-identical runtime payload. The test preserved existing Preview/stable installations and did not install the production Preview registration.
+
+A fresh agent imported nine paired parts and changed only the vocal level without exporting, using live help/schemas alone. A separate explicit save request then produced **24-bit WAV plus report, nine raw stems and a self-contained project**, retaining settings, without invoking mastering; the bridge exited with code 0. This qualifies the tested protocol harness, not every AI client/model. See the [dated beta.2 status](STUDIO.md#validation-status--november-13-2026); the separate [MCP validation record](MCP_VALIDATION.md) also contains earlier preview evidence.
+
+MIT software attribution stays with software copies; [your music has no app ownership, royalties or required app credit](../OUTPUT_OWNERSHIP.md).

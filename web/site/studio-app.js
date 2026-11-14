@@ -11,6 +11,7 @@ import {
 import { waveform, spectrum } from "./studio-plots.js";
 import { wireSelection } from "./studio-selection.js";
 import { stemZip } from "./studio-zip.js";
+import { wireStemImport } from "./studio-import-actions.js";
 import { interleave } from "./dsp-client.js";
 import { download, time } from "./view.js";
 
@@ -58,6 +59,9 @@ export function createStudio({
             input.disabled = busy;
         for (const id of ["source", "use-main", "import"])
             $(id).disabled = busy;
+        for (const button of $("stem-files").querySelectorAll("button"))
+            button.disabled = busy;
+        importer.sync(busy);
         $("use-main").disabled ||= !getMainAudio();
         $("close").disabled = busy;
         $("cancel").disabled = !busy || committing || cancelled;
@@ -142,7 +146,7 @@ export function createStudio({
                         ? "Original source"
                         : value === "preview"
                           ? "Current preview"
-                          : `${value} stem`;
+                          : `${info.stem_names?.[value] ?? value} stem`;
                 return option;
             }),
         );
@@ -160,7 +164,7 @@ export function createStudio({
                 return li;
             }),
         );
-        mixFaders(controls, changed, info.channels);
+        mixFaders(controls, changed, info.channels, info.stem_names);
         if (reset) {
             document.querySelector(".edit-import").open = false;
             $("end").value = Math.min(1, info.duration_seconds);
@@ -220,40 +224,15 @@ export function createStudio({
                 "Loaded mix",
             );
         });
-    stemInputs();
     strengthReadouts();
-    $("mode").onchange = stemInputs;
-    $("import").onclick = () =>
-        job("Decoding aligned stems locally…", async () => {
-            const stems = [];
-            let bytes = 0;
-            for (const input of $("stem-files").querySelectorAll("input")) {
-                if (!input.files[0])
-                    throw new Error(
-                        `Choose the ${input.dataset.kind} file first.`,
-                    );
-                const buffer = await playback.decode(input.files[0]);
-                if (cancelled) return;
-                bytes += buffer.length * buffer.numberOfChannels * 4;
-                if (bytes > 128 * 1024 * 1024)
-                    throw new Error(
-                        "Combined stems exceed 128 MiB decoded PCM. Try shorter stems or use desktop Studio.",
-                    );
-                stems.push({
-                    kind: input.dataset.kind,
-                    samples: interleave(buffer),
-                    rate: buffer.sampleRate,
-                    channels: buffer.numberOfChannels,
-                });
-            }
-            await mutate(
-                "stems",
-                { stems },
-                stems.map((stem) => stem.samples.buffer),
-                true,
-                "Imported stems",
-            );
-        });
+    const importer = wireStemImport({
+        client,
+        playback,
+        job,
+        mutate,
+        notice,
+        isCancelled: () => cancelled,
+    });
     $("mix").onclick = () =>
         job("Rendering the stem balance…", async () => {
             await mutate("mix", { settings: controls });
@@ -336,7 +315,7 @@ export function createStudio({
                     } else {
                         download(
                             id === "export-stems"
-                                ? stemZip(result.files)
+                                ? stemZip(result.files, result.manifest)
                                 : result.bytes,
                             id === "export-stems"
                                 ? "Studio-stems.zip"
@@ -361,6 +340,7 @@ export function createStudio({
     $("close").onclick = () => {
         cancelled = true;
         client.stop();
+        importer.clear();
         playback.clear();
         info = EMPTY;
         controls = null;

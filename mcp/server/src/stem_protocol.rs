@@ -1,10 +1,10 @@
 use crate::{
     jobs::{Change, Product},
     protocol::Companion,
-    studio_state::{EditedAudio, StemBank, StudioState},
+    studio_state::StemBank,
 };
 use anyhow::{Context, Result, ensure};
-use mastercraft::studio::stem_mix::{self, Stem, StemKind, StemSet};
+use mastercraft::studio::stem_mix::{self, StemKind};
 use rmcp::{Json, handler::server::wrapper::Parameters, tool, tool_router};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -39,7 +39,7 @@ pub struct ApplyStem {
 #[tool_router(router=stem_router,vis="pub(crate)")]
 impl Companion {
     #[tool(
-        description = "Import 2–4 aligned user stems from authorized audio libraries without any neural model. Assign each unique kind explicitly. Rates, channels and frame counts must match; no hidden trimming/resampling. Replaces only the Studio workspace, with a temporary neutral mix. Poll the job; final export is separate.",
+        description = "Import 2–9 aligned user stems from authorized audio libraries without a neural model. Assign unique kinds: vocals, instrumental, drums, bass, other, guitar, piano, synth, strings, percussion, or part_1 through part_9 for extra/custom parts. Rates, channels and frames must match; no hidden trimming/resampling. Replaces only Studio, creating a temporary mix. Poll; export is separate. Automatic model extraction remains two/four stems.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn import_stems(
@@ -47,10 +47,7 @@ impl Companion {
         Parameters(a): Parameters<ImportRequest>,
     ) -> Result<Json<Value>, String> {
         self.response((|| {
-            ensure!(
-                (2..=4).contains(&a.files.len()),
-                "Import two to four aligned stems"
-            );
+            stem_mix::validate_kinds(a.files.iter().map(|file| file.kind))?;
             let paths = a
                 .files
                 .iter()
@@ -65,57 +62,14 @@ impl Companion {
                 "import_stems",
                 |_| Ok(()),
                 move |ctx| {
-                    let mut tracks = Vec::new();
-                    for (kind, path) in paths {
-                        ctx.progress(0.05, "Decoding aligned local stems");
-                        let (audio, _) = crate::audio_input::load(
-                            &path,
-                            ctx.engine.max_decoded_bytes,
-                            ctx.engine.decode_timeout,
-                            ctx.cancel.clone(),
-                        )?;
-                        tracks.push(Stem {
-                            kind,
-                            audio: Arc::new(audio),
-                        });
-                    }
-                    let stems = StemSet::new(tracks)?;
-                    let controls = stems.defaults();
-                    let mut raw = controls.clone();
-                    raw.protect_peaks = false;
-                    let original_mix =
-                        Arc::new(stem_mix::render(&stems, &raw, &|| ctx.cancelled())?);
-                    let audio = stem_mix::render(&stems, &controls, &|| ctx.cancelled())?;
-                    let bank = Arc::new(StemBank {
-                        id: format!("stems-{}", ctx.id),
-                        source_name: "Imported stem mix.wav".into(),
-                        stems,
-                        controls,
-                        model: json!({"origin":"imported aligned stems"}),
-                        original_mix,
-                    });
-                    let file = crate::artifact_files::preview(&ctx.engine, &audio)?;
-                    let mut studio = StudioState {
-                        bank: Some(bank.clone()),
-                        ..Default::default()
-                    };
-                    studio.current = Some(Arc::new(EditedAudio {
-                        id: format!("studio-{}", ctx.id),
-                        label: "Imported stem mix".into(),
-                        audio: Arc::new(audio),
-                        before: bank.original_mix.clone(),
-                        file: Some(file),
-                        steps: vec![json!({"operation":"import_stems"})],
-                        notes: vec![],
-                        bank_snapshot: Some(bank),
-                    }));
-                    let result = studio.summary(&ctx.engine, &ctx.snapshot)?;
-                    ctx.check()?;
-                    Ok(Product {
-                        result,
-                        change: Change::Studio(studio),
-                        committed: false,
-                    })
+                    let stems = mastercraft::studio_native::stem_files::import_with_limits(
+                        &paths,
+                        ctx.engine.max_decoded_bytes,
+                        ctx.engine.decode_timeout,
+                        ctx.cancel.clone(),
+                        &|fraction, message| ctx.progress(fraction, message),
+                    )?;
+                    crate::studio_import::prepared(&ctx, stems, json!({"operation":"import_stems"}))
                 },
             )
         })())

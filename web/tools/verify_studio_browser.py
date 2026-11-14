@@ -14,6 +14,9 @@ import zipfile
 from playwright.sync_api import sync_playwright, expect
 from browser_capture import BrowserDiagnostics
 from studio_waveform_checks import verify_waveform
+from studio_multitrack_checks import verify_multitrack
+from studio_bundle_checks import verify_bundle
+from studio_export_checks import audio_names, verify_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -27,6 +30,10 @@ def fixture(name, hz=440, seconds=3):
     return {'name': name, 'mimeType': 'audio/wav', 'buffer': output.getvalue()}
 
 
+class TestServer(http.server.ThreadingHTTPServer):
+    request_queue_size = 64
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *unused):
         pass
@@ -34,7 +41,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def run(args):
     args.out.mkdir(parents=True, exist_ok=True)
-    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(args.site)))
+    server = TestServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(args.site)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     result = {'errors': [], 'requests': [], 'checks': []}
     try:
@@ -103,7 +110,8 @@ def run(args):
                 page.locator('#s-import').click()
                 ready()
                 raw_two = save('#s-export-stems', 'two-stems.zip')
-                assert set(zipfile.ZipFile(io.BytesIO(raw_two)).namelist()) == {'vocals.wav', 'instrumental.wav'}
+                assert audio_names(zipfile.ZipFile(io.BytesIO(raw_two))) == {'vocals.wav', 'instrumental.wav'}
+                verify_manifest(zipfile.ZipFile(io.BytesIO(raw_two)))
                 page.locator('#s-tab-mix').click()
                 page.get_by_role('slider', name='vocals Gain / dB', exact=True).fill('-6')
                 page.locator('#s-mix').click()
@@ -145,6 +153,8 @@ def run(args):
                 for kind in ['drums', 'bass', 'other']:
                     assert before_bank.read(kind + '.wav') == after_bank.read(kind + '.wav')
                 result['checks'].append('four stems and direct vocal edit preserve untouched stems exactly')
+                result['checks'].extend(verify_multitrack(page, ready, save, fixture, args.out, diagnostics.capture))
+                result['checks'].extend(verify_bundle(page, ready, save, fixture, args.out, diagnostics.capture))
 
                 page.locator('#s-tab-repair').click()
                 page.locator('#s-target').select_option('source')
@@ -215,9 +225,10 @@ def run(args):
                 assert not any(request['method'] != 'GET' or request['body_bytes'] for request in result['requests'])
                 assert not result['errors'], result['errors']
                 result['passed'] = True
-            except Exception:
+            except Exception as error:
+                result['failure'] = repr(error)
                 diagnostics.capture(args.out / 'failure.png', full_page=True)
-                result['status'] = page.locator('#s-status').inner_text()
+                result['status'] = page.locator('#s-status').inner_text(timeout=1000) if page.locator('#s-status').count() else 'Studio UI was not initialized'
                 raise
             finally:
                 (args.out / 'results.json').write_text(json.dumps(result, indent=2), encoding='utf-8')

@@ -1,7 +1,12 @@
 use crate::{audio::Audio, dsp::limiter, meters::lin};
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
+
+pub const MAX_STEMS: usize = 9;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
@@ -12,8 +17,63 @@ pub enum StemKind {
     Drums,
     Bass,
     Other,
+    Guitar,
+    Piano,
+    Synth,
+    Strings,
+    Percussion,
+    #[serde(rename = "part_1")]
+    Part1,
+    #[serde(rename = "part_2")]
+    Part2,
+    #[serde(rename = "part_3")]
+    Part3,
+    #[serde(rename = "part_4")]
+    Part4,
+    #[serde(rename = "part_5")]
+    Part5,
+    #[serde(rename = "part_6")]
+    Part6,
+    #[serde(rename = "part_7")]
+    Part7,
+    #[serde(rename = "part_8")]
+    Part8,
+    #[serde(rename = "part_9")]
+    Part9,
 }
 impl StemKind {
+    pub const MULTITRACK: [Self; MAX_STEMS] = [
+        Self::Vocals,
+        Self::Drums,
+        Self::Bass,
+        Self::Guitar,
+        Self::Piano,
+        Self::Synth,
+        Self::Strings,
+        Self::Percussion,
+        Self::Other,
+    ];
+    pub const ALL: [Self; 19] = [
+        Self::Vocals,
+        Self::Instrumental,
+        Self::Drums,
+        Self::Bass,
+        Self::Other,
+        Self::Guitar,
+        Self::Piano,
+        Self::Synth,
+        Self::Strings,
+        Self::Percussion,
+        Self::Part1,
+        Self::Part2,
+        Self::Part3,
+        Self::Part4,
+        Self::Part5,
+        Self::Part6,
+        Self::Part7,
+        Self::Part8,
+        Self::Part9,
+    ];
     pub fn name(self) -> &'static str {
         match self {
             Self::Vocals => "vocals",
@@ -21,8 +81,36 @@ impl StemKind {
             Self::Drums => "drums",
             Self::Bass => "bass",
             Self::Other => "other",
+            Self::Guitar => "guitar",
+            Self::Piano => "piano",
+            Self::Synth => "synth",
+            Self::Strings => "strings",
+            Self::Percussion => "percussion",
+            Self::Part1 => "part_1",
+            Self::Part2 => "part_2",
+            Self::Part3 => "part_3",
+            Self::Part4 => "part_4",
+            Self::Part5 => "part_5",
+            Self::Part6 => "part_6",
+            Self::Part7 => "part_7",
+            Self::Part8 => "part_8",
+            Self::Part9 => "part_9",
         }
     }
+}
+
+/// Validate identity/count before allocating or decoding a bank's audio.
+pub fn validate_kinds(kinds: impl IntoIterator<Item = StemKind>) -> Result<()> {
+    let mut names = BTreeSet::new();
+    for kind in kinds {
+        ensure!(
+            names.insert(kind),
+            "Each stem kind must be unique; use part_1 through part_9 for additional parts of the same instrument"
+        );
+        ensure!(names.len() <= MAX_STEMS, "Import two to nine aligned stems");
+    }
+    ensure!(names.len() >= 2, "Import two to nine aligned stems");
+    Ok(())
 }
 
 #[derive(Clone)]
@@ -34,17 +122,13 @@ pub struct Stem {
 #[derive(Clone)]
 pub struct StemSet {
     pub tracks: Vec<Stem>,
+    display_names: BTreeMap<StemKind, String>,
 }
 impl StemSet {
     pub fn new(tracks: Vec<Stem>) -> Result<Self> {
-        ensure!(
-            (2..=4).contains(&tracks.len()),
-            "Import two to four aligned stems"
-        );
+        validate_kinds(tracks.iter().map(|stem| stem.kind))?;
         let first = &tracks[0].audio;
-        let mut names = BTreeSet::new();
         for stem in &tracks {
-            ensure!(names.insert(stem.kind), "Each stem kind must be unique");
             ensure!(
                 stem.audio.sample_rate == first.sample_rate
                     && stem.audio.channels == first.channels
@@ -56,7 +140,27 @@ impl StemSet {
                 "A stem contains non-finite samples"
             );
         }
-        Ok(Self { tracks })
+        Ok(Self {
+            tracks,
+            display_names: BTreeMap::new(),
+        })
+    }
+    /// Names are plain text metadata; identity and audio remain keyed by kind.
+    pub fn set_display_name(&mut self, kind: StemKind, name: impl Into<String>) -> Result<()> {
+        self.track(kind)?;
+        let name = name.into();
+        ensure!(
+            !name.trim().is_empty() && name.len() <= 512 && !name.chars().any(char::is_control),
+            "Stem display names must be nonempty plain text of at most 512 UTF-8 bytes"
+        );
+        self.display_names.insert(kind, name);
+        Ok(())
+    }
+    pub fn display_name(&self, kind: StemKind) -> &str {
+        self.display_names
+            .get(&kind)
+            .map(String::as_str)
+            .unwrap_or(kind.name())
     }
     pub fn track(&self, kind: StemKind) -> Result<&Stem> {
         self.tracks
@@ -72,7 +176,9 @@ impl StemSet {
             .find(|s| s.kind == kind)
             .expect("validated stem kind")
             .audio = audio;
-        Self::new(tracks)
+        let mut bank = Self::new(tracks)?;
+        bank.display_names = self.display_names.clone();
+        Ok(bank)
     }
     pub fn defaults(&self) -> MixSettings {
         MixSettings {
@@ -253,8 +359,11 @@ pub fn consistent(original: &Audio, mut estimates: Vec<Stem>, two_stems: bool) -
         set.track(kind)?;
     }
     ensure!(
-        !set.tracks.iter().any(|s| s.kind == StemKind::Instrumental),
-        "Four-stem mode expects vocals, drums and bass estimates"
+        set.tracks.iter().all(|s| matches!(
+            s.kind,
+            StemKind::Vocals | StemKind::Drums | StemKind::Bass | StemKind::Other
+        )),
+        "Four-stem mode expects only vocals, drums, bass and optional other estimates"
     );
     let mut residual = original.clone();
     for stem in set.tracks.iter().filter(|s| s.kind != StemKind::Other) {

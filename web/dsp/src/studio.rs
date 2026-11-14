@@ -141,6 +141,16 @@ impl BrowserStudio {
         rate: u32,
         channels: u32,
     ) -> Result<(), JsValue> {
+        if self.staged.len() >= stem_mix::MAX_STEMS {
+            return Err(failure("Import two to nine aligned stems"));
+        }
+        let kind =
+            serde_json::from_value(serde_json::Value::String(kind.into())).map_err(failure)?;
+        if self.staged.iter().any(|stem| stem.kind == kind) {
+            return Err(failure(
+                "Each stem kind must be unique; use part_1 through part_9 for additional parts",
+            ));
+        }
         let total = self
             .staged
             .iter()
@@ -153,8 +163,6 @@ impl BrowserStudio {
                 "Combined browser stems exceed 128 MiB decoded PCM. Use shorter/lower-rate stems or the desktop app.",
             ));
         }
-        let kind =
-            serde_json::from_value(serde_json::Value::String(kind.into())).map_err(failure)?;
         let audio = Self::checked(samples, rate, channels).map_err(failure)?;
         self.staged.push(Stem {
             kind,
@@ -178,6 +186,16 @@ impl BrowserStudio {
         self.undo.clear();
         self.redo.clear();
         self.info()
+    }
+    /// Attach plain text metadata after commit_stems; stage_stem remains compatible.
+    pub fn set_stem_display_name(&mut self, kind: &str, name: &str) -> Result<(), JsValue> {
+        let kind =
+            serde_json::from_value(serde_json::Value::String(kind.into())).map_err(failure)?;
+        self.bank
+            .as_mut()
+            .ok_or_else(|| failure("Import stems first"))?
+            .set_display_name(kind, name)
+            .map_err(failure)
     }
     pub fn mix(&mut self, json: &str) -> Result<String, JsValue> {
         let settings: MixSettings = serde_json::from_str(json).map_err(failure)?;
@@ -275,7 +293,7 @@ impl BrowserStudio {
     }
     pub fn info(&self) -> Result<String, JsValue> {
         let a = self.current.as_ref();
-        Ok(serde_json::json!({"loaded":a.is_some(),"duration_seconds":a.map(|a|a.duration()),"sample_rate":a.map(|a|a.sample_rate),"channels":a.map(|a|a.channels),"controls":self.mix,"notes":self.notes,"direct_edit_stems":self.direct_edit_stems(),"can_undo":!self.undo.is_empty(),"can_redo":!self.redo.is_empty(),"stems":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|s.kind.name()).collect::<Vec<_>>()).unwrap_or_default(),"max_combined_decoded_bytes":MAX_STUDIO_BYTES}).to_string())
+        Ok(serde_json::json!({"loaded":a.is_some(),"duration_seconds":a.map(|a|a.duration()),"sample_rate":a.map(|a|a.sample_rate),"channels":a.map(|a|a.channels),"controls":self.mix,"notes":self.notes,"direct_edit_stems":self.direct_edit_stems(),"can_undo":!self.undo.is_empty(),"can_redo":!self.redo.is_empty(),"stems":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|s.kind.name()).collect::<Vec<_>>()).unwrap_or_default(),"stem_names":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|(s.kind.name(),b.display_name(s.kind))).collect::<std::collections::BTreeMap<_,_>>()).unwrap_or_default(),"max_combined_decoded_bytes":MAX_STUDIO_BYTES}).to_string())
     }
     pub fn preview_ptr(&self) -> Result<*const f32, JsValue> {
         Ok(self
@@ -337,11 +355,67 @@ impl BrowserStudio {
         Ok(cursor.into_inner())
     }
     pub fn parameter_defaults() -> String {
-        serde_json::json!({"voice":VoiceSettings::default(),"repair":{"start_seconds":0.0,"end_seconds":1.0,"low_hz":2000.0,"high_hz":8000.0,"reduction_db":-12.0,"mode":"attenuate"}}).to_string()
+        serde_json::json!({"max_stems":stem_mix::MAX_STEMS,"stem_kinds":StemKind::ALL,"voice":VoiceSettings::default(),"repair":{"start_seconds":0.0,"end_seconds":1.0,"low_hz":2000.0,"high_hz":8000.0,"reduction_db":-12.0,"mode":"attenuate"}}).to_string()
     }
 }
 impl Default for BrowserStudio {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{Value, json};
+
+    fn names(studio: &BrowserStudio) -> Value {
+        serde_json::from_str::<Value>(&studio.info().unwrap()).unwrap()["stem_names"].clone()
+    }
+
+    #[test]
+    fn display_names_survive_browser_fork_edit_replace_and_history() {
+        let mut studio = BrowserStudio::new();
+        assert_eq!(names(&studio), json!({}));
+        studio
+            .stage_stem("vocals", vec![0.02; 800], 8000, 1)
+            .unwrap();
+        studio
+            .stage_stem("part_1", vec![0.04; 800], 8000, 1)
+            .unwrap();
+        studio.commit_stems().unwrap();
+        assert_eq!(
+            names(&studio),
+            json!({"vocals":"vocals", "part_1":"part_1"})
+        );
+        studio
+            .set_stem_display_name("vocals", "Song (Vocals)")
+            .unwrap();
+        studio
+            .set_stem_display_name("part_1", "Song (Backing Vocals)")
+            .unwrap();
+        let expected = names(&studio);
+        let mut fork = studio.fork();
+        fork.set_stem_display_name("part_1", "Different backing name")
+            .unwrap();
+        assert_eq!(names(&studio), expected);
+        assert_ne!(names(&fork), expected);
+        let mut mix = studio.mix.clone();
+        mix.protect_peaks = false;
+        mix.tracks[0].solo = true;
+        studio.mix(&serde_json::to_string(&mix).unwrap()).unwrap();
+        assert_eq!(studio.current.as_ref().unwrap().samples, vec![0.02; 800]);
+        assert_eq!(names(&studio), expected);
+        studio.before = Some(studio.audio("vocals").unwrap());
+        studio.current = Some(Arc::new(Audio::new(vec![0.01; 800], 8000, 1).unwrap()));
+        studio.replace_stem("vocals").unwrap();
+        assert_eq!(studio.audio("vocals").unwrap().samples, vec![0.01; 800]);
+        assert_eq!(names(&studio), expected);
+        studio.history(false).unwrap();
+        assert_eq!(studio.audio("vocals").unwrap().samples, vec![0.02; 800]);
+        assert_eq!(names(&studio), expected);
+        studio.history(true).unwrap();
+        assert_eq!(studio.audio("vocals").unwrap().samples, vec![0.01; 800]);
+        assert_eq!(names(&studio), expected);
     }
 }

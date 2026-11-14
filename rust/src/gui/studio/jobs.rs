@@ -9,6 +9,7 @@ use std::sync::{
 };
 
 pub enum Change {
+    StemImport(crate::studio_native::stem_bundle::PreparedImport),
     Session(Box<crate::studio_native::session::StudioSnapshot>),
     PluginProbe(std::path::PathBuf, crate::studio_native::plugins::Probe),
     Analysis(Box<crate::analysis::Analysis>),

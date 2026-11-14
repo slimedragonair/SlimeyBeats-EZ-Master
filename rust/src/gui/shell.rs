@@ -21,7 +21,26 @@ impl eframe::App for MasterCraftApp {
                     .collect::<Vec<_>>()
             });
             if !files.is_empty() {
-                if self.tab == 3 {
+                let archives = files
+                    .iter()
+                    .filter(|path| {
+                        path.extension()
+                            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
+                    })
+                    .count();
+                if archives > 0 {
+                    self.tab = 3;
+                    if files.len() == 1 {
+                        self.studio.prepare_stem_archive(files[0].clone(), &ctx);
+                    } else {
+                        self.studio.error = Some(
+                            "Drop one stem ZIP at a time, or choose multiple loose audio stems."
+                                .into(),
+                        );
+                    }
+                } else if self.tab == 3 && files.len() > 1 {
+                    self.studio.prepare_stem_files(files, &ctx);
+                } else if self.tab == 3 {
                     if let Some(path) = files.into_iter().next() {
                         self.studio.load(path, &ctx);
                     }
@@ -117,6 +136,16 @@ impl eframe::App for MasterCraftApp {
         let ready = !self.busy && !self.eq_dirty && !self.studio.busy();
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {
+                pending_stem_parts: self
+                    .studio
+                    .bulk_import
+                    .as_ref()
+                    .map_or(0, |review| review.part_count()),
+                selected_stem_parts: self
+                    .studio
+                    .bulk_import
+                    .as_ref()
+                    .map_or(0, |review| review.selected_count()),
                 error: if self.tab == 3 {
                     self.studio.error.clone()
                 } else {

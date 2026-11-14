@@ -2,7 +2,7 @@
 use crate::{
     audio::Audio,
     source_identity::SourceIdentity,
-    studio::stem_mix::{MixSettings, Stem, StemKind, StemSet},
+    studio::stem_mix::{MAX_STEMS, MixSettings, Stem, StemKind, StemSet},
 };
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,8 @@ pub struct AssetFile {
 pub struct StemFile {
     pub kind: StemKind,
     pub file: AssetFile,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -73,7 +75,7 @@ impl StudioDocument {
             "Unsupported Studio document"
         );
         ensure!(
-            document.stems.len() <= 4 && document.notes.len() <= 64,
+            document.stems.len() <= MAX_STEMS && document.notes.len() <= 64,
             "Studio document has too many assets/notes"
         );
         ensure!(
@@ -118,7 +120,12 @@ impl StudioDocument {
                     })
                 })
                 .collect::<Result<Vec<_>>>()?;
-            let bank = StemSet::new(tracks)?;
+            let mut bank = StemSet::new(tracks)?;
+            for stem in &document.stems {
+                if let Some(name) = &stem.display_name {
+                    bank.set_display_name(stem.kind, name.clone())?;
+                }
+            }
             let first = &bank.tracks[0].audio;
             ensure!(
                 first.sample_rate == source.sample_rate
@@ -223,6 +230,7 @@ pub fn save(
         for stem in &bank.tracks {
             stems.push(StemFile {
                 kind: stem.kind,
+                display_name: Some(bank.display_name(stem.kind).to_owned()),
                 file: write(&format!("stem-{}.wav", stem.kind.name()), &stem.audio)?,
             });
         }

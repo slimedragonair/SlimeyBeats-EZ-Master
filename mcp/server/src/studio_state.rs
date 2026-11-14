@@ -95,7 +95,7 @@ impl Snapshot {
                 if id == stem_id(&bank.id, stem.kind) {
                     return Ok(AudioTarget {
                         audio: stem.audio.clone(),
-                        label: format!("{} stem", stem.kind.name()),
+                        label: format!("{} stem", bank.stems.display_name(stem.kind)),
                         steps: vec![
                             json!({"operation":"stem_source","kind":stem.kind,"model":bank.model}),
                         ],
@@ -162,11 +162,10 @@ impl StudioState {
                 &bank.original_mix,
             ));
             for stem in &bank.stems.tracks {
-                assets.push(audio_info(
-                    &stem_id(&bank.id, stem.kind),
-                    stem.kind.name(),
-                    &stem.audio,
-                ));
+                let mut asset =
+                    audio_info(&stem_id(&bank.id, stem.kind), stem.kind.name(), &stem.audio);
+                asset["display_name"] = json!(bank.stems.display_name(stem.kind));
+                assets.push(asset);
             }
         }
         if let Some(preview) = &self.current {
@@ -174,7 +173,7 @@ impl StudioState {
         }
         let preview=self.current.as_ref().map(|p|Ok::<_,anyhow::Error>(json!({"studio_preview_id":p.id,"label":p.label,"relative_preview_path":p.file.as_ref().map(|file|engine.policy.relative_output(file.as_ref())).transpose()?,"steps":p.steps,"notes":p.notes}))).transpose()?;
         Ok(
-            json!({"assets":assets,"stem_set":self.bank.as_ref().map(|b|json!({"stem_set_id":b.id,"controls":b.controls,"model":b.model})),"preview":preview,"can_undo":!self.undo.is_empty(),"can_redo":!self.redo.is_empty(),"note":"Studio revisions are independent of the mastering preview. Export explicitly, or promote a prepared mix to mastering when ready."}),
+            json!({"assets":assets,"stem_set":self.bank.as_ref().map(|b|json!({"stem_set_id":b.id,"controls":b.controls,"model":b.model,"stem_names":b.stems.tracks.iter().map(|s|(s.kind.name(),b.stems.display_name(s.kind))).collect::<std::collections::BTreeMap<_,_>>()})),"preview":preview,"can_undo":!self.undo.is_empty(),"can_redo":!self.redo.is_empty(),"note":"Studio revisions are independent of the mastering preview. Export explicitly, or promote a prepared mix to mastering when ready."}),
         )
     }
 }
@@ -183,4 +182,72 @@ pub fn stem_id(bank: &str, kind: StemKind) -> String {
 }
 fn audio_info(id: &str, label: &str, audio: &Audio) -> Value {
     json!({"audio_id":id,"label":label,"duration_seconds":audio.duration(),"sample_rate":audio.sample_rate,"channels":audio.channels})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::arguments::Arguments;
+    use clap::Parser;
+    use mastercraft::studio::stem_mix::Stem;
+
+    #[test]
+    fn stem_assets_keep_legacy_labels_ids_and_expose_bank_display_names() {
+        let root = tempfile::tempdir().unwrap();
+        let args = Arguments::parse_from([
+            "test",
+            "--input-root",
+            root.path().to_str().unwrap(),
+            "--output-root",
+            root.path().join("exports").to_str().unwrap(),
+        ]);
+        let engine = Engine::new(&args).unwrap();
+        let audio = Arc::new(Audio::new(vec![0.01; 800], 8000, 1).unwrap());
+        let mut stems = StemSet::new(
+            [StemKind::Vocals, StemKind::Part1]
+                .into_iter()
+                .map(|kind| Stem {
+                    kind,
+                    audio: audio.clone(),
+                })
+                .collect(),
+        )
+        .unwrap();
+        stems
+            .set_display_name(StemKind::Vocals, "Song (Vocals)")
+            .unwrap();
+        stems
+            .set_display_name(StemKind::Part1, "Song (Backing Vocals)")
+            .unwrap();
+        let bank = Arc::new(StemBank {
+            id: "stems-test".into(),
+            source_name: "Synthetic source".into(),
+            controls: stems.defaults(),
+            stems,
+            model: json!({}),
+            original_mix: audio,
+        });
+        let mut snapshot = engine.lock().unwrap().session.clone();
+        snapshot.studio.bank = Some(bank.clone());
+        let summary = snapshot.studio.summary(&engine, &snapshot).unwrap();
+        for stem in &bank.stems.tracks {
+            let id = stem_id(&bank.id, stem.kind);
+            let asset = summary["assets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|asset| asset["audio_id"] == id)
+                .unwrap();
+            assert_eq!(asset["label"], stem.kind.name());
+            assert_eq!(asset["display_name"], bank.stems.display_name(stem.kind));
+            assert_eq!(
+                summary["stem_set"]["stem_names"][stem.kind.name()],
+                bank.stems.display_name(stem.kind)
+            );
+            assert!(Arc::ptr_eq(
+                &snapshot.studio_audio(&id).unwrap().audio,
+                &stem.audio
+            ));
+        }
+    }
 }

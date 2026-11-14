@@ -103,6 +103,7 @@ impl Companion {
                 + Self::studio_router()
                 + Self::plugin_router()
                 + Self::stem_router()
+                + Self::stem_bundle_router()
                 + Self::studio_handoff_router()
                 + Self::studio_promote_router(),
         }

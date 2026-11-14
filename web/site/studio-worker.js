@@ -1,7 +1,13 @@
-import init, { BrowserStudio } from "./pkg/dsp.js";
+import init, {
+    BrowserStudio,
+    BrowserStemArchive,
+    plan_stem_files,
+} from "./pkg/dsp.js";
 const ready = init();
 let studio;
 let proposal;
+let archive;
+let archiveId;
 self.onmessage = async ({ data: m }) => {
     let candidate;
     try {
@@ -24,6 +30,33 @@ self.onmessage = async ({ data: m }) => {
                 ? new BrowserStudio()
                 : studio.fork();
         switch (m.action) {
+            case "import-plan":
+                result = JSON.parse(plan_stem_files(JSON.stringify(m.files)));
+                break;
+            case "archive-open": {
+                const next = new BrowserStemArchive(m.bytes);
+                archive?.free();
+                archive = next;
+                archiveId = m.id;
+                result = {
+                    plan: JSON.parse(archive.info()),
+                    archive_id: archiveId,
+                };
+                break;
+            }
+            case "archive-read":
+                if (!archive || m.archive_id !== archiveId)
+                    throw new Error(
+                        "The pending ZIP changed. Choose the archive again.",
+                    );
+                result = { bytes: archive.extract_audio(m.index) };
+                break;
+            case "archive-close":
+                archive?.free();
+                archive = null;
+                archiveId = null;
+                result = true;
+                break;
             case "init":
                 studio ??= new BrowserStudio();
                 result = {
@@ -45,6 +78,9 @@ self.onmessage = async ({ data: m }) => {
                         stem.channels,
                     );
                 candidate.commit_stems();
+                for (const stem of m.stems)
+                    if (stem.display_name !== undefined)
+                        candidate.set_stem_display_name(stem.kind, stem.display_name);
                 audio = true;
                 break;
             }
@@ -82,11 +118,18 @@ self.onmessage = async ({ data: m }) => {
                 break;
             case "stem-export": {
                 result = { files: [] };
-                for (const kind of JSON.parse(studio.info()).stems)
-                    result.files.push({
-                        name: `${kind}.wav`,
-                        bytes: studio.stem_wav(kind),
+                const info = JSON.parse(studio.info());
+                const stems = [];
+                for (const kind of info.stems) {
+                    const name = `${kind}.wav`;
+                    result.files.push({ name, bytes: studio.stem_wav(kind) });
+                    stems.push({
+                        file: name,
+                        kind,
+                        display_name: info.stem_names?.[kind] ?? kind,
                     });
+                }
+                result.manifest = { format: "wav32f", stems };
                 break;
             }
             case "clear":
