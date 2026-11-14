@@ -31,6 +31,10 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Analyze → Master → Export.** Analyze is at the top right. Master queue prepares a preview; the separate Export selected master button saves it when you are ready. You can tweak Manual EQ or re-master in between. [Open the welcome screen at full size](docs/images/welcome.png).
 
+## In-development UX/learning preview
+
+The separate `feature/ux-learning` branch adds Basic/Advanced controls, an optional eight-step tour, bottom-right Help and desktop AI connection guidance. **Basic starts first; switching views preserves your audio settings.** This pass is pending review, not merged or released; no new version is assigned. Public v0.4.2 and published beta.1 packages are unchanged, and desktop source remains beta.3. Existing screenshots and qualification figures describe their named earlier candidates. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
+
 ## What it does
 
 - **Analyze first.** Inspect loudness, true peak, tonal balance and other measurements before deciding what to change.
@@ -127,6 +131,8 @@ The browser screenshot above is from the running app. [Open it at full size](doc
 Audio and measurements stay in tab memory until you download them. There are no uploads, accounts, analytics or server DSP. The host still serves ordinary static files. Reloading/closing the tab discards the session; save your WAV first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
 
 ## Evidence and limits
+
+The figures below qualify their named candidates. They are not a final qualification matrix for the [in-development UX/learning preview](docs/LEARNING_AND_HELP.md).
 
 **Initial beta.3 larger-bank results:** **115 Windows / 117 Linux native tests** passed in the debug/test profile, plus **9 Windows / 10 Linux MCP regressions** and **11 native-host web-DSP binding tests**. Windows native used the `schemas` feature. Live 38-tool checks passed 24/64/100-part loose and paired-ZIP banks; release data/project checks passed eleven-part full-length and 96-part synthetic banks with original inputs unchanged. Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 workflow groups**. [Measured scope, fresh-agent results and remaining qualification](docs/STUDIO_BETA3_VALIDATION.md).
 

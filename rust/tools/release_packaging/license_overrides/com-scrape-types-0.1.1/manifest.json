@@ -1,0 +1,33 @@
+{
+  "format_version": 1,
+  "name": "com-scrape-types",
+  "version": "0.1.1",
+  "source": "registry+https://github.com/rust-lang/crates.io-index",
+  "license": "MIT OR Apache-2.0",
+  "repository": "https://github.com/coupler-rs/vst3-rs",
+  "crate_checksum": "5ce183b975b8fc736a20919c4002717255fbd867df575c792aeefa9a56a73ad0",
+  "crate_vcs": {
+    "git": {
+      "sha1": "33f1859fbdcfa247c1fdd17d565cb5285860e4ce"
+    },
+    "path_in_vcs": "com-scrape-types"
+  },
+  "upstream_repository": "https://github.com/coupler-rs/vst3-rs",
+  "upstream_commit": "33f1859fbdcfa247c1fdd17d565cb5285860e4ce",
+  "source_selection": "Original workspace-root notices from the published crate VCS commit. Existing VST3-host dependency, outside the main GUI inventory.",
+  "release_tag_fallback": null,
+  "files": [
+    {
+      "path": "LICENSE-MIT",
+      "upstream_path": "LICENSE-MIT",
+      "url": "https://raw.githubusercontent.com/coupler-rs/vst3-rs/33f1859fbdcfa247c1fdd17d565cb5285860e4ce/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+    },
+    {
+      "path": "LICENSE-APACHE",
+      "upstream_path": "LICENSE-APACHE",
+      "url": "https://raw.githubusercontent.com/coupler-rs/vst3-rs/33f1859fbdcfa247c1fdd17d565cb5285860e4ce/LICENSE-APACHE",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    }
+  ]
+}

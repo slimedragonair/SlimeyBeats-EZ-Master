@@ -1,8 +1,19 @@
 """Keep offline guides, screenshots and attribution links valid in each bundle."""
 from pathlib import Path
+import re
 import shutil
 
 from .public_source import GUIDES
+
+
+def offline_guide(text):
+    text = text.replace('../examples/audio/', '../Examples/').replace('examples/audio/demo-input.wav', 'Examples/demo-input.wav')
+    # Runtime bundles do not contain the separate source archive. Keep contributor
+    # references as explicit repository paths rather than broken local links.
+    text, count = re.subn(r'(?<!!)\[[^\]]+\]\(\.\./((?:rust|web|mcp|plugins|\.github)/[^)]+)\)', lambda match: '`' + match[1] + '`', text)
+    if count:
+        text += '\n\nContributor file paths above refer to the separate source package.\n'
+    return text
 
 
 def copy_documentation(repository, destination):
@@ -12,7 +23,7 @@ def copy_documentation(repository, destination):
     shutil.copytree(project / 'docs', docs)
     for name in GUIDES:
         text = (repository / 'docs' / name).read_text(encoding='utf-8')
-        text = text.replace('../examples/audio/', '../Examples/').replace('examples/audio/demo-input.wav', 'Examples/demo-input.wav')
+        text = offline_guide(text)
         (docs / name).write_text(text, encoding='utf-8')
     shutil.copytree(repository / 'docs/images', docs / 'images')
     shutil.copytree(repository / 'docs/legacy', docs / 'legacy')

@@ -7,6 +7,10 @@
 5. **Listen and adjust.** Compare Original/Master at matched loudness. In Manual EQ, A is the pre-EQ automatic master and B is the live EQ result. Playback continues while you edit.
 6. **Export when ready.** Expand Export settings, choose formats/folder, then Export selected master. You can re-master before exporting. Existing output files receive unique names rather than being replaced.
 
+## In-development learning preview
+
+On the unmerged `feature/ux-learning` branch, **Basic** is the starting view and **Advanced** reveals detailed controls. Switching modes or pages preserves processing settings; notices flag active custom values whose editors are hidden. Bottom-right **Help** (**F1** on desktop) provides the optional eight-step tour, plain-language terms, troubleshooting and desktop AI setup. Completion, decline and dismissal are remembered immediately when storage succeeds; replay stays in Help. See [Learning and Help](LEARNING_AND_HELP.md) for the tour, browser storage fallback and release status.
+
 ## Reading the controls
 
 Studio Preview adds a separate editing workspace for stems, voice cleanup, spectral repair and compatible VST3 effects. It preserves the main mastering workflow above. Follow the [Studio guide](STUDIO.md) for model setup, imported stems, A/B, undo, projects and explicit exports.
@@ -39,7 +43,9 @@ Valid changes save automatically after **750 ms without another preference chang
 
 Mastering settings remain in `rust-settings.json`; the other choices use `desktop-preferences.json`. Windows keeps both in the app's portable `user_data/` directory. Linux uses the existing [XDG configuration directory](LINUX.md#user-files-and-desktop-integration).
 
-If a preference file fails to load, an error is shown and that file is preserved. Automatic saving, including the close flush, is blocked for the affected file until you explicitly use **Save settings** to replace it with the current valid choices. Write failures also show an error.
+If either of these two preference files fails to load, an error is shown and that file is preserved. Automatic saving, including the close flush, is blocked for the affected file until you explicitly use **Save settings** to replace it with the current valid choices. Write failures also show an error.
+
+The UX/learning preview separately stores Basic/Advanced and tutorial choices in `interface-preferences.json`, beside a `tutorial-dismissed.marker` that protects completed/dismissed choices from older open windows. Interface-file recovery uses **Save current interface preferences** in Help. These files share the existing settings directory and contain no audio. [Interface storage and browser fallback](LEARNING_AND_HELP.md#remembered-choices).
 
 This saves preferences, not loaded audio, prepared previews, the queue or Studio projects. Use **Save project** and reopen its `session.studio.json` to continue Studio work; exporting audio remains explicit. Browser sessions still disappear on reload/close, and MCP keeps its explicit session/project workflow. Older downloaded binaries retain their original behavior; build the current source for this fix.
 

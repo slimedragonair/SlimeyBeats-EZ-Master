@@ -4,6 +4,19 @@ SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP c
 
 Beta.3 is available in the current repository source; its binary packages have **not been published as a GitHub release**. [Build the current source](BUILDING.md). Earlier beta.2 packages retain their original nine-part import behavior. **The stable v0.4.2 Windows installer does not include MCP or session handoff.** Use the desktop binary built alongside the companion. Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
+## In-app setup preview
+
+The **in-development UX/learning preview** on `feature/ux-learning` adds this desktop route. It is pending review and not merged or released; existing public packages do not gain it automatically.
+
+1. Open bottom-right **Help** (**F1**), then **AI setup**.
+2. Choose **1. Choose audio folder…** and **2. Choose export folder…**. Authorize only the library you want the assistant to use.
+3. Select **3. Generate connection example**. The desktop calls the real companion with `--print-config` and displays its connection JSON.
+4. Use **Copy connection JSON**, add it through your AI client's supported MCP configuration, then reconnect that client. Clients with another schema need the same command and arguments.
+
+Generating the example does not edit client settings or start an MCP server connection. The AI client launches the configured local stdio server. If the companion is missing, Help explains the requirement and links to this guide; use a complete Studio Preview package or build the companion. Changing a folder invalidates the old example, so generate it again before copying.
+
+Browser **AI / MCP setup** is desktop-only guidance. The browser has no upload or localhost bridge to the companion; follow [desktop connection setup](#set-up-a-connection). The AI client's [privacy rules remain separate](#limits-and-privacy). For tour replay and remembered interface choices, see [Learning and Help](LEARNING_AND_HELP.md).
+
 ## Set up a connection
 
 Use an AI client that supports launching a **local stdio MCP server**. It launches the companion; you do not need to start a network service. No account or model subscription is required by SlimeyBeats itself; the AI client has its own requirements.
@@ -151,6 +164,8 @@ When its stdio connection closes, the companion requests cancellation and allows
 - The assistant cannot choose executable paths, run shell commands, expand its root folders or overwrite arbitrary files through these tools. Only the executable trusted at startup can be launched by desktop handoff. Do not authorize an entire drive when a smaller audio folder will do.
 
 ## Beta.3 qualification
+
+These results predate the in-development in-app setup/learning pass. They are not a final qualification matrix for that UI.
 
 Confirmed MCP results include **9 Windows / 10 Linux regressions**, live **38-tool** discovery and 24/64/100-part loose/paired-ZIP banks. Raw exports were sample-exact; a 64-part project retained IDs/faders, and a targeted edit retained the other 63 raw parts exactly. Approximately 9.6 MB combined input passed an 8 MiB per-input setting, confirming that the setting is not the whole-bank allowance. Release checks also passed full eleven-part and 96-part data/project workflows with unchanged original inputs. A fresh agent imported all 96 ZIP parts and adjusted only `part_96` without exporting; after a separate explicit request, it saved 24-bit WAV, all 96 raw stems and a self-contained project, retained the other 95 controls and closed the bridge cleanly with exit code 0. Windows MCP formatting/strict Clippy and current host/plugin null-factory, exit and cancellation checks also passed. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) for scope and remaining checks.
 

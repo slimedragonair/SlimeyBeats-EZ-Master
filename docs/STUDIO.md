@@ -2,6 +2,10 @@
 
 Studio Preview **0.5.0-beta.3** supports aligned imported stems and mix tracks with **no fixed imported-part count**, including multi-file and Suno/stem ZIP import. Practical capacity depends on hardware, decoded input and processing memory; byte/metadata safety budgets still apply. Its matching companion is **MCP 0.2.0-beta.3** and its browser Studio version is **0.3.0-beta.3**. Beta.3 is available in the current repository source; its binary packages have **not been published as a GitHub release**. [Build the current source](BUILDING.md). Earlier beta.2 packages retain their original nine-part import behavior; stable v0.4.2 does not include Studio. Preview uses a separate install identity and can coexist with stable. Existing mastering and Manual EQ remain available; preparing a preview and exporting remain separate actions.
 
+## In-development controls and Help
+
+The unmerged `feature/ux-learning` preview starts in **Basic**, with custom-setting hints and detailed controls in **Advanced**. Switching does not reset audio settings. Native Studio gives editing space to rows that pair each stem's waveform with its level/mute/solo controls; stereo balance is in Advanced. Project/import/render actions and export options remain accessible. Bottom-right **Help** (**F1** on desktop) offers a tour, terms and AI setup. This UI pass is pending review, not a released beta or a new qualification claim. [Learning, Help and storage](LEARNING_AND_HELP.md).
+
 ## Desktop workflow
 
 1. Open **Studio**, choose a local recording, or use the selected mastering-queue track. **Analyze** at the top right measures the selected Studio input.
@@ -91,6 +95,8 @@ Plugin execution additionally requires owner-configured `--plugin-root` folders;
 
 ## Beta.3 qualification
 
+These results describe the earlier beta.3 candidate; they do not qualify the in-development learning/layout changes above.
+
 Confirmed results include **115 Windows / 117 Linux native tests in the debug/test profile**, **9 Windows / 10 Linux MCP regressions**, **11 native-host web-DSP binding tests**, live 38-tool workflows with **24/64/100-part loose and paired-ZIP banks**, and release data/project checks for full eleven-part and 96-part banks. Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 complete workflow groups**. The native per-input/bank-budget distinction was exercised explicitly. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) for test configurations, fresh-agent discovery, evidence boundaries and the final independent review of the supplied native/browser states.
 
 See the separate [merge regression and availability record](MERGE_VALIDATION.md) for subsequent review fixes.
@@ -141,6 +147,8 @@ The following table records **earlier beta.1 qualification**, including model/pl
 Reproduce browser checks with `python web/tools/verify_studio_browser.py --out PATH`, selecting `--browser firefox` or `--browser webkit` as needed. `verify_studio_memory.py` exercises repeated replacement, cleanup, undo/redo and downloaded export without forcing garbage collection; `--check-limits` additionally stages the actual boundary buffers. Existing `verify_browser.py` remains the mastering/live-EQ check. CI runs the Studio suites separately. A desktop browser engine or a synthetic audio sink does not qualify a physical iPhone/Android device.
 
 ## Implementation
+
+The learning preview keeps interface state/copy separate from Studio processing and audio preferences. See the [contributor map](LEARNING_AND_HELP.md#contributor-map) for native and browser file ownership and shared-copy packaging.
 
 Shared DSP lives in `rust/src/studio`; `stem_import_plan.rs` groups alternate encodings and validates selection, while `stem_archive.rs` bounds ZIP inspection/reads. Native runtime, project and plugin adapters live in `rust/src/studio_native`; `stem_bundle.rs` extracts only selected audio and uses the existing decoder. Desktop state/jobs/controls/plots live in `rust/src/gui/studio`, with review cards in `stem_bulk_import.rs`. The VST3 worker is a separate crate in `plugins/host`. MCP Studio routes are separate from mastering routes; `stem_bundle_protocol.rs` owns ZIP inspection/import.
 
