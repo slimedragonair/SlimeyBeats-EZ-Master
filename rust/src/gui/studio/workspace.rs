@@ -118,10 +118,10 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool
                     ui.add_enabled_ui(available, |ui| super::stem_bulk_import::review(studio,ui,ctx,compact));
                 } else {
                 ui.label(theme::display("Separate. Rebalance. Refine.",24.));
-                ui.label("Import up to 9 aligned parts or separate two/four stems locally. Compare the mix and save when ready.");
+                ui.label("Combine aligned parts with no fixed track count, or separate two/four stems locally. Compare the mix and save when ready.");
                 if studio.bank.is_none(){ui.add_space(12.);ui.label(RichText::new("01  Choose stem files / a Suno ZIP, or load a music mix\n02  Import aligned parts or separate the mix locally\n03  Balance parts, compare, then export").color(theme::AMETHYST));}
                 for (kind,waveform) in &studio.stem_waveforms {
-                    ui.add_space(6.);theme::eyebrow(ui,studio.bank.as_ref().map_or(kind.name(), |bank| bank.display_name(*kind)));
+                    ui.add_space(6.);theme::eyebrow(ui,studio.bank.as_ref().map_or(kind.name(), |bank| bank.display_name(*kind)).as_ref());
                     waveform.show_labeled(ui,0.,studio.source.as_ref().map_or(1.,|s|s.audio.duration()),("STEM",""),76.);
                 }
                 }

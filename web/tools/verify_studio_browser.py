@@ -21,8 +21,8 @@ from studio_export_checks import audio_names, verify_manifest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def fixture(name, hz=440, seconds=3):
-    pcm = array.array('h', (int(2200 * math.sin(i * hz * math.tau / 48000)) for i in range(int(48000 * seconds))))
+def fixture(name, hz=440, seconds=3, amplitude=2200):
+    pcm = array.array('h', (int(amplitude * math.sin(i * hz * math.tau / 48000)) for i in range(int(48000 * seconds))))
     output = io.BytesIO()
     with wave.open(output, 'wb') as writer:
         writer.setparams((1, 2, 48000, 0, 'NONE', 'not compressed'))

@@ -1,4 +1,5 @@
-import { MULTITRACK_KINDS, STEM_KINDS, kindLabel } from "./studio-stems.js";
+import { kindLabel } from "./studio-stems.js";
+export { stemInputs } from "./studio-stem-inputs.js";
 const element = (id) => document.getElementById(`s-${id}`);
 const number = (id) => Number(element(id).value);
 export function selection() {
@@ -27,56 +28,6 @@ export function voiceSettings(defaults) {
         hold_loudness: element("hold").checked,
     };
 }
-export function stemInputs() {
-    const kinds =
-        element("mode").value === "two"
-            ? ["vocals", "instrumental"]
-            : element("mode").value === "four"
-              ? ["vocals", "drums", "bass", "other"]
-              : MULTITRACK_KINDS;
-    element("stem-files").replaceChildren(
-        ...kinds.map((kind, index) => {
-            const slot = document.createElement("div");
-            slot.className = "edit-file-slot";
-            const label = document.createElement("label"),
-                input = document.createElement("input");
-            label.append(kindLabel(kind));
-            input.type = "file";
-            input.accept = "audio/*,.wav,.mp3,.flac,.m4a";
-            input.dataset.kind = kind;
-            label.append(input);
-            if (element("mode").value === "multi") {
-                const kindField = document.createElement("label"),
-                    select = document.createElement("select");
-                kindField.textContent = `Part ${index + 1} type`;
-                select.setAttribute("aria-label", `Part ${index + 1} type`);
-                select.title =
-                    "Choose a unique type. Part 1–9 can hold any instrument or additional takes of the same instrument.";
-                select.append(
-                    ...STEM_KINDS.map(
-                        (value) => new Option(kindLabel(value), value),
-                    ),
-                );
-                select.value = kind;
-                select.onchange = () => {
-                    input.dataset.kind = select.value;
-                    label.firstChild.textContent = kindLabel(select.value);
-                };
-                kindField.append(select);
-                slot.append(kindField);
-            }
-            const clear = document.createElement("button");
-            clear.textContent = "Clear file";
-            clear.className = "s-clear-file";
-            clear.setAttribute("aria-label", `Clear part ${index + 1} file`);
-            clear.onclick = () => {
-                input.value = "";
-            };
-            slot.append(label, clear);
-            return slot;
-        }),
-    );
-}
 export function strengthReadouts() {
     for (const id of ["noise", "deess"]) {
         const input = element(id),
@@ -97,7 +48,7 @@ export function mixFaders(controls, changed, channels = 2, stemNames = {}) {
         const p = document.createElement("p");
         p.className = "muted";
         p.textContent =
-            "Import 2–9 aligned stems to enable rebalancing. Voice cleanup and repair also work on a single recording.";
+            "Import at least two aligned stems to enable rebalancing. Voice cleanup and repair also work on a single recording.";
         host.append(p);
         return;
     }

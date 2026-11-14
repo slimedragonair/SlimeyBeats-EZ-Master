@@ -10,7 +10,17 @@ Active work started November 13, 2026. The desktop remains the flagship. Existin
 4. **Optional VST3:** isolated plugin probing/processing, parameter discovery/editing, bypass and explicit render; actual compatible plugin validation; clear unsupported layout/editor/platform behavior. A bad plugin must not crash the GUI/MCP process.
 5. **Web/mobile parity:** shared Rust mixer/cleanup/repair where practical, responsive controls and bounded imports. Qualify model inference separately before exposing it as working. Native plugin binaries cannot be promised as browser features.
 
+## Imported banks and resource boundaries
+
+Imported stems/mix tracks have no fixed nine-part ceiling. Select every discovered part by default, retaining explicit review and Import. Named roles and extensible canonical `part_N` IDs are stable identities; friendly display names may repeat. Preserve IDs/names through direct edits, undo, raw manifests and self-contained projects. Automatic neural extraction remains two/four only.
+
+Native imports retain the default 512 MiB decoded allowance per input and use a separate 4 GiB aggregate decoded-bank guard. Do not reinterpret the per-input setting as the sum of the bank or regress previously supported projects. Browser Studio retains 128 MiB combined decoded PCM and a 15-minute per-track guard. These are input limits, not total RAM caps. Preserve native/browser ZIP byte limits and the 8 MiB inspection metadata budget, counting filename bytes plus 256 bytes per file/entry including ignored entries before retaining records. Existing project JSON/per-asset safeguards remain. Do not replace the removed mixer cap with another arbitrary track-count maximum.
+
+All decoded parts must have identical sample rate, channels and frames. This change does not introduce free timeline placement, beat matching, automatic alignment or new resampling controls. Keep these boundaries visible in GUI/MCP/browser help.
+
 ## Validation
+
+The [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) tracks measured larger-bank evidence; earlier nine-part beta.2 passes remain historical. Cover larger/partial banks, all-selected defaults, canonical IDs, repeated names from distinct paths, aggregate decoded limits and metadata-budget rejection, in addition to the existing workflows.
 
 Run focused deterministic audio regressions, real-model separation and actual plugin processing before claiming those workflows work. Check original hashes, alignment, finite samples, reconstructed mixes, peak protection, stale results, cancellation, file collisions and restart behavior. Test the desktop at normal/compact sizes and exercise browser changes in real engines. Independently review actual new artwork/captures where required by the project instructions; do not turn a compiler pass into a usability or listening claim.
 

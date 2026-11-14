@@ -1,15 +1,19 @@
-import { MAX_STEMS, STEM_KINDS, kindLabel } from "./studio-stems.js";
+import { kindOptions, nextPartKind, kindLabel } from "./studio-stems.js";
 const $ = (id) => document.getElementById(`s-${id}`);
 
 export class StemImporter {
     constructor() {
         this.busy = false;
         this.clear();
+        $("bulk-all").onclick = () => this.selectAll(true);
+        $("bulk-none").onclick = () => this.selectAll(false);
     }
     clear() {
         this.plan = null;
         this.files = null;
         this.archiveId = null;
+        this.selected = new Set();
+        this.kinds = [];
         $("bulk-review").hidden = true;
         $("bulk-parts").replaceChildren();
         $("bulk-action-summary").textContent = "";
@@ -21,13 +25,17 @@ export class StemImporter {
         this.plan = plan;
         this.files = files;
         this.archiveId = archiveId;
-        this.selected = new Set(
-            plan.parts.slice(0, MAX_STEMS).map((_, i) => i),
-        );
         this.kinds = plan.parts.map((part) => part.kind);
         $("bulk-format").value = "wav";
         $("bulk-omissions").open = false;
         $("bulk-review").hidden = false;
+        this.selectAll(true);
+    }
+    selectAll(included) {
+        if (!this.plan) return;
+        this.selected = new Set(
+            included ? this.plan.parts.map((_, i) => i) : [],
+        );
         this.render();
     }
     selection() {
@@ -38,13 +46,17 @@ export class StemImporter {
             .map((index) => {
                 const part = this.plan.parts[index];
                 const version = this.version(part, preferred);
-                return { kind: this.kinds[index], version };
+                return {
+                    kind: this.kinds[index],
+                    display_name: part.name,
+                    version,
+                };
             });
-        if (chosen.length < 2 || chosen.length > MAX_STEMS)
-            throw new Error("Select 2–9 distinct parts.");
+        if (chosen.length < 2)
+            throw new Error("Select at least two distinct parts.");
         if (new Set(chosen.map((part) => part.kind)).size !== chosen.length)
             throw new Error(
-                "Part types must be unique. Use Part 1–9 for extra instruments.",
+                "Part types must be unique. Use separate numbered parts for extra instruments.",
             );
         return chosen;
     }
@@ -58,7 +70,7 @@ export class StemImporter {
     render() {
         const preferred = $("bulk-format").value;
         $("bulk-summary").textContent =
-            `${this.plan.parts.length} distinct parts · ${this.selected.size} / ${MAX_STEMS} selected · ${this.plan.skipped_files} non-audio/metadata files skipped`;
+            `${this.plan.parts.length} distinct parts · ${this.selected.size} / ${this.plan.parts.length} selected · ${this.plan.skipped_files} non-audio/metadata files skipped`;
         const fallbackCount = [...this.selected].filter(
             (index) =>
                 this.version(this.plan.parts[index], preferred).format !==
@@ -68,7 +80,7 @@ export class StemImporter {
             (_, index) => !this.selected.has(index),
         );
         $("bulk-action-summary").textContent =
-            `${this.plan.parts.length} found · ${this.selected.size} / ${MAX_STEMS} selected` +
+            `${this.plan.parts.length} found · ${this.selected.size} / ${this.plan.parts.length} selected` +
             `${omitted.length ? ` · ${omitted.length} not selected` : ""} · Prefer ${preferred.toUpperCase()}. ` +
             (fallbackCount
                 ? `${fallbackCount} selected ${fallbackCount === 1 ? "part uses" : "parts use"} the available-format fallback.`
@@ -93,6 +105,7 @@ export class StemImporter {
                 return item;
             }),
         );
+        const options = kindOptions(this.kinds);
         $("bulk-parts").replaceChildren(
             ...this.plan.parts.map((part, index) => {
                 const row = document.createElement("div"),
@@ -103,8 +116,7 @@ export class StemImporter {
                 row.className = "edit-bulk-part";
                 check.type = "checkbox";
                 check.checked = this.selected.has(index);
-                check.disabled =
-                    !check.checked && this.selected.size >= MAX_STEMS;
+                check.disabled = this.busy;
                 check.setAttribute("aria-label", `Include ${part.name}`);
                 check.onchange = () => {
                     if (check.checked) {
@@ -112,12 +124,7 @@ export class StemImporter {
                             [...this.selected].map((i) => this.kinds[i]),
                         );
                         if (used.has(this.kinds[index]))
-                            this.kinds[index] =
-                                STEM_KINDS.find(
-                                    (kind) =>
-                                        kind.startsWith("part_") &&
-                                        !used.has(kind),
-                                ) || this.kinds[index];
+                            this.kinds[index] = nextPartKind(used);
                         this.selected.add(index);
                     } else this.selected.delete(index);
                     this.render();
@@ -125,9 +132,7 @@ export class StemImporter {
                 label.append(check, part.name);
                 select.setAttribute("aria-label", `${part.name} part type`);
                 select.append(
-                    ...STEM_KINDS.map(
-                        (kind) => new Option(kindLabel(kind), kind),
-                    ),
+                    ...options.map((kind) => new Option(kindLabel(kind), kind)),
                 );
                 select.value = this.kinds[index];
                 select.disabled = !check.checked;
@@ -155,8 +160,7 @@ export class StemImporter {
     sync(busy) {
         this.busy = busy;
         for (const input of $("bulk-parts").querySelectorAll("input"))
-            input.disabled =
-                busy || (!input.checked && this.selected.size >= MAX_STEMS);
+            input.disabled = busy;
         for (const [index, input] of [
             ...$("bulk-parts").querySelectorAll("select"),
         ].entries())
@@ -165,7 +169,10 @@ export class StemImporter {
             "bulk-choose",
             "zip-choose",
             "bulk-discard",
+            "bulk-all",
+            "bulk-none",
             "import-batch",
+            "add-part",
         ])
             $(id).disabled = busy;
         $("import-batch").disabled ||= !this.plan || this.selected.size < 2;

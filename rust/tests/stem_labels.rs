@@ -108,7 +108,7 @@ fn final_suno_role_overrides_instrument_and_voice_words_in_song_titles() {
 }
 
 #[test]
-fn eleven_suno_filename_parts_default_to_core_nine_and_keep_raw_entry_indices() {
+fn eleven_suno_filename_parts_keep_role_order_and_raw_entry_indices() {
     let names = [
         "Song (Backing Vocals).wav",
         "Song (Bass).wav",
@@ -199,7 +199,12 @@ fn eleven_suno_filename_parts_default_to_core_nine_and_keep_raw_entry_indices() 
             kind: None,
         })
         .collect();
-    assert!(stem_import_plan::select(&inspected, &all, &PreferredFormat::Wav).is_err());
+    assert_eq!(
+        stem_import_plan::select(&inspected, &all, &PreferredFormat::Wav)
+            .unwrap()
+            .len(),
+        11
+    );
     let paired = plan_names_with_alternate_encodings();
     assert_eq!(paired.parts.len(), 2);
     assert!(paired.parts.iter().all(|part| part.versions.len() == 2));
@@ -409,7 +414,7 @@ fn loose_and_zip_imports_use_original_basenames_and_raw_manifest_keeps_stable_fi
         for entry in export["manifest"]["stems"].as_array().unwrap() {
             let kind: StemKind = serde_json::from_value(entry["kind"].clone()).unwrap();
             assert_eq!(entry["file"], format!("{}.wav", kind.name()));
-            assert_eq!(entry["display_name"], imported.display_name(kind));
+            assert_eq!(entry["display_name"], imported.display_name(kind).as_ref());
             assert_eq!(
                 imported.track(kind).unwrap().audio.samples,
                 expected.track(kind).unwrap().audio.samples

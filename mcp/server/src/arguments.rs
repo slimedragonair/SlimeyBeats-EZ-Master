@@ -13,7 +13,7 @@ pub struct Arguments {
     /// Dedicated folder for new exports, session files and temporary previews.
     #[arg(long)]
     pub output_root: PathBuf,
-    /// Maximum decoded input PCM size; processing needs additional memory.
+    /// Maximum decoded PCM size per input; the native stem bank has a separate memory budget.
     #[arg(long, default_value_t = 512, value_parser = clap::value_parser!(u32).range(8..=4096))]
     pub max_decoded_mib: u32,
     /// Timeout for an individual external decoder/probe process.

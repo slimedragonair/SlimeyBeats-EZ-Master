@@ -22,10 +22,10 @@ def verify(server, desktop=None, evidence=None):
         client = Client([str(server), '--input-root', str(root), '--output-root', str(output)])
         try:
             caps = client.call('get_capabilities')['stem_import']
-            assert caps['maximum'] == 9 and 'part_9' in caps['kinds'] and 'guitar' in caps['kinds']
+            assert caps['maximum'] is None and 'part_9' in caps['kinds'] and 'guitar' in caps['kinds']
             tools = client.request('tools/list', {})['result']['tools']
             tool = next(t for t in tools if t['name'] == 'import_stems')
-            assert '2–9' in tool['description'] and 'part_9' in json.dumps(tool['inputSchema'])
+            assert 'at least two' in tool['description'] and 'part_N' in json.dumps(tool['inputSchema'])
             files = [{'kind': kind, 'library': 0, 'path': kind + '.wav'} for kind in kinds]
             imported = client.run('import_stems', {'files': files})
             bank = imported['stem_set']['stem_set_id']
@@ -45,7 +45,7 @@ def verify(server, desktop=None, evidence=None):
             current = client.call('get_studio_session')
             assert len(current['stem_set']['controls']['tracks']) == 9
             preview_id = current['preview']['studio_preview_id']
-            # Count and identity errors must not replace an existing workspace.
+            # Missing paths and duplicate identities must not replace a workspace.
             client.call('import_stems', {'files': files + [{'kind': 'other', 'library': 0, 'path': 'missing.wav'}]}, error=True)
             client.call('import_stems', {'files': files[:-1] + [files[0]]}, error=True)
             assert client.call('get_studio_session')['preview']['studio_preview_id'] == preview_id
@@ -58,7 +58,7 @@ def verify(server, desktop=None, evidence=None):
         finally:
             client.close()
         result = {'discovery_and_schema': True, 'nine_import_edit_mix_export': True,
-                  'other_eight_parts_exact': True, 'tenth_and_duplicate_preserve_preview': True, 'project_nine_parts': True}
+                  'other_eight_parts_exact': True, 'missing_path_and_duplicate_preserve_preview': True, 'project_nine_parts': True}
         if desktop:
             # Reopen without any of the external source stems.
             for kind in kinds:

@@ -1,19 +1,26 @@
 import { StemImporter } from "./studio-importer.js";
-import { stemInputs } from "./studio-controls.js";
-import { MAX_STEMS } from "./studio-stems.js";
+import { stemInputs, addStemInput } from "./studio-stem-inputs.js";
 import { interleave } from "./dsp-client.js";
 const $ = (id) => document.getElementById(`s-${id}`);
 
-export function wireStemImport({ client, playback, job, mutate, isCancelled, notice }) {
+export function wireStemImport({
+    client,
+    playback,
+    job,
+    mutate,
+    isCancelled,
+    notice,
+}) {
     const importer = new StemImporter();
     stemInputs();
     $("mode").onchange = stemInputs;
+    $("add-part").onclick = addStemInput;
     async function decode(entries) {
-        if (entries.length < 2 || entries.length > MAX_STEMS)
-            throw new Error("Choose 2–9 aligned stem files.");
+        if (entries.length < 2)
+            throw new Error("Choose at least two aligned stem files.");
         if (new Set(entries.map((part) => part.kind)).size !== entries.length)
             throw new Error(
-                "Each stem type must be unique. Use Part 1–9 for extra parts of the same instrument.",
+                "Each stem type must be unique. Use separate numbered parts for additional takes of the same instrument.",
             );
         const stems = [];
         let bytes = 0;
@@ -30,7 +37,12 @@ export function wireStemImport({ client, playback, job, mutate, isCancelled, not
                 );
             stems.push({
                 kind: entry.kind,
-                display_name: file.name.split(/[\\/]/).at(-1).replace(/\.[^.]+$/, ""),
+                display_name:
+                    entry.display_name ??
+                    file.name
+                        .split(/[\\/]/)
+                        .at(-1)
+                        .replace(/\.[^.]+$/, ""),
                 samples: interleave(buffer),
                 rate: buffer.sampleRate,
                 channels: buffer.numberOfChannels,
@@ -61,7 +73,9 @@ export function wireStemImport({ client, playback, job, mutate, isCancelled, not
                 await client.call("archive-close");
                 if (isCancelled()) return;
                 importer.open(plan, files);
-                notice(`Review ${plan.parts.length} parts, then import when ready`);
+                notice(
+                    `Review ${plan.parts.length} parts, then import when ready`,
+                );
             }
         });
     const openZip = (file) =>
@@ -78,7 +92,9 @@ export function wireStemImport({ client, playback, job, mutate, isCancelled, not
             ]);
             if (!isCancelled()) {
                 importer.open(result.plan, null, result.archive_id);
-                notice(`Review ${result.plan.parts.length} parts, then import when ready`);
+                notice(
+                    `Review ${result.plan.parts.length} parts, then import when ready`,
+                );
             }
         });
     $("bulk-choose").onclick = () => $("bulk-files").click();
@@ -105,6 +121,7 @@ export function wireStemImport({ client, playback, job, mutate, isCancelled, not
             const accepted = await decode(
                 parts.map((part) => ({
                     kind: part.kind,
+                    display_name: part.display_name,
                     read: () => importer.file(part, client),
                 })),
             );
@@ -131,7 +148,7 @@ export function wireStemImport({ client, playback, job, mutate, isCancelled, not
             const chosen = inputs.filter((input) => input.files[0]);
             if ($("mode").value !== "multi" && chosen.length !== inputs.length)
                 throw new Error(
-                    "Choose every file for this preset, or select Up to 9 stems and leave unused slots empty.",
+                    "Choose every file for this preset, or select Custom stem set and leave unused slots empty.",
                 );
             await decode(
                 chosen.map((input) => ({

@@ -1,6 +1,6 @@
 use mastercraft::{
     audio::Audio,
-    studio::stem_mix::{self, MAX_STEMS, Stem, StemKind, StemSet},
+    studio::stem_mix::{self, Stem, StemKind, StemSet},
     studio_native::{
         session::{self, StudioDocument, StudioSnapshot},
         stem_files,
@@ -37,9 +37,9 @@ fn bank() -> StemSet {
 }
 
 #[test]
-fn nine_parts_mix_independently_and_count_identity_guards_still_hold() {
+fn nine_parts_mix_independently_and_identity_guards_still_hold() {
     let bank = bank();
-    assert_eq!(bank.tracks.len(), MAX_STEMS);
+    assert_eq!(bank.tracks.len(), StemKind::MULTITRACK.len());
     let mut mix = bank.defaults();
     mix.protect_peaks = false;
     let rendered = stem_mix::render(&bank, &mix, &|| false).unwrap();
@@ -90,13 +90,7 @@ fn nine_parts_mix_independently_and_count_identity_guards_still_hold() {
         kind: StemKind::Instrumental,
         audio: bank.tracks[0].audio.clone(),
     });
-    assert!(
-        StemSet::new(too_many)
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("nine")
-    );
+    assert_eq!(StemSet::new(too_many).unwrap().tracks.len(), 10);
     let mut duplicate = bank.tracks.clone();
     duplicate[8].kind = duplicate[0].kind;
     assert!(StemSet::new(duplicate).is_err());
@@ -107,12 +101,12 @@ fn nine_parts_mix_independently_and_count_identity_guards_still_hold() {
         )
         .is_err()
     );
-    // A larger imported-bank cap must not expand the model's extraction contract.
+    // Extensible imported banks must not expand the model's extraction contract.
     assert!(stem_mix::consistent(&bank.tracks[0].audio, bank.tracks.clone(), false).is_err());
     for kind in StemKind::ALL {
-        assert_eq!(serde_json::to_value(kind).unwrap(), kind.name());
+        assert_eq!(serde_json::to_value(kind).unwrap(), kind.name().as_ref());
         assert_eq!(
-            serde_json::from_value::<StemKind>(kind.name().into()).unwrap(),
+            serde_json::from_value::<StemKind>(kind.name().into_owned().into()).unwrap(),
             kind
         );
     }
@@ -172,11 +166,11 @@ fn nine_parts_export_reimport_and_reopen_with_mix_and_direct_edit_identity() {
             stem.audio.samples
         );
     }
-    // Reject a tenth project asset before trying to read it.
+    // Reject a repeated identity before trying to read its missing asset.
     let mut document: StudioDocument =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     let mut extra = document.stems[0].clone();
-    extra.kind = StemKind::Instrumental;
+    extra.kind = document.stems[0].kind;
     extra.file.name = "missing-extra.wav".into();
     document.stems.push(extra);
     std::fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
@@ -185,6 +179,6 @@ fn nine_parts_export_reimport_and_reopen_with_mix_and_direct_edit_identity() {
             .err()
             .unwrap()
             .to_string()
-            .contains("too many assets")
+            .contains("unique")
     );
 }

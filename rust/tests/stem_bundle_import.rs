@@ -3,7 +3,6 @@ use mastercraft::{
     studio::{
         stem_archive,
         stem_import_plan::{self, PartSelection, PreferredFormat},
-        stem_mix::MAX_STEMS,
     },
     studio_native::stem_bundle::PreparedImport,
 };
@@ -108,7 +107,7 @@ fn suno_pairs_are_one_part_and_only_the_preferred_encoding_is_read() {
 }
 
 #[test]
-fn more_than_nine_parts_remain_available_for_explicit_selection() {
+fn larger_banks_remain_available_for_all_or_explicit_selection() {
     let audio = wav(0.03);
     let names: Vec<_> = (0..12).map(|i| format!("guitar take {i:02}.wav")).collect();
     let entries: Vec<_> = names
@@ -118,7 +117,12 @@ fn more_than_nine_parts_remain_available_for_explicit_selection() {
     let bytes = archive(&entries);
     let plan = stem_archive::inspect(Cursor::new(&bytes), 1024 * 1024).unwrap();
     assert_eq!(plan.parts.len(), 12);
-    assert!(stem_import_plan::select(&plan, &selection(10), &PreferredFormat::Wav).is_err());
+    assert_eq!(
+        stem_import_plan::select(&plan, &selection(12), &PreferredFormat::Wav)
+            .unwrap()
+            .len(),
+        12
+    );
     let last_nine: Vec<_> = (3..12)
         .map(|part_index| PartSelection {
             part_index,
@@ -126,7 +130,7 @@ fn more_than_nine_parts_remain_available_for_explicit_selection() {
         })
         .collect();
     let picked = stem_import_plan::select(&plan, &last_nine, &PreferredFormat::Wav).unwrap();
-    assert_eq!(picked.len(), MAX_STEMS);
+    assert_eq!(picked.len(), 9);
     assert_eq!(
         picked
             .iter()
@@ -198,11 +202,22 @@ fn unsafe_ambiguous_oversized_and_changed_archives_fail_without_extracting() {
             "{bad}"
         );
     }
+    let distinct = stem_archive::inspect(
+        Cursor::new(archive(&[
+            ("a/guitar.wav", b"one"),
+            ("b/guitar.wav", b"two"),
+        ])),
+        1024,
+    )
+    .unwrap();
+    assert_eq!(distinct.parts.len(), 2);
+    assert_ne!(distinct.parts[0].kind, distinct.parts[1].kind);
+    assert_ne!(distinct.parts[0].name, distinct.parts[1].name);
     assert!(
         stem_archive::inspect(
             Cursor::new(archive(&[
-                ("a/guitar.wav", b"one"),
-                ("b/guitar.wav", b"two")
+                ("WAV/guitar.wav", b"one"),
+                ("guitar.wav", b"two")
             ])),
             1024
         )

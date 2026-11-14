@@ -1,8 +1,10 @@
 # MCP preview validation
 
-The companion is a development preview. Validation targets the real stdio transport and shared desktop DSP; it does not establish that every AI client is configured correctly or that an assistant can hear audio from measurements.
+The companion is a development preview. The beta.3 follow-up removes the fixed imported-part ceiling, selects all inspected parts by default and uses extensible `part_N` IDs with separate per-input, bank-memory and metadata budgets. **9 Windows / 10 Linux MCP regressions passed**, along with formatting and strict Clippy. A fresh agent completed the separately authorized 96-part preview and export/save phases, closing the bridge cleanly with exit code 0. Live 38-tool checks covered 24/64/100-part loose banks and paired ZIPs, sample-exact raw exports, 64-part project/edit preservation and per-input-limit semantics. Debug/release protocol and fresh-agent results are scoped in the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md). The tables below remain historical.
 
-**Studio development update:** the current companion exposes **36 tools**, adding original/stem/preview analysis, model/imported stems, cleanup, repair, optional VST3 effects, explicit stem/audio saving, projects and mastering promotion. The historical baseline table below concerns the earlier mastering companion. Current Studio results and remaining qualification are maintained in the [Studio guide](STUDIO.md#validation-status--november-13-2026), including real model processing, worker-fault containment, latency, source preservation and a second discovery-only fresh-agent workflow.
+The following historical validation targets the real stdio transport and shared desktop DSP; it does not establish that every AI client is configured correctly or that an assistant can hear audio from measurements.
+
+**Studio development update:** the companion exposes **38 tools**, adding original/stem/preview analysis, model/imported stems, cleanup, repair, optional VST3 effects, explicit stem/audio saving, projects and mastering promotion. The historical baseline table below concerns the earlier mastering companion. Current Studio results and remaining qualification are maintained in the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md), including real model processing, worker-fault containment, latency, source preservation and a second discovery-only fresh-agent workflow.
 
 ## Local results — November 13, 2026
 

@@ -2,7 +2,7 @@
 use crate::{
     audio::Audio,
     source_identity::SourceIdentity,
-    studio::stem_mix::{MAX_STEMS, MixSettings, Stem, StemKind, StemSet},
+    studio::stem_mix::{self, MixSettings, Stem, StemKind, StemSet},
 };
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
@@ -75,8 +75,8 @@ impl StudioDocument {
             "Unsupported Studio document"
         );
         ensure!(
-            document.stems.len() <= MAX_STEMS && document.notes.len() <= 64,
-            "Studio document has too many assets/notes"
+            document.notes.len() <= 64,
+            "Studio document has too many notes"
         );
         ensure!(
             document.source_name.len() <= 512
@@ -88,6 +88,9 @@ impl StudioDocument {
             ["stems", "voice", "repair", "plugins"].contains(&document.view.as_str()),
             "Unknown Studio view"
         );
+        if !document.stems.is_empty() {
+            stem_mix::validate_kinds(document.stems.iter().map(|stem| stem.kind))?;
+        }
         let root = path
             .parent()
             .context("Studio document has no directory")?
@@ -110,16 +113,20 @@ impl StudioDocument {
         let stems = if document.stems.is_empty() {
             None
         } else {
-            let tracks = document
-                .stems
-                .iter()
-                .map(|s| {
-                    Ok(Stem {
-                        kind: s.kind,
-                        audio: Arc::new(read(&root, &s.file)?),
-                    })
-                })
-                .collect::<Result<Vec<_>>>()?;
+            let mut tracks = Vec::new();
+            let mut remaining = super::stem_files::DEFAULT_BANK_DECODED_BYTES;
+            for stem in &document.stems {
+                let limit = super::stem_files::DEFAULT_INPUT_DECODED_BYTES
+                    .min(remaining.min(usize::MAX as u64) as usize);
+                let audio = read_with_limit(&root, &stem.file, limit)?;
+                remaining = remaining
+                    .checked_sub(audio.samples.len() as u64 * size_of::<f32>() as u64)
+                    .context("Studio stems exceed the decoded bank memory budget")?;
+                tracks.push(Stem {
+                    kind: stem.kind,
+                    audio: Arc::new(audio),
+                });
+            }
             let mut bank = StemSet::new(tracks)?;
             for stem in &document.stems {
                 if let Some(name) = &stem.display_name {
@@ -164,6 +171,9 @@ impl StudioDocument {
     }
 }
 fn read(root: &Path, file: &AssetFile) -> Result<Audio> {
+    read_with_limit(root, file, super::stem_files::DEFAULT_INPUT_DECODED_BYTES)
+}
+fn read_with_limit(root: &Path, file: &AssetFile, max_decoded_bytes: usize) -> Result<Audio> {
     let name = Path::new(&file.name);
     ensure!(
         name.components().count() == 1
@@ -185,7 +195,7 @@ fn read(root: &Path, file: &AssetFile) -> Result<Audio> {
     file.identity.verify(&path)?;
     let (audio, _) = super::audio_import::load(
         &path,
-        512 * 1024 * 1024,
+        max_decoded_bytes,
         std::time::Duration::from_secs(30),
         Arc::new(std::sync::atomic::AtomicBool::new(false)),
     )?;
@@ -230,7 +240,7 @@ pub fn save(
         for stem in &bank.tracks {
             stems.push(StemFile {
                 kind: stem.kind,
-                display_name: Some(bank.display_name(stem.kind).to_owned()),
+                display_name: Some(bank.display_name(stem.kind).into_owned()),
                 file: write(&format!("stem-{}.wav", stem.kind.name()), &stem.audio)?,
             });
         }

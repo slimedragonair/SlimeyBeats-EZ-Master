@@ -39,7 +39,7 @@ pub struct ApplyStem {
 #[tool_router(router=stem_router,vis="pub(crate)")]
 impl Companion {
     #[tool(
-        description = "Import 2–9 aligned user stems from authorized audio libraries without a neural model. Assign unique kinds: vocals, instrumental, drums, bass, other, guitar, piano, synth, strings, percussion, or part_1 through part_9 for extra/custom parts. Rates, channels and frames must match; no hidden trimming/resampling. Replaces only Studio, creating a temporary mix. Poll; export is separate. Automatic model extraction remains two/four stems.",
+        description = "Import at least two aligned user stems from authorized audio libraries without a neural model. No fixed stem-count cap; configured per-input decoded-audio limits (default 512 MiB), a separate native bank budget (4 GiB), timeout and available-memory limits apply. Assign unique kinds: vocals, instrumental, drums, bass, other, guitar, piano, synth, strings, percussion, or canonical part_N (positive decimal integer, e.g. part_10, part_24, part_64) for extra/custom parts. Do not reuse IDs. Rates, channels and frames must match; no hidden trimming/resampling. Replaces only Studio, creating a temporary mix. Poll; export is separate. Automatic model extraction remains two/four stems.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn import_stems(

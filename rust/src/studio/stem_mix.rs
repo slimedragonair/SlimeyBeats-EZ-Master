@@ -1,16 +1,14 @@
 use crate::{audio::Audio, dsp::limiter, meters::lin};
 use anyhow::{Context, Result, ensure};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, BTreeSet},
+    str::FromStr,
     sync::Arc,
 };
 
-pub const MAX_STEMS: usize = 9;
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "schemas", derive(schemars::JsonSchema))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StemKind {
     Vocals,
     Instrumental,
@@ -22,27 +20,20 @@ pub enum StemKind {
     Synth,
     Strings,
     Percussion,
-    #[serde(rename = "part_1")]
     Part1,
-    #[serde(rename = "part_2")]
     Part2,
-    #[serde(rename = "part_3")]
     Part3,
-    #[serde(rename = "part_4")]
     Part4,
-    #[serde(rename = "part_5")]
     Part5,
-    #[serde(rename = "part_6")]
     Part6,
-    #[serde(rename = "part_7")]
     Part7,
-    #[serde(rename = "part_8")]
     Part8,
-    #[serde(rename = "part_9")]
     Part9,
+    /// Numbered identities above the legacy part_1 through part_9 variants.
+    ExtraPart(u32),
 }
 impl StemKind {
-    pub const MULTITRACK: [Self; MAX_STEMS] = [
+    pub const MULTITRACK: [Self; 9] = [
         Self::Vocals,
         Self::Drums,
         Self::Bass,
@@ -53,6 +44,7 @@ impl StemKind {
         Self::Percussion,
         Self::Other,
     ];
+    /// Common choices only; numbered identities are extensible.
     pub const ALL: [Self; 19] = [
         Self::Vocals,
         Self::Instrumental,
@@ -74,8 +66,8 @@ impl StemKind {
         Self::Part8,
         Self::Part9,
     ];
-    pub fn name(self) -> &'static str {
-        match self {
+    pub fn name(self) -> Cow<'static, str> {
+        Cow::Borrowed(match self {
             Self::Vocals => "vocals",
             Self::Instrumental => "instrumental",
             Self::Drums => "drums",
@@ -95,7 +87,87 @@ impl StemKind {
             Self::Part7 => "part_7",
             Self::Part8 => "part_8",
             Self::Part9 => "part_9",
+            Self::ExtraPart(index) => return Cow::Owned(format!("part_{index}")),
+        })
+    }
+    pub fn part(index: u32) -> Result<Self> {
+        Ok(match index {
+            0 => anyhow::bail!("Stem part indices start at 1"),
+            1 => Self::Part1,
+            2 => Self::Part2,
+            3 => Self::Part3,
+            4 => Self::Part4,
+            5 => Self::Part5,
+            6 => Self::Part6,
+            7 => Self::Part7,
+            8 => Self::Part8,
+            9 => Self::Part9,
+            index => Self::ExtraPart(index),
+        })
+    }
+    fn validate(self) -> Result<()> {
+        ensure!(
+            !matches!(self, Self::ExtraPart(0..=9)),
+            "ExtraPart identities must use an index of at least 10"
+        );
+        Ok(())
+    }
+}
+impl FromStr for StemKind {
+    type Err = anyhow::Error;
+    fn from_str(name: &str) -> Result<Self> {
+        if let Some(kind) = Self::ALL.into_iter().find(|kind| kind.name() == name) {
+            return Ok(kind);
         }
+        if let Some(number) = name.strip_prefix("part_") {
+            ensure!(
+                !number.starts_with('0')
+                    && !number.is_empty()
+                    && number.bytes().all(|c| c.is_ascii_digit()),
+                "Stem IDs must be canonical part_N strings with N from 1 to 4294967295"
+            );
+            return Self::part(
+                number
+                    .parse::<u32>()
+                    .map_err(|_| anyhow::anyhow!("Stem part index exceeds 4294967295"))?,
+            );
+        }
+        anyhow::bail!("Unknown stem ID: {name}")
+    }
+}
+impl Serialize for StemKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        self.validate().map_err(serde::ser::Error::custom)?;
+        serializer.serialize_str(&self.name())
+    }
+}
+impl<'de> Deserialize<'de> for StemKind {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(serde::de::Error::custom)
+    }
+}
+// The ten-digit alternatives bound the schema to u32::MAX, matching parsing.
+#[cfg(feature = "schemas")]
+const STEM_ID_PATTERN: &str = concat!(
+    "^(?:vocals|instrumental|drums|bass|other|guitar|piano|synth|strings|percussion|part_(?:",
+    "[1-9][0-9]{0,8}|[1-3][0-9]{9}|4[01][0-9]{8}|42[0-8][0-9]{7}|429[0-3][0-9]{6}|",
+    "4294[0-8][0-9]{5}|42949[0-5][0-9]{4}|429496[0-6][0-9]{3}|4294967[01][0-9]{2}|",
+    "42949672[0-8][0-9]|429496729[0-5]))$"
+);
+
+#[cfg(feature = "schemas")]
+impl schemars::JsonSchema for StemKind {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("StemKind")
+    }
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "type": "string",
+            "pattern": STEM_ID_PATTERN,
+            "description": "Stable stem identity: a named kind or canonical part_N, N from 1 through 4294967295. Numbered IDs do not change the two/four-stem model contract."
+        })
     }
 }
 
@@ -103,13 +175,13 @@ impl StemKind {
 pub fn validate_kinds(kinds: impl IntoIterator<Item = StemKind>) -> Result<()> {
     let mut names = BTreeSet::new();
     for kind in kinds {
+        kind.validate()?;
         ensure!(
             names.insert(kind),
-            "Each stem kind must be unique; use part_1 through part_9 for additional parts of the same instrument"
+            "Each stem kind must be unique; use distinct part_N IDs for additional parts of the same instrument"
         );
-        ensure!(names.len() <= MAX_STEMS, "Import two to nine aligned stems");
     }
-    ensure!(names.len() >= 2, "Import two to nine aligned stems");
+    ensure!(names.len() >= 2, "Import at least two aligned stems");
     Ok(())
 }
 
@@ -156,11 +228,11 @@ impl StemSet {
         self.display_names.insert(kind, name);
         Ok(())
     }
-    pub fn display_name(&self, kind: StemKind) -> &str {
+    pub fn display_name(&self, kind: StemKind) -> Cow<'_, str> {
         self.display_names
             .get(&kind)
-            .map(String::as_str)
-            .unwrap_or(kind.name())
+            .map(|name| Cow::Borrowed(name.as_str()))
+            .unwrap_or_else(|| kind.name())
     }
     pub fn track(&self, kind: StemKind) -> Result<&Stem> {
         self.tracks

@@ -125,10 +125,36 @@ def verify_bundle(page, ready, save, fixture, out, capture):
     assert any(chunk(compressed_bank.read(name), b'data') != chunk(bank.read(name), b'data') for name in bank_audio)
     assert all(len(chunk(compressed_bank.read(name), b'data')) == len(chunk(bank.read(name), b'data')) for name in bank_audio)
 
+    # Same-basename clips from separate songs must retain both source identity and PCM.
+    songs = {'SongA': files[:2], 'SongB': files[2:4]}
+    song_zip = io.BytesIO()
+    with zipfile.ZipFile(song_zip, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for song, pair in songs.items():
+            for file in pair:
+                extension = file['name'].rsplit('.', 1)[1]
+                archive.writestr(f'{song}/{extension.upper()}/Vocals.{extension}', file['buffer'])
+    page.locator('#s-zip-file').set_input_files({'name': 'Two songs.zip', 'mimeType': 'application/zip', 'buffer': song_zip.getvalue()})
+    review_ready(page, 2)
+    expect(page.locator('.edit-bulk-part input:checked')).to_have_count(2)
+    page.locator('#s-import-batch').click()
+    ready()
+    expect(page.locator('.edit-fader')).to_have_count(2)
+    assert set(page.locator('.edit-fader strong').all_text_contents()) == {'SongA / Vocals', 'SongB / Vocals'}
+    song_bank = zipfile.ZipFile(io.BytesIO(save('#s-export-stems', 'two-song-vocals.zip')))
+    song_manifest = verify_manifest(song_bank)
+    named_songs = {stem['display_name']: stem for stem in song_manifest['stems']}
+    assert set(named_songs) == {'SongA / Vocals', 'SongB / Vocals'}
+    for song, pair in songs.items():
+        assert chunk(song_bank.read(named_songs[f'{song} / Vocals']['file']), b'data') == chunk(bank.read(pair[0]['name']), b'data')
+
     many = [fixture(f'guitar take {index:02}.wav', 200 + index * 100) for index in range(12)]
     page.locator('#s-zip-file').set_input_files(zipped(many[:-1]))
     review_ready(page, 11)
-    expect(page.locator('#s-bulk-action-summary')).to_contain_text('11 found · 9 / 9 selected · 2 not selected')
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('11 found · 11 / 11 selected')
+    expect(page.locator('#s-bulk-omissions')).to_be_hidden()
+    page.get_by_role('checkbox', name='Include guitar take 09', exact=True).uncheck()
+    page.get_by_role('checkbox', name='Include guitar take 10', exact=True).uncheck()
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('11 found · 9 / 11 selected · 2 not selected')
     expect(page.locator('#s-bulk-omitted-parts li')).to_have_text(['guitar take 09', 'guitar take 10'])
     page.locator('#s-bulk-omitted-summary').focus()
     page.locator('#s-bulk-omitted-summary').press('Enter')
@@ -142,21 +168,24 @@ def verify_bundle(page, ready, save, fixture, out, capture):
     page.set_viewport_size({'width': 1480, 'height': 1000})
     page.locator('#s-zip-file').set_input_files(zipped(many))
     review_ready(page, 12)
-    expect(page.get_by_role('checkbox', name='Include guitar take 11', exact=True)).to_be_disabled()
+    expect(page.get_by_role('checkbox', name='Include guitar take 11', exact=True)).to_be_checked()
+    expect(page.get_by_role('checkbox', name='Include guitar take 11', exact=True)).to_be_enabled()
     page.get_by_role('checkbox', name='Include guitar take 00', exact=True).uncheck()
-    page.get_by_role('checkbox', name='Include guitar take 11', exact=True).check()
-    expect(page.locator('#s-bulk-summary')).to_contain_text('9 / 9 selected')
+    expect(page.locator('#s-bulk-summary')).to_contain_text('11 / 12 selected')
+    page.get_by_role('checkbox', name='Include guitar take 00', exact=True).check()
+    expect(page.locator('#s-bulk-summary')).to_contain_text('12 / 12 selected')
     page.set_viewport_size({'width': 390, 'height': 844})
-    expect(page.locator('#s-bulk-action-summary')).to_contain_text('12 found · 9 / 9 selected · 3 not selected')
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('12 found · 12 / 12 selected')
     expect(page.locator('#s-bulk-action-summary')).to_contain_text('Prefer WAV')
-    expect(page.locator('#s-bulk-omitted-parts li')).to_have_text(['guitar take 00', 'guitar take 09', 'guitar take 10'])
+    expect(page.locator('#s-bulk-omissions')).to_be_hidden()
     page.get_by_role('checkbox', name='Include guitar take 11', exact=True).uncheck()
-    expect(page.locator('#s-bulk-action-summary')).to_contain_text('8 / 9 selected')
-    expect(page.locator('#s-bulk-action-summary')).to_contain_text('4 not selected')
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('11 / 12 selected')
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('1 not selected')
+    expect(page.locator('#s-bulk-omitted-parts li')).to_have_text(['guitar take 11'])
     page.get_by_role('checkbox', name='Include guitar take 11', exact=True).check()
     page.locator('#s-bulk-format').select_option('mp3')
     expect(page.locator('#s-bulk-action-summary')).to_contain_text('Prefer MP3')
-    expect(page.locator('#s-bulk-action-summary')).to_contain_text('9 selected parts use the available-format fallback')
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('12 selected parts use the available-format fallback')
     page.locator('#s-bulk-format').select_option('wav')
     verify_import_hit(page, out, 'phone-twelve')
     expect(page.locator('#s-bulk-action-summary')).to_be_in_viewport()
@@ -166,24 +195,44 @@ def verify_bundle(page, ready, save, fixture, out, capture):
     ready()
     expect(page.locator('#s-bulk-review')).to_be_hidden()
     page.set_viewport_size({'width': 1480, 'height': 1000})
-    expect(page.locator('.edit-fader')).to_have_count(9)
+    expect(page.locator('.edit-fader')).to_have_count(12)
     names = page.locator('.edit-fader strong').all_text_contents()
-    assert 'guitar take 11' in names and 'guitar take 00' not in names
-    retained = save('#s-export-stems', 'suno-selected-nine.zip')
+    assert set(names) == {f'guitar take {index:02}' for index in range(12)}
+    retained = save('#s-export-stems', 'suno-all-twelve.zip')
+    retained_bank = zipfile.ZipFile(io.BytesIO(retained))
+    assert len(audio_names(retained_bank)) == 12
+    verify_manifest(retained_bank)
     page.locator('#s-zip-file').set_input_files({'name': 'bad.zip', 'mimeType': 'application/zip', 'buffer': b'not a ZIP'})
     expect(page.locator('#s-status.error')).to_contain_text('ZIP', timeout=30000)
     ready()
     assert save('#s-export-stems', 'suno-after-bad-zip.zip') == retained
 
-    large = [fixture(f'Layer {index:02} ' + 'long expressive instrument ' * 4 + '.wav', seconds=.1) for index in range(64)]
+    large = [fixture(f'Layer {index:02} ' + 'long expressive instrument ' * 4 + '.wav', 200 + index * 20, seconds=.2, amplitude=200) for index in range(64)]
     page.locator('#s-bulk-files').set_input_files(large)
     review_ready(page, 64)
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('64 found · 64 / 64 selected')
+    page.locator('#s-bulk-none').click()
+    expect(page.locator('#s-import-batch')).to_be_disabled()
+    for index in range(9):
+        page.locator('.edit-bulk-part input').nth(index).check()
     expect(page.locator('#s-bulk-action-summary')).to_contain_text('55 not selected')
     assert len(page.locator('#s-bulk-omitted-summary').inner_text()) < 160
     expect(page.locator('#s-bulk-omitted-parts li')).to_have_count(55)
     page.locator('#s-bulk-omitted-summary').click()
     page.locator('#s-bulk-omitted-parts li').last.scroll_into_view_if_needed()
     expect(page.locator('#s-bulk-omitted-parts li').last).to_be_in_viewport()
+    page.locator('#s-bulk-all').click()
+    expect(page.locator('#s-bulk-omissions')).to_be_hidden()
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('64 / 64 selected')
+    page.locator('#s-import-batch').click()
+    ready()
+    expect(page.locator('.edit-fader')).to_have_count(64)
+    large_raw = save('#s-export-stems', 'all-sixty-four.zip')
+    large_bank = zipfile.ZipFile(io.BytesIO(large_raw))
+    large_manifest = verify_manifest(large_bank)
+    assert len(audio_names(large_bank)) == 64
+    assert {stem['display_name'] for stem in large_manifest['stems']} == {file['name'][:-4] for file in large}
+    assert any(stem['kind'].startswith('part_') and int(stem['kind'][5:]) > 9 for stem in large_manifest['stems'])
 
     # Mixed availability still means one encoding per logical part.
     partial = [file for file in files[:6] if file['name'] != 'vocals.wav']
@@ -194,7 +243,7 @@ def verify_bundle(page, ready, save, fixture, out, capture):
     checks.nth(0).uncheck()
     expect(page.locator('#s-import-batch')).to_be_enabled()
     checks.nth(1).uncheck()
-    expect(page.locator('#s-bulk-action-summary')).to_contain_text('1 / 9 selected')
+    expect(page.locator('#s-bulk-action-summary')).to_contain_text('1 / 3 selected')
     expect(page.locator('#s-import-batch')).to_be_disabled()
     checks.nth(0).check()
     checks.nth(1).check()
@@ -219,7 +268,8 @@ def verify_bundle(page, ready, save, fixture, out, capture):
     page.set_viewport_size({'width': 1480, 'height': 1000})
     return ['multi-file picker pairs 18 WAV/MP3 files into nine parts; loose/ZIP raw PCM matches exactly',
             'Suno-style ZIP: WAV preference, actual MP3 selection, format fallback and no duplicate encoding',
-            '12-part ZIP reviewed/selected down to nine, 390px reachable import, corrupt ZIP preserves bank',
+            'two source folders with paired Vocals encodings preserve distinct planned names, safe manifest identities and exact original PCM',
+            '12-part ZIP defaults to all selected and imports all 12; 390px reachable import; corrupt ZIP preserves bank',
             'live action summary follows selection/preference/fallback; one-part import disabled; settled desktop review captured',
-            '11-part subset explicitly lists two omissions; live 12-part omissions and keyboard disclosure; bounded 55-name omission preview with reachable full list',
+            '11-part optional subset lists omissions; 64-part select-all/clear and bounded 55-name omission preview; all 64 import/export with unique IDs and friendly manifest names',
             'settled Review status and enabled Import required; long friendly fader name wraps at 390px without overflow']

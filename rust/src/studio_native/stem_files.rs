@@ -7,6 +7,10 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+pub const DEFAULT_INPUT_DECODED_BYTES: usize = 512 * 1024 * 1024;
+/// Separate from the caller's per-input limit; sized for larger native banks.
+pub const DEFAULT_BANK_DECODED_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+
 pub fn import(
     files: &[(crate::studio::stem_mix::StemKind, std::path::PathBuf)],
     cancel: std::sync::Arc<AtomicBool>,
@@ -14,7 +18,7 @@ pub fn import(
 ) -> Result<StemSet> {
     import_with_limits(
         files,
-        512 * 1024 * 1024,
+        DEFAULT_INPUT_DECODED_BYTES,
         std::time::Duration::from_secs(300),
         cancel,
         progress,
@@ -30,13 +34,29 @@ pub fn import_with_limits(
 ) -> Result<StemSet> {
     crate::studio::stem_mix::validate_kinds(files.iter().map(|(kind, _)| *kind))?;
     let mut tracks = Vec::new();
+    let mut decoded_bytes = 0u64;
     for (index, (kind, path)) in files.iter().enumerate() {
         progress(
             index as f32 / files.len() as f32,
             &format!("Loading {} stem", kind.name()),
         );
-        let (audio, _) =
-            super::audio_import::load(path, max_decoded_bytes, timeout, cancel.clone())?;
+        let remaining = DEFAULT_BANK_DECODED_BYTES
+            .checked_sub(decoded_bytes)
+            .context("Combined stems exceed the 4 GiB decoded bank memory budget")?;
+        let decode_limit = max_decoded_bytes.min(remaining.min(usize::MAX as u64) as usize);
+        let (audio, _) = super::audio_import::load(path, decode_limit, timeout, cancel.clone())
+            .context("Cannot load stem within the per-input or remaining bank memory budget")?;
+        decoded_bytes = decoded_bytes
+            .checked_add(
+                (audio.samples.len() as u64)
+                    .checked_mul(size_of::<f32>() as u64)
+                    .context("Decoded stem size overflow")?,
+            )
+            .context("Decoded bank size overflow")?;
+        ensure!(
+            decoded_bytes <= DEFAULT_BANK_DECODED_BYTES,
+            "Combined stems exceed the 4 GiB decoded bank memory budget"
+        );
         tracks.push(crate::studio::stem_mix::Stem {
             kind: *kind,
             audio: std::sync::Arc::new(audio),

@@ -1,4 +1,4 @@
-"""Real MCP Suno ZIP import, format preference/fallback and oversized-set selection."""
+"""Real MCP Suno ZIP import, format preference/fallback and optional subset selection."""
 import argparse
 import array
 import hashlib
@@ -61,10 +61,10 @@ def verify(server, codecs=False):
                 assert len(bank(imported)) == 3
             many = root / '12 parts.zip'
             many.write_bytes(zipped([fixture(f'guitar take {index:02}.wav', 200 + index * 100) for index in range(12)])['buffer'])
-            preview = client.call('get_studio_session')['preview']['studio_preview_id']
-            failed = client.finish(client.call('import_stem_bundle', {'library': 0, 'path': many.name}))
-            assert failed['status'] == 'failed' and 'more than nine' in json.dumps(failed)
-            assert client.call('get_studio_session')['preview']['studio_preview_id'] == preview
+            inspected = client.call('inspect_stem_bundle', {'library': 0, 'path': many.name})
+            assert inspected['max_selected_parts'] is None and len(inspected['parts']) == 12
+            all_parts = client.run('import_stem_bundle', {'library': 0, 'path': many.name})
+            assert len(bank(all_parts)) == 12
             selected = client.run('import_stem_bundle', {'library': 0, 'path': many.name, 'parts': [{'part_index': index} for index in range(3, 12)]})
             assert len(bank(selected)) == 9
             preview = selected['preview']['studio_preview_id']
@@ -75,8 +75,8 @@ def verify(server, codecs=False):
             assert client.call('get_studio_session')['preview']['studio_preview_id'] == preview
             assert hashlib.sha256(source.read_bytes()).hexdigest() == original_hash
             return {'tools': len(tools), 'ZIP_discovery_and_nine_pair_inspection': True, 'nine_WAV_parts_sample_exact': True,
-                    'actual_MP3_preference_and_fallback': codecs, 'explicit_nine_of_twelve': True,
-                    'invalid_and_unselected_large_bundles_preserve_preview': True, 'original_archive_unchanged': True}
+                    'actual_MP3_preference_and_fallback': codecs, 'all_twelve_default_and_optional_nine': True,
+                    'invalid_bundles_preserve_preview': True, 'original_archive_unchanged': True}
         finally:
             client.close()
 

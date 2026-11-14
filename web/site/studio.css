@@ -95,6 +95,9 @@
     gap: 10px;
     margin-top: 12px;
 }
+.edit-bulk-selection p {
+    margin: 0;
+}
 .edit-bulk-part {
     display: grid;
     gap: 8px;

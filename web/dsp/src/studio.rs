@@ -56,6 +56,59 @@ impl BrowserStudio {
         );
         Audio::new(samples, rate, channels as usize)
     }
+    fn stage_stem_checked(
+        &mut self,
+        kind: &str,
+        samples: Vec<f32>,
+        rate: u32,
+        channels: u32,
+    ) -> Result<()> {
+        let kind = serde_json::from_value(serde_json::Value::String(kind.into()))?;
+        ensure!(
+            !self.staged.iter().any(|stem| stem.kind == kind),
+            "Each stem kind must be unique; use a different part_N identity for each additional part"
+        );
+        let incoming = samples
+            .len()
+            .checked_mul(size_of::<f32>())
+            .context("Stem import is too large")?;
+        let total = self.staged.iter().try_fold(incoming, |total, stem| {
+            stem.audio
+                .samples
+                .len()
+                .checked_mul(size_of::<f32>())
+                .and_then(|bytes| total.checked_add(bytes))
+                .context("Stem import is too large")
+        })?;
+        ensure!(
+            total <= MAX_STUDIO_BYTES,
+            "Combined browser stems exceed 128 MiB decoded PCM. Use shorter/lower-rate stems or the desktop app."
+        );
+        let audio = Self::checked(samples, rate, channels)?;
+        self.staged.push(Stem {
+            kind,
+            audio: Arc::new(audio),
+        });
+        Ok(())
+    }
+    fn commit_stems_checked(&mut self) -> Result<()> {
+        let bank = StemSet::new(self.staged.clone())?;
+        let controls = bank.defaults();
+        let mut raw = controls.clone();
+        raw.protect_peaks = false;
+        let original = Arc::new(stem_mix::render(&bank, &raw, &|| false)?);
+        let preview = Arc::new(stem_mix::render(&bank, &controls, &|| false)?);
+        // Validate and render both mixes before replacing the committed workspace.
+        self.staged.clear();
+        self.bank = Some(bank);
+        self.source = Some(original);
+        self.before = self.source.clone();
+        self.current = Some(preview);
+        self.mix = controls;
+        self.undo.clear();
+        self.redo.clear();
+        Ok(())
+    }
     fn push(&mut self, audio: Audio) {
         if let Some(previous) = self.current.take() {
             self.undo.push(Revision {
@@ -141,50 +194,11 @@ impl BrowserStudio {
         rate: u32,
         channels: u32,
     ) -> Result<(), JsValue> {
-        if self.staged.len() >= stem_mix::MAX_STEMS {
-            return Err(failure("Import two to nine aligned stems"));
-        }
-        let kind =
-            serde_json::from_value(serde_json::Value::String(kind.into())).map_err(failure)?;
-        if self.staged.iter().any(|stem| stem.kind == kind) {
-            return Err(failure(
-                "Each stem kind must be unique; use part_1 through part_9 for additional parts",
-            ));
-        }
-        let total = self
-            .staged
-            .iter()
-            .map(|s| s.audio.samples.len() * 4)
-            .sum::<usize>()
-            .checked_add(samples.len().saturating_mul(4))
-            .ok_or_else(|| failure("Stem import is too large"))?;
-        if total > MAX_STUDIO_BYTES {
-            return Err(failure(
-                "Combined browser stems exceed 128 MiB decoded PCM. Use shorter/lower-rate stems or the desktop app.",
-            ));
-        }
-        let audio = Self::checked(samples, rate, channels).map_err(failure)?;
-        self.staged.push(Stem {
-            kind,
-            audio: Arc::new(audio),
-        });
-        Ok(())
+        self.stage_stem_checked(kind, samples, rate, channels)
+            .map_err(failure)
     }
     pub fn commit_stems(&mut self) -> Result<String, JsValue> {
-        let bank = StemSet::new(self.staged.clone()).map_err(failure)?;
-        let controls = bank.defaults();
-        let mut raw = controls.clone();
-        raw.protect_peaks = false;
-        let original = Arc::new(stem_mix::render(&bank, &raw, &|| false).map_err(failure)?);
-        let preview = Arc::new(stem_mix::render(&bank, &controls, &|| false).map_err(failure)?);
-        self.staged.clear();
-        self.bank = Some(bank);
-        self.source = Some(original);
-        self.before = self.source.clone();
-        self.current = Some(preview);
-        self.mix = controls;
-        self.undo.clear();
-        self.redo.clear();
+        self.commit_stems_checked().map_err(failure)?;
         self.info()
     }
     /// Attach plain text metadata after commit_stems; stage_stem remains compatible.
@@ -293,7 +307,22 @@ impl BrowserStudio {
     }
     pub fn info(&self) -> Result<String, JsValue> {
         let a = self.current.as_ref();
-        Ok(serde_json::json!({"loaded":a.is_some(),"duration_seconds":a.map(|a|a.duration()),"sample_rate":a.map(|a|a.sample_rate),"channels":a.map(|a|a.channels),"controls":self.mix,"notes":self.notes,"direct_edit_stems":self.direct_edit_stems(),"can_undo":!self.undo.is_empty(),"can_redo":!self.redo.is_empty(),"stems":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|s.kind.name()).collect::<Vec<_>>()).unwrap_or_default(),"stem_names":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|(s.kind.name(),b.display_name(s.kind))).collect::<std::collections::BTreeMap<_,_>>()).unwrap_or_default(),"max_combined_decoded_bytes":MAX_STUDIO_BYTES}).to_string())
+        Ok(serde_json::json!({
+            "loaded":a.is_some(),
+            "duration_seconds":a.map(|a|a.duration()),
+            "sample_rate":a.map(|a|a.sample_rate),
+            "channels":a.map(|a|a.channels),
+            "controls":self.mix,
+            "notes":self.notes,
+            "direct_edit_stems":self.direct_edit_stems(),
+            "can_undo":!self.undo.is_empty(),
+            "can_redo":!self.redo.is_empty(),
+            "stems":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|s.kind.name().into_owned()).collect::<Vec<_>>()).unwrap_or_default(),
+            "stem_names":self.bank.as_ref().map(|b|b.tracks.iter().map(|s|(s.kind.name().into_owned(),b.display_name(s.kind).into_owned())).collect::<std::collections::BTreeMap<_,_>>()).unwrap_or_default(),
+            "max_stems":null,
+            "max_combined_decoded_bytes":MAX_STUDIO_BYTES,
+            "max_stem_seconds":crate::import_limits::MAX_SECONDS
+        }).to_string())
     }
     pub fn preview_ptr(&self) -> Result<*const f32, JsValue> {
         Ok(self
@@ -355,7 +384,16 @@ impl BrowserStudio {
         Ok(cursor.into_inner())
     }
     pub fn parameter_defaults() -> String {
-        serde_json::json!({"max_stems":stem_mix::MAX_STEMS,"stem_kinds":StemKind::ALL,"voice":VoiceSettings::default(),"repair":{"start_seconds":0.0,"end_seconds":1.0,"low_hz":2000.0,"high_hz":8000.0,"reduction_db":-12.0,"mode":"attenuate"}}).to_string()
+        serde_json::json!({
+            "min_stems":2,
+            "max_stems":null,
+            "stem_kinds":StemKind::ALL,
+            "generic_stem_kind_pattern":"^part_[1-9][0-9]*$",
+            "max_combined_decoded_bytes":MAX_STUDIO_BYTES,
+            "max_stem_seconds":crate::import_limits::MAX_SECONDS,
+            "voice":VoiceSettings::default(),
+            "repair":{"start_seconds":0.0,"end_seconds":1.0,"low_hz":2000.0,"high_hz":8000.0,"reduction_db":-12.0,"mode":"attenuate"}
+        }).to_string()
     }
 }
 impl Default for BrowserStudio {
@@ -363,6 +401,10 @@ impl Default for BrowserStudio {
         Self::new()
     }
 }
+
+#[cfg(test)]
+#[path = "studio_large_stem_tests.rs"]
+mod large_stem_tests;
 
 #[cfg(test)]
 mod tests {

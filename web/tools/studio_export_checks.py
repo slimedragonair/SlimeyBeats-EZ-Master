@@ -9,7 +9,8 @@ def audio_names(archive):
 def verify_manifest(archive):
     assert archive.testzip() is None
     names = audio_names(archive)
-    assert 2 <= len(names) <= 9
+    assert len(names) >= 2
+    assert len(archive.namelist()) == len(set(archive.namelist()))
     assert set(archive.namelist()) == names | {'stems.json'}
     manifest = json.loads(archive.read('stems.json'))
     assert manifest['format'] == 'wav32f'

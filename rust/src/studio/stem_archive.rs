@@ -1,5 +1,5 @@
 //! Bounded ZIP reading. Entry names are labels, never output paths or instructions.
-use super::stem_import_plan::{self, ImportFile, ImportPlan, MAX_IMPORT_FILES};
+use super::stem_import_plan::{self, ImportFile, ImportPlan};
 use anyhow::{Context, Result, ensure};
 use std::io::{Read, Seek, SeekFrom, Write};
 use zip::{ZipReadOptions, read::Config, unstable::read::ZipIterable};
@@ -30,15 +30,15 @@ fn open(mut reader: impl Read + Seek) -> Result<ZipIterable<impl Read + Seek>> {
 // and preserves duplicate archive names so ambiguity cannot disappear silently.
 pub fn inspect(reader: impl Read + Seek, entry_limit: u64) -> Result<ImportPlan> {
     let mut archive = open(reader)?;
-    ensure!(
-        archive.len() <= MAX_IMPORT_FILES,
-        "Stem ZIP has more than 512 entries"
-    );
+    let entry_limit = entry_limit.min(MAX_ENTRY_BYTES);
+    let mut metadata_bytes = 0;
     let mut files = Vec::new();
     let mut skipped = 0;
     for (index, entry) in archive.files()?.enumerate() {
         let entry = entry?;
-        let name = entry.name()?.into_owned();
+        let name = entry.name()?;
+        metadata_bytes = stem_import_plan::charge_metadata(metadata_bytes, name.len())?;
+        let name = name.into_owned();
         let format = stem_import_plan::file_format(&name);
         if entry.is_dir()
             || name
@@ -88,22 +88,21 @@ pub fn copy_audio(
     output: &mut impl Write,
     cancel: &dyn Fn() -> bool,
 ) -> Result<()> {
+    let limit = limit.min(MAX_ENTRY_BYTES);
     ensure!(
         selected.bytes <= limit,
         "ZIP audio entry exceeds the supported size"
     );
     let mut archive = open(reader)?;
-    ensure!(
-        archive.len() <= MAX_IMPORT_FILES,
-        "Stem ZIP has more than 512 entries"
-    );
+    let mut metadata_bytes = 0;
     let entries = archive.files()?;
     let mut index = 0;
     while let Some(entry) = entries.next() {
         ensure!(!cancel(), "Cancelled");
         let entry = entry?;
+        let name = entry.name()?;
+        metadata_bytes = stem_import_plan::charge_metadata(metadata_bytes, name.len())?;
         if index == selected.index {
-            let name = entry.name()?;
             ensure!(
                 name == selected.name
                     && entry.size() == selected.bytes

@@ -1,4 +1,3 @@
-import { MAX_STEMS } from "./studio-stems.js";
 // A bounded, uncompressed ZIP keeps raw stems aligned without another dependency.
 const table = Uint32Array.from({ length: 256 }, (_, n) => {
     let c = n;
@@ -11,8 +10,7 @@ function crc32(bytes) {
     return (c ^ 0xffffffff) >>> 0;
 }
 export function stemZip(files, manifest) {
-    if (files.length < 2 || files.length > MAX_STEMS)
-        throw new Error("Export two to nine stems");
+    if (files.length < 2) throw new Error("Export at least two stems");
     const encoder = new TextEncoder();
     if (
         new Set(files.map((file) => file.name)).size !== files.length ||
@@ -40,6 +38,10 @@ export function stemZip(files, manifest) {
             throw new Error("Stem ZIP manifest is too large");
         contents.push({ name: "stems.json", bytes });
     }
+    if (contents.length >= 0xffff)
+        throw new Error(
+            "This many ZIP entries requires ZIP64. Export a smaller set.",
+        );
     const entries = contents.map((file) => ({
         ...file,
         nameBytes: encoder.encode(file.name),

@@ -28,31 +28,34 @@ pub struct PreparedImport {
 }
 impl PreparedImport {
     pub fn files(paths: Vec<PathBuf>) -> Result<Self> {
-        ensure!(
-            paths.len() <= stem_import_plan::MAX_IMPORT_FILES,
-            "Choose at most 512 files"
-        );
-        let files = paths
-            .iter()
-            .enumerate()
-            .map(|(index, path)| {
-                let name = path
+        let mut metadata_bytes = 0;
+        let mut files = Vec::new();
+        for (index, path) in paths.iter().enumerate() {
+            // Retain source folders so equal basenames in different folders stay independent.
+            let name = path.to_str().context("Audio filename must be UTF-8")?;
+            metadata_bytes = stem_import_plan::charge_metadata(metadata_bytes, name.len())?;
+            files.push(ImportFile {
+                index,
+                format: stem_import_plan::file_format(name).unwrap_or_default(),
+                name: name.into(),
+                bytes: path.metadata()?.len(),
+                crc32: None,
+            });
+        }
+        let mut plan = stem_import_plan::plan(files)?;
+        for part in &mut plan.parts {
+            for version in &mut part.versions {
+                version.name = paths[version.index]
                     .file_name()
                     .context("Audio filename is missing")?
-                    .to_string_lossy()
-                    .into_owned();
-                Ok(ImportFile {
-                    index,
-                    format: stem_import_plan::file_format(&name).unwrap_or_default(),
-                    name,
-                    bytes: path.metadata()?.len(),
-                    crc32: None,
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
+                    .to_str()
+                    .context("Audio filename must be UTF-8")?
+                    .to_owned();
+            }
+        }
         Ok(Self {
             source: ImportSource::Files(paths),
-            plan: stem_import_plan::plan(files)?,
+            plan,
         })
     }
     pub fn archive(path: PathBuf) -> Result<Self> {

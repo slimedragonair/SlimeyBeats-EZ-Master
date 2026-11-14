@@ -11,19 +11,27 @@ pub fn show(
     ctx: &egui::Context,
 ) {
     if ui.add_enabled(!studio.busy()&&studio.current.is_some()&&!studio.mix_dirty,crystal_button::primary("Export current preview")).on_hover_text("Save the materialized Studio preview and a report. Rendering/preview and exporting are separate.").clicked() {studio.export_preview(ctx);}
+    if studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none() {
+        let label = if studio.mix_dirty {
+            "Update mix preview · pending"
+        } else {
+            "Update mix preview"
+        };
+        if ui.add_enabled(!studio.busy(), crystal_button::primary(label)).on_hover_text("Render the current fader, mute, solo and balance settings from the immutable stem bank. This does not export.").clicked() {
+            studio.render_mix(ctx);
+        }
+    }
     ui.separator();
     ui.horizontal_wrapped(|ui| {
         if ui.add_enabled(!studio.busy(),crystal_button::secondary("Open project…")).clicked() && let Some(path)=rfd::FileDialog::new().add_filter("Studio project",&["json"]).pick_file(){studio.load_project(path,ctx);}
         if ui.add_enabled(!studio.busy()&&studio.current.is_some()&&!studio.mix_dirty,crystal_button::secondary("Save project…")).on_hover_text("Save self-contained source/stem/preview working copies, settings and hashes in a new folder. No model download is needed to reopen it.").clicked() && let Some(folder)=rfd::FileDialog::new().pick_folder(){studio.save_project(folder,ctx);}
     });
     egui::ScrollArea::vertical().show(ui,|ui| {
-        theme::eyebrow(ui,"STUDIO SOURCE");
-        ui.add_enabled_ui(!studio.busy(),|ui| {
-            if ui.add(crystal_button::secondary("Choose audio…")).on_hover_text("Load a local music mix or voice recording. The original file is kept unchanged.").clicked()
-                && let Some(path)=rfd::FileDialog::new().add_filter("Audio",crate::audio::EXTENSIONS).pick_file() {studio.load(path,ctx);}
-            if let Some(path)=selected && ui.add(crystal_button::secondary("Use selected track")).clicked() {studio.load(path,ctx);}
-        });
-        if let Some(source)=&studio.source {ui.label(source.path.file_name().unwrap_or_default().to_string_lossy().as_ref());ui.small(format!("{:.1} s · {} Hz · {} channel(s)",source.audio.duration(),source.audio.sample_rate,source.audio.channels));}
+        if studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none() {
+            ui.collapsing("Studio source", |ui| source_controls(studio, ui, selected, ctx));
+        } else {
+            source_controls(studio, ui, selected, ctx);
+        }
         ui.separator();
         let busy=studio.busy();
         ui.add_enabled_ui(!busy,|ui|match studio.page {Page::Stems=>stems(studio,ui,ctx),Page::Voice=>voice(studio,ui,ctx),Page::Repair=>repair(studio,ui,ctx),Page::Plugins=>super::plugin_controls::show(studio,ui,ctx)});
@@ -40,7 +48,64 @@ pub fn show(
     });
 }
 
+fn source_controls(
+    studio: &mut Studio,
+    ui: &mut egui::Ui,
+    selected: Option<PathBuf>,
+    ctx: &egui::Context,
+) {
+    theme::eyebrow(ui, "STUDIO SOURCE");
+    ui.add_enabled_ui(!studio.busy(), |ui| {
+        if ui
+            .add(crystal_button::secondary("Choose audio…"))
+            .on_hover_text(
+                "Load a local music mix or voice recording. The original file is kept unchanged.",
+            )
+            .clicked()
+            && let Some(path) = rfd::FileDialog::new()
+                .add_filter("Audio", crate::audio::EXTENSIONS)
+                .pick_file()
+        {
+            studio.load(path, ctx);
+        }
+        if let Some(path) = selected
+            && ui
+                .add(crystal_button::secondary("Use selected track"))
+                .clicked()
+        {
+            studio.load(path, ctx);
+        }
+    });
+    if let Some(source) = &studio.source {
+        ui.label(
+            source
+                .path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .as_ref(),
+        );
+        ui.small(format!(
+            "{:.1} s · {} Hz · {} channel(s)",
+            source.audio.duration(),
+            source.audio.sample_rate,
+            source.audio.channels
+        ));
+    }
+}
+
 fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
+    if studio.bank.is_some() && studio.bulk_import.is_none() {
+        ui.collapsing("Import another stem set", |ui| {
+            super::stem_bulk_import::show(studio, ui, ctx);
+            super::stem_import::show(studio, ui, ctx);
+        });
+        rebalance(studio, ui);
+        ui.collapsing("Optional local stem engine", |ui| {
+            stem_engine(studio, ui, ctx)
+        });
+        return;
+    }
     super::stem_bulk_import::show(studio, ui, ctx);
     if studio.bulk_import.is_some() {
         ui.small(
@@ -50,6 +115,10 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     }
     super::stem_import::show(studio, ui, ctx);
     ui.separator();
+    stem_engine(studio, ui, ctx);
+}
+
+fn stem_engine(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     theme::eyebrow(ui, "LOCAL STEM ENGINE");
     let ready = studio.runtime.is_ready();
     ui.label(
@@ -83,6 +152,9 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     {
         studio.separate(ctx);
     }
+}
+
+fn rebalance(studio: &mut Studio, ui: &mut egui::Ui) {
     ui.separator();
     theme::eyebrow(ui, "REBALANCE");
     let busy = studio.busy();
@@ -98,17 +170,7 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
             ui.add_space(3.);
         }
     });
-    if studio.bank.is_some() {
-        if ui
-            .add_enabled(!busy, crystal_button::primary("Update mix preview"))
-            .clicked()
-        {
-            studio.render_mix(ctx);
-        }
-        ui.small(
-            "Renders from the original stem bank; repeated fader edits do not stack processing.",
-        );
-    }
+    ui.small("Update mix preview above to hear fader changes. Original stem audio stays intact.");
 }
 
 pub fn target(studio: &mut Studio, ui: &mut egui::Ui) {

@@ -39,6 +39,7 @@ jobs:
           python ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_unbounded_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Build and check isolated VST3 worker
         run: |
@@ -83,6 +84,7 @@ jobs:
           python3 ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/verify_unbounded_stems.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
       - name: Build and check isolated VST3 worker
         run: |

@@ -162,8 +162,11 @@ impl StudioState {
                 &bank.original_mix,
             ));
             for stem in &bank.stems.tracks {
-                let mut asset =
-                    audio_info(&stem_id(&bank.id, stem.kind), stem.kind.name(), &stem.audio);
+                let mut asset = audio_info(
+                    &stem_id(&bank.id, stem.kind),
+                    &stem.kind.name(),
+                    &stem.audio,
+                );
                 asset["display_name"] = json!(bank.stems.display_name(stem.kind));
                 assets.push(asset);
             }
@@ -204,13 +207,17 @@ mod tests {
         let engine = Engine::new(&args).unwrap();
         let audio = Arc::new(Audio::new(vec![0.01; 800], 8000, 1).unwrap());
         let mut stems = StemSet::new(
-            [StemKind::Vocals, StemKind::Part1]
-                .into_iter()
-                .map(|kind| Stem {
-                    kind,
-                    audio: audio.clone(),
-                })
-                .collect(),
+            [
+                StemKind::Vocals,
+                StemKind::Part1,
+                StemKind::part(64).unwrap(),
+            ]
+            .into_iter()
+            .map(|kind| Stem {
+                kind,
+                audio: audio.clone(),
+            })
+            .collect(),
         )
         .unwrap();
         stems
@@ -218,6 +225,9 @@ mod tests {
             .unwrap();
         stems
             .set_display_name(StemKind::Part1, "Song (Backing Vocals)")
+            .unwrap();
+        stems
+            .set_display_name(StemKind::part(64).unwrap(), "Song (Extra custom part)")
             .unwrap();
         let bank = Arc::new(StemBank {
             id: "stems-test".into(),
@@ -238,11 +248,14 @@ mod tests {
                 .iter()
                 .find(|asset| asset["audio_id"] == id)
                 .unwrap();
-            assert_eq!(asset["label"], stem.kind.name());
-            assert_eq!(asset["display_name"], bank.stems.display_name(stem.kind));
+            assert_eq!(asset["label"], stem.kind.name().as_ref());
             assert_eq!(
-                summary["stem_set"]["stem_names"][stem.kind.name()],
-                bank.stems.display_name(stem.kind)
+                asset["display_name"],
+                bank.stems.display_name(stem.kind).as_ref()
+            );
+            assert_eq!(
+                summary["stem_set"]["stem_names"][stem.kind.name().as_ref()],
+                bank.stems.display_name(stem.kind).as_ref()
             );
             assert!(Arc::ptr_eq(
                 &snapshot.studio_audio(&id).unwrap().audio,
