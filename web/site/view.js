@@ -207,8 +207,7 @@ export function buildBands(settings, onChange, rate = 48000) {
             );
             shapeButton.setAttribute("aria-expanded", "false");
             shapeButton.onclick = () => {
-                const expanded = box.classList.toggle("advanced");
-                shapeButton.setAttribute("aria-expanded", String(expanded));
+                document.dispatchEvent(new CustomEvent("show-advanced-controls"));
             };
             box.append(shapeButton);
             return box;

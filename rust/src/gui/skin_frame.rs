@@ -22,7 +22,7 @@ pub fn paint(ctx: &egui::Context, rect: Rect, corner: f32) {
         value
     });
     let [width, height] = texture.0.size();
-    let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, id));
+    let painter = ctx.layer_painter(egui::LayerId::new(super::theme::DECORATION_ORDER, id));
     for patch in patches(rect, egui::vec2(width as f32, height as f32), corner) {
         painter.image(texture.0.id(), patch.destination, patch.uv, Color32::WHITE);
     }

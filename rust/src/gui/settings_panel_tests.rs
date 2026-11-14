@@ -1,43 +1,12 @@
 use super::*;
-use crate::gui::{app::Track, brand_art::BrandArt, worker::TrackResult};
-use std::sync::{Arc, atomic::AtomicBool, mpsc};
+use crate::gui::{app::Track, worker::TrackResult};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 fn fixture(ctx: &egui::Context) -> MasterCraftApp {
-    let (tx, rx) = mpsc::channel();
-    MasterCraftApp {
-        preferences: None,
-        studio: crate::gui::studio::Studio::new(PathBuf::new()),
-        brand: BrandArt::new(ctx),
-        settings: Settings::default(),
-        root: PathBuf::new(),
-        tracks: vec![],
-        selected: None,
-        busy: false,
-        status: String::new(),
-        progress: 0.,
-        error: None,
-        eq_dirty: false,
-        eq_live: Default::default(),
-        tab: 1,
-        selected_band: 3,
-        tx,
-        rx,
-        active_job: None,
-        cancel: Arc::new(AtomicBool::new(false)),
-        player: Default::default(),
-        waveform: Default::default(),
-        eq_waveform: Default::default(),
-        playback_spectrum: Default::default(),
-        suggested_eq: None,
-        suggestion_note: None,
-        loaded: None,
-        loaded_eq: false,
-        volume: 0.5,
-        match_levels: true,
-        capture: None,
-        capture_settings_scroll: None,
-        capture_workspace_scroll: None,
-    }
+    let mut app = crate::gui::test_fixture::app(ctx);
+    app.experience.preferences.advanced = true;
+    app
 }
 
 fn load_preview(app: &mut MasterCraftApp) {

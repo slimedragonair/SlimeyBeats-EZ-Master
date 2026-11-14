@@ -17,6 +17,14 @@ pub(super) struct PreferenceStore {
 }
 
 impl PreferenceStore {
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+
+    pub fn matches_saved(&self, value: &impl Serialize) -> Result<bool> {
+        Ok(serde_json::to_vec_pretty(value)? == self.saved)
+    }
+
     pub fn new(path: PathBuf, value: &impl Serialize, automatic: bool) -> Self {
         Self {
             path,

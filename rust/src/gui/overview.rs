@@ -62,31 +62,40 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
             });
         }
         ui.add_space(10.);
-        ui.horizontal_wrapped(|ui| {
-            theme::eyebrow(ui, "FREQUENCY BALANCE");
-            legend(ui, "Original", theme::MUTED);
-            if r.report.is_some() {
-                legend(ui, "Master", theme::SLIME);
+        if ui.ctx().viewport_rect().height() < 800. {
+            let pending_scroll = ui.make_persistent_id("overview-frequency-reveal");
+            let chart = egui::CollapsingHeader::new("Frequency balance · spectrum")
+                .id_salt("overview-frequency-balance")
+                .show(ui, |ui| frequency_chart(ui, r));
+            if chart.header_response.clicked() {
+                let opening = egui::collapsing_header::CollapsingState::load(
+                    ui.ctx(),
+                    chart.header_response.id,
+                )
+                .is_some_and(|state| state.is_open());
+                ui.data_mut(|data| data.insert_temp(pending_scroll, opening));
             }
-        });
-        ui.label(
-            RichText::new("Level / dBFS per bin   ·   Frequency / Hz")
-                .size(13.)
-                .color(theme::MUTED),
-        );
-        plots::spectrum(
-            ui,
-            Some(&r.analysis.spectrum),
-            r.report.as_ref().map(|r| &r.output.spectrum),
-            170.,
-        );
+            // Reveal the graph after expansion, rather than leaving its heading
+            // under the pinned player and requiring another discovery step.
+            if chart.openness >= 1.
+                && ui
+                    .data(|data| data.get_temp::<bool>(pending_scroll))
+                    .unwrap_or(false)
+                && let Some(body) = chart.body_response
+            {
+                body.scroll_to_me(Some(egui::Align::Min));
+                ui.data_mut(|data| data.remove::<bool>(pending_scroll));
+            }
+        } else {
+            frequency_chart(ui, r);
+        }
         if let Some(report) = &r.report {
             ui.small(format!(
                 "Requested {:.1} LUFS · measured {:.1} LUFS",
                 report.target_lufs, report.output.metrics.integrated_lufs
             ));
             if !report.limiter.reachable {
-                ui.label(RichText::new("Gain or peak limits prevented the loudness target. See the report before accepting.").color(theme::BONE));
+                ui.label(RichText::new("Peak or gain limits affected the target. Compare the preview and read the report before exporting.").color(theme::BONE));
             }
         } else {
             ui.label(
@@ -101,6 +110,31 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
     } else {
         welcome_panel::show(app, ui);
     }
+}
+
+fn frequency_chart(ui: &mut egui::Ui, result: &super::worker::TrackResult) {
+    ui.horizontal_wrapped(|ui| {
+        theme::eyebrow(ui, "FREQUENCY BALANCE");
+        legend(ui, "Original", theme::MUTED);
+        if result.report.is_some() {
+            legend(ui, "Master", theme::SLIME);
+        }
+    });
+    ui.label(
+        RichText::new("Level / dBFS per bin   ·   Frequency / Hz")
+            .size(13.)
+            .color(theme::MUTED),
+    );
+    plots::spectrum(
+        ui,
+        Some(&result.analysis.spectrum),
+        result.report.as_ref().map(|report| &report.output.spectrum),
+        if ui.ctx().viewport_rect().height() < 800. {
+            140.
+        } else {
+            170.
+        },
+    );
 }
 
 fn measurement_heading(ui: &mut egui::Ui, label: &str) {
@@ -148,6 +182,7 @@ pub fn report(app: &MasterCraftApp, ui: &mut egui::Ui) {
         ui.label(RichText::new("Live EQ uses an estimate. These measurements describe the previous revision while full-track measurements prepare.").color(theme::BONE));
     }
     theme::eyebrow(ui, "INPUT FINDINGS");
+    ui.label(RichText::new("These automated flags suggest things to listen for. A bigger number means a stronger detected pattern, not a quality grade.").size(14.).color(theme::MUTED));
     for issue in &r.analysis.issues {
         ui.horizontal_wrapped(|ui| {
             ui.label(
@@ -198,6 +233,69 @@ pub fn report(app: &MasterCraftApp, ui: &mut egui::Ui) {
                     .unwrap_or(0.),
                 export["sample_rate"]
             ));
+        }
+    }
+}
+
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+    use crate::gui::{test_fixture, ui_test_input::*};
+
+    #[test]
+    fn compact_spectrum_is_an_explicit_disclosure_and_playback_stays_visible() {
+        for advanced in [false, true] {
+            let ctx = egui::Context::default();
+            theme::apply(&ctx);
+            ctx.all_styles_mut(|style| style.animation_time = 0.);
+            let viewport = egui::vec2(1100., 720.);
+            let mut app = test_fixture::mastered(&ctx);
+            app.tab = 0;
+            app.experience.preferences.advanced = advanced;
+            let output = settled(&ctx, &mut app, viewport);
+            let settings = serde_json::to_value(&app.settings).unwrap();
+            for label in ["Play", "Stop", "A · Original", "B · Master"] {
+                assert!(
+                    text_rect(&output, label).is_some(),
+                    "Playback hidden: {label}"
+                );
+            }
+            let tab_tops: Vec<_> = ["Overview", "Manual EQ", "Studio"]
+                .iter()
+                .map(|label| text_rect(&output, label).unwrap().top())
+                .collect();
+            let top = tab_tops.iter().copied().fold(f32::INFINITY, f32::min);
+            let bottom = tab_tops.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+            assert!(bottom - top < 4., "Workspace tabs wrapped: {tab_tops:?}");
+            assert!(text_rect(&output, "FREQUENCY BALANCE").is_none());
+            assert!(
+                text_rect(&output, "Frequency balance · spectrum").is_some(),
+                "Spectrum disclosure clipped: {:?}",
+                output
+                    .shapes
+                    .iter()
+                    .filter_map(|item| match &item.shape {
+                        egui::Shape::Text(text)
+                            if text.galley.text().contains("Frequency balance") =>
+                            Some((text.visual_bounding_rect(), item.clip_rect)),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+            );
+            let output = click(
+                &ctx,
+                &mut app,
+                viewport,
+                &output,
+                "Frequency balance · spectrum",
+            );
+            assert!(
+                text_rect(&output, "FREQUENCY BALANCE").is_some(),
+                "Opened spectrum heading should be inside the scrolling viewport"
+            );
+            assert!(text_rect(&output, "Level / dBFS per bin   ·   Frequency / Hz").is_some());
+            assert_eq!(serde_json::to_value(&app.settings).unwrap(), settings);
+            assert!(text_rect(&output, "Play").is_some());
         }
     }
 }

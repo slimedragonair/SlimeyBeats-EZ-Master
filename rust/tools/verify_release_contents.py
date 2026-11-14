@@ -3,10 +3,10 @@ import argparse
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
-import re
 import zipfile
 
-from release_packaging.public_source import DEMO_FILES
+from release_packaging.documentation_links import verify_local_links
+from release_packaging.public_source import DEMO_FILES, GUIDES
 
 BINARY_NAMES = ['SlimeyBeats-EZ-Master.exe', 'SlimeyBeats-EZ-Master-CLI.exe',
                 'slimeybeats-mcp.exe', 'slimeybeats-vst3-host.exe']
@@ -18,8 +18,8 @@ def digest(path):
 
 def verify(folder, source_zip):
     required = [*BINARY_NAMES, 'Connect AI Assistant.bat', 'Connect-AI-Assistant.ps1',
-                'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICES.md', 'docs/STUDIO.md',
-                'docs/MCP.md', 'docs/GETTING_STARTED.html', 'Examples/CREDITS.md']
+                'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICES.md', 'Examples/CREDITS.md']
+    required.extend('docs/' + name for name in GUIDES)
     assert all((folder / name).is_file() for name in required)
     for relative in ['', 'MCP-dependencies', 'Plugin-dependencies']:
         root = folder / relative
@@ -30,18 +30,9 @@ def verify(folder, source_zip):
                 path = (root / name).resolve()
                 assert path.is_relative_to(root.resolve()) and path.is_file(), path
 
-    checked_links = 0
-    for name in ['docs/STUDIO.md', 'docs/MCP.md', 'docs/GETTING_STARTED.html', 'THIRD_PARTY_NOTICES.md']:
-        path = folder / name
-        text = path.read_text(encoding='utf-8')
-        links = re.findall(r'(?:src|href)="([^"]+)"|\]\(([^)]+)\)', text)
-        for pair in links:
-            target = next(value for value in pair if value).split('#', 1)[0].split('?', 1)[0]
-            if not target or ':' in target:
-                continue
-            resolved = (path.parent / target).resolve()
-            assert resolved.is_relative_to(folder.resolve()) and resolved.exists(), (name, target)
-            checked_links += 1
+    checked_links = verify_local_links(
+        [*(folder / 'docs' / name for name in GUIDES), folder / 'THIRD_PARTY_NOTICES.md'], folder,
+    )
 
     with zipfile.ZipFile(source_zip) as archive:
         assert archive.testzip() is None
@@ -59,13 +50,14 @@ def verify(folder, source_zip):
             if path.suffix.lower() in {'.wav', '.mp3', '.flac', '.m4a', '.aiff', '.ogg'}:
                 assert name in {'examples/audio/' + value for value in DEMO_FILES}, name
         for name in ['rust/Cargo.toml', 'web/dsp/src/studio.rs', 'mcp/server/src/studio_protocol.rs',
-                     'plugins/host/src/output_channel.rs', 'docs/STUDIO.md']:
+                     'plugins/host/src/output_channel.rs', 'rust/assets/learning-guide.json',
+                     *('docs/' + guide for guide in GUIDES)]:
             assert name in relative, name
         for name in DEMO_FILES:
             assert archive.read(relative['examples/audio/' + name]) == (folder / 'Examples' / name).read_bytes()
         source_files = len(names)
     return {'passed': True, 'components': {name: digest(folder/name) for name in BINARY_NAMES},
-            'local_guide_links_checked': checked_links, 'source_files': source_files,
+            'guides_checked': len(GUIDES), 'local_guide_links_checked': checked_links, 'source_files': source_files,
             'source_archive_sha256': digest(source_zip), 'example_provenance_files_match': True,
             'private_data_models_build_products_excluded': True, 'dependency_license_files_present': True}
 

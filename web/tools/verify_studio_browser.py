@@ -58,6 +58,7 @@ def run(args):
                 page.locator('#tab-studio-tools').click()
                 expect(page.locator('#studio-tools')).to_be_visible()
                 expect(page.locator('.playback')).to_be_hidden()
+                page.locator('#s-playback-details > summary').click()
                 result['waveform'] = verify_waveform(page)
                 page.locator('#s-file').set_input_files(fixture('voice.wav'))
 

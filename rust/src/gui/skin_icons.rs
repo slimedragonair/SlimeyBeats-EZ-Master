@@ -3,6 +3,7 @@ use eframe::egui::{self, Color32, Pos2, Rect, Shape, Stroke};
 
 #[derive(Clone, Copy)]
 pub enum Icon {
+    Info,
     Add,
     Play,
     Pause,
@@ -32,6 +33,13 @@ pub fn paint(ui: &egui::Ui, rect: Rect, icon: Icon, color: Color32) {
         ));
     };
     match icon {
+        Icon::Info => {
+            ui.painter()
+                .circle_stroke(p(0.5, 0.5), rect.width() * 0.44, stroke);
+            ui.painter()
+                .circle_filled(p(0.5, 0.28), rect.width() * 0.05, color);
+            line(&[(0.5, 0.44), (0.5, 0.77)]);
+        }
         Icon::Add => {
             line(&[(0.5, 0.08), (0.5, 0.92)]);
             line(&[(0.08, 0.5), (0.92, 0.5)]);

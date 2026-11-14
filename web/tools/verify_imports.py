@@ -43,6 +43,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+def duration_error_layout(page):
+    expect(page.locator('#import-error')).to_be_visible(timeout=120000)
+    expect(page.locator('#import-error')).to_contain_text('15:00')
+    expect(page.locator('.help-dock')).to_be_visible()
+    box=page.locator('#import-error').bounding_box()
+    help_box=page.locator('.help-dock').bounding_box()
+    player_box=page.locator('.playback').bounding_box()
+    # The compact empty state intentionally has no player. Its error must
+    # still fit above Help, and above playback whenever a track is loaded.
+    assert box and help_box, 'Import error or Help lost its visible bounds'
+    assert box['x']>=0 and box['x']+box['width']<=page.viewport_size['width']
+    assert box['y']>=0 and box['y']+box['height']<help_box['y']
+    if player_box:
+        assert box['y']+box['height']<player_box['y']
+    return {'error':box,'help':help_box,'playback':player_box}
+
+
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Handler,directory=str(args.site)))
 thread=threading.Thread(target=server.serve_forever,daemon=True)
 thread.start()
@@ -65,10 +82,7 @@ try:
             diagnostics.capture(args.out/'phone-import-limits.png')
             with page.expect_file_chooser() as chooser:page.locator('#add').click()
             chooser.value.set_files(str(over))
-            expect(page.locator('#import-error')).to_be_visible(timeout=120000)
-            expect(page.locator('#import-error')).to_contain_text('15:00')
-            box=page.locator('#import-error').bounding_box()
-            assert box['y']>=0 and box['y']+box['height']<page.locator('.playback').bounding_box()['y']
+            result['over_limit_layout']=duration_error_layout(page)
             diagnostics.capture(args.out/'phone-duration-error.png')
             result['over_limit_error_visible_near_import_controls']=True
             for fixture in [*six,*fifteen]:
@@ -87,6 +101,14 @@ try:
             chooser.value.set_files(str(short))
             expect(page.locator('#filename')).to_have_text(short.name,timeout=30000)
             expect(page.locator('#master')).to_be_enabled(timeout=30000)
+            # The compact loaded state offers Remove rather than Add. Exercise
+            # replacement validation through the existing file input directly.
+            page.locator('#file').set_input_files(str(over))
+            result['loaded_track_over_limit_layout']=duration_error_layout(page)
+            expect(page.locator('#filename')).to_have_text(short.name)
+            expect(page.locator('#master')).to_be_enabled()
+            diagnostics.capture(args.out/'phone-loaded-duration-error.png')
+            result['invalid_replacement_via_file_input_preserves_loaded_track']=True
             started=time.monotonic()
             page.locator('#reference-file').set_input_files(str(fifteen[1]))
             expect(page.locator('#reference-name')).to_contain_text(fifteen[1].name,timeout=600000)

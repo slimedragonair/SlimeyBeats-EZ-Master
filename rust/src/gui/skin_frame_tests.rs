@@ -3,6 +3,32 @@ use egui::Pos2;
 use image::RgbaImage;
 use std::collections::VecDeque;
 
+#[test]
+fn application_frame_is_below_modal_content_when_the_dialog_crosses_panels() {
+    let ctx = egui::Context::default();
+    crate::gui::theme::apply(&ctx);
+    let mut app = crate::gui::test_fixture::app(&ctx);
+    app.experience.welcome_open = true;
+    let output = crate::gui::ui_test_input::settled(&ctx, &mut app, egui::vec2(1100., 720.));
+    let texture = ctx
+        .data(|data| data.get_temp::<FrameTexture>(egui::Id::unique("sovereign-frame-texture")))
+        .unwrap();
+    let last_frame = output
+        .shapes
+        .iter()
+        .rposition(|item| {
+            matches!(&item.shape,
+        egui::Shape::Mesh(mesh) if mesh.texture_id == texture.0.id())
+        })
+        .expect("Application frame must be painted");
+    let title = output.shapes.iter().position(|item| matches!(&item.shape,
+        egui::Shape::Text(text) if text.galley.text() == crate::gui::guide_content::guide().welcome.title)).expect("Modal title must be painted");
+    assert!(
+        last_frame < title,
+        "Application borders are painted over the tutorial"
+    );
+}
+
 fn alpha(image: &RgbaImage, uv: Pos2) -> f32 {
     let x = (uv.x * image.width() as f32 - 0.5).clamp(0., image.width() as f32 - 1.);
     let y = (uv.y * image.height() as f32 - 0.5).clamp(0., image.height() as f32 - 1.);

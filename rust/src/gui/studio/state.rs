@@ -16,7 +16,7 @@ use std::{
     sync::{Arc, atomic::Ordering},
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {
     Stems,
     Voice,
@@ -79,6 +79,7 @@ pub struct Studio {
     pub waveform: Waveform,
     pub spectrogram: Option<Arc<Spectrogram>>,
     pub texture: Option<egui::TextureHandle>,
+    pub(super) reveal_spectrogram: bool,
     pub runtime: RuntimePaths,
     pub cache: Option<Arc<tempfile::TempDir>>,
     pub jobs: Jobs,
@@ -136,6 +137,7 @@ impl Studio {
             waveform: Waveform::default(),
             spectrogram: None,
             texture: None,
+            reveal_spectrogram: false,
             runtime: RuntimePaths::default_location(),
             cache: cache.ok(),
             jobs: Jobs::default(),
@@ -211,6 +213,7 @@ impl Studio {
                     self.jobs.active = None;
                     match result {
                         Err(error) => {
+                            self.reveal_spectrogram = false;
                             self.error = Some(error);
                             self.status = "Studio job stopped; previous audio preserved".into();
                         }
@@ -314,6 +317,7 @@ impl Studio {
                         Ok(Change::Spectrogram(image)) => {
                             self.spectrogram = Some(image);
                             self.texture = None;
+                            self.reveal_spectrogram = true;
                             self.status = "Spectrogram ready · select a region to refine".into();
                         }
                         Ok(Change::Exported { paths, warning }) => {
@@ -371,6 +375,7 @@ impl Studio {
     }
     fn load_player(&mut self) {
         self.analysis = None;
+        self.reveal_spectrogram = false;
         if !self
             .bank
             .as_ref()

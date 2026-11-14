@@ -20,8 +20,13 @@
         <link rel="stylesheet" href="styles.css" />
         <link rel="stylesheet" href="responsive.css" />
         <link rel="stylesheet" href="studio.css" />
+        <link rel="stylesheet" href="controls.css" />
+        <link rel="stylesheet" href="learning.css" />
+        <link rel="stylesheet" href="accessibility.css" />
+        <link rel="stylesheet" href="workspace-layout.css" />
+        <link rel="stylesheet" href="playback-layout.css" />
     </head>
-    <body>
+    <body class="basic-controls">
         <div class="app-shell">
             <header class="masthead">
                 <a class="brand" href="./" aria-label="SlimeDragon Audio, home"
@@ -62,6 +67,7 @@
                     </button>
                 </div>
             </header>
+            <a class="skip-link" href="#workspace-controls">Skip to studio controls</a>
             <main class="workspace">
                 <aside class="library panel" aria-label="Your track">
                     <div class="eyebrow">✦ Your session</div>
@@ -123,10 +129,9 @@
                             >
                             <h1 id="track-title">Shape your sound.</h1>
                         </div>
-                        <span id="engine-status" class="engine-tag"
-                            >Loading Rust engine…</span
-                        >
                     </div>
+                    <details id="page-navigation" class="workspace-disclosure" open>
+                        <summary id="page-navigation-summary">Pages · <span id="current-page-name">Overview</span></summary>
                     <nav class="tabs" aria-label="Studio pages">
                         <button
                             id="tab-overview"
@@ -138,6 +143,21 @@
                         ><button id="tab-report">▤ Report</button
                         ><button id="tab-studio-tools">◇ Studio</button>
                     </nav>
+                    </details>
+                    <details id="control-detail-panel" class="workspace-disclosure" open>
+                        <summary id="control-detail-summary"><span id="current-control-view">Basic controls</span></summary>
+                    <div id="workspace-controls" class="control-visibility" tabindex="-1">
+                        <div role="group" aria-label="Control detail">
+                            <button id="controls-basic" class="selected" aria-pressed="true">Basic</button>
+                            <button id="controls-advanced" aria-pressed="false">Advanced</button>
+                        </div>
+                        <span id="controls-description">Settings stay intact in either view.</span>
+                        <span id="engine-status" class="engine-tag">Loading Rust engine…</span>
+                    </div>
+                    </details>
+                    <p id="advanced-notice" class="advanced-notice" role="status" hidden></p>
+                    <p id="ui-storage-notice" class="ui-storage-notice" role="status" hidden></p>
+                    <p id="learning-load-notice" class="ui-storage-notice" role="status" hidden></p>
                     <div class="mobile-actions">
                         <button id="mobile-master" class="primary" disabled>
                             ◇ Master track</button
@@ -170,7 +190,7 @@
                         </div>
                         <div id="measurements" hidden>
                             <div class="section-heading">
-                                <h2>Input measurements</h2>
+                                <h2>Source analysis</h2>
                                 <span class="small">Measured, not guessed</span>
                             </div>
                             <div class="metrics" id="input-metrics"></div>
@@ -309,73 +329,30 @@
                         <div id="report-content"></div>
                     </div>
                     <div id="studio-tools" class="page" hidden></div>
-                    <div class="playback">
+                    <details id="playback-details" class="playback-details">
+                        <summary>Waveform, volume &amp; seeking</summary>
                         <div class="waveform">
-                            <canvas
-                                id="waveform"
-                                aria-label="Track waveform"
-                            ></canvas
-                            ><input
-                                id="seek"
-                                aria-label="Playback position"
-                                type="range"
-                                min="0"
-                                max="1000"
-                                step="1"
-                                value="0"
-                                disabled
-                            />
+                            <canvas id="waveform" aria-label="Track waveform"></canvas>
+                            <input id="seek" aria-label="Playback position" type="range" min="0" max="1000" step="1" value="0" disabled />
                         </div>
-                        <div class="transport">
-                            <div class="transport-main">
-                                <button id="play" disabled>▶ Play</button
-                                ><button
-                                    id="stop"
-                                    aria-label="Stop playback"
-                                    disabled
-                                >
-                                    ■
-                                </button>
-                                <div
-                                    class="ab"
-                                    role="group"
-                                    aria-label="Audition source"
-                                >
-                                    <button id="original" class="selected">
-                                        A · Original</button
-                                    ><button id="master-source" disabled>
-                                        B · Master
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="transport-extra">
-                                <label class="check"
-                                    ><input
-                                        id="match"
-                                        type="checkbox"
-                                        checked
-                                    />
-                                    Level match
-                                    <button
-                                        class="help"
-                                        data-help="match"
-                                        aria-label="Help with Level match"
-                                    >
-                                        ?
-                                    </button></label
-                                ><label class="volume"
-                                    >Volume
-                                    <input
-                                        id="volume"
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.01"
-                                        value="0.7"
-                                        aria-label="Listening volume" /></label
-                                ><time id="clock">0:00 / 0:00</time>
+                        <div class="transport-extra">
+                            <label class="check"><input id="match" type="checkbox" checked /> Level match
+                                <button class="help" data-help="match" aria-label="Help with Level match">?</button>
+                            </label>
+                            <label class="volume">Volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="Listening volume" /></label>
+                            <time id="clock">0:00 / 0:00</time>
+                        </div>
+                    </details>
+                    <div class="playback primary-player" aria-label="Mastering playback">
+                        <div class="transport-main primary-transport">
+                            <button id="play" disabled>Play</button>
+                            <button id="stop" aria-label="Stop playback" disabled>Stop</button>
+                            <div class="ab" role="group" aria-label="Compare original and master">
+                                <button id="original" class="selected" aria-label="A · Original"><span class="compare-long">A · Original</span><span class="compare-short" aria-hidden="true">A</span></button>
+                                <button id="master-source" disabled aria-label="B · Master"><span class="compare-long">B · Master</span><span class="compare-short" aria-hidden="true">B</span></button>
                             </div>
                         </div>
+                        <p class="transport-context">A Original · B Master</p>
                     </div>
                 </section>
                 <aside class="direction panel" aria-label="Mastering direction">
@@ -404,7 +381,7 @@
                             ?
                         </button></label
                     ><select id="profile" disabled></select>
-                    <details>
+                    <details data-advanced>
                         <summary>Blend two profiles</summary>
                         <label for="blend-profile">Second profile</label
                         ><select id="blend-profile"></select
@@ -434,6 +411,7 @@
                         <button id="gentler" class="selected">Gentler</button
                         ><button id="louder">Louder</button>
                     </div>
+                    <div data-advanced>
                     <label class="check custom-target"
                         ><input id="custom-target" type="checkbox" /> Custom
                         LUFS target
@@ -511,6 +489,7 @@
                     <p id="reference-name" class="small">
                         Optional. Borrow a finished track’s tonal direction.
                     </p>
+                    </div>
                     <div class="eyebrow divider">Export quality</div>
                     <label class="sr-only" for="format">WAV format</label
                     ><select id="format">
@@ -519,7 +498,7 @@
                         <option value="wav32f">
                             WAV · 32-bit float
                         </option></select
-                    ><label class="check"
+                    ><label class="check" data-advanced
                         ><input id="dither" type="checkbox" checked /> Dither
                         integer exports
                         <button
@@ -547,13 +526,43 @@
                 </div>
             </footer>
         </div>
-        <dialog id="help-dialog">
+        <div id="job-feedback" class="job-feedback" aria-label="Active processing" hidden>
+            <div id="job-feedback-master">
+                <span>Mastering · processing locally</span>
+                <progress id="job-master-progress" max="1" value="0" aria-label="Mastering progress"></progress>
+                <button id="job-cancel-master">Cancel mastering job</button>
+            </div>
+            <div id="job-feedback-studio">
+                <p id="job-studio-status" role="status"></p>
+                <button id="job-cancel-studio">Cancel Studio job</button>
+            </div>
+        </div>
+        <div class="help-dock">
+            <span class="help-dock-note">Help &amp; learning</span>
+            <button id="playback-details-toggle" aria-controls="playback-details" aria-expanded="false" hidden>Details</button>
+            <button id="open-learning" aria-haspopup="dialog">? Help</button>
+        </div>
+        <dialog id="help-dialog" aria-labelledby="help-title">
             <form method="dialog">
                 <button class="dialog-close" aria-label="Close help">×</button>
             </form>
             <span class="eyebrow">A little guidance</span>
             <h2 id="help-title"></h2>
             <div id="help-body"></div>
+        </dialog>
+        <dialog id="learning-dialog" aria-labelledby="learning-title" aria-describedby="learning-description">
+            <header class="learning-heading">
+                <span id="learning-label" class="eyebrow">A little guidance</span>
+                <button id="learning-close" aria-label="Close guidance">Close</button>
+            </header>
+            <div id="learning-scroll" class="learning-content">
+            <nav id="learning-nav" aria-label="Help topics" hidden></nav>
+            <h2 id="learning-title" tabindex="-1"></h2>
+            <p id="learning-description"></p>
+            <p id="learning-storage" class="ui-storage-notice" role="status" hidden></p>
+            <div id="learning-body"></div>
+            </div>
+            <footer id="learning-actions" class="learning-actions"></footer>
         </dialog>
         <noscript
             >This app needs JavaScript and WebAssembly to process audio

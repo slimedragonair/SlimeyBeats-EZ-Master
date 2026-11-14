@@ -47,7 +47,7 @@ pub fn paint(ctx: &egui::Context, frame: Rect, header_gap: [f32; 2]) {
     let [width, height] = texture.0.size();
     let size = vec2(width as f32, height as f32);
     let painter = ctx
-        .layer_painter(egui::LayerId::new(egui::Order::Foreground, id))
+        .layer_painter(egui::LayerId::new(super::theme::DECORATION_ORDER, id))
         .with_clip_rect(frame);
     if let Some(crown) = crown_patch(frame, header_gap, size) {
         for right in [false, true] {

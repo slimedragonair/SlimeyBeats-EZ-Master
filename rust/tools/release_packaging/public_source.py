@@ -6,7 +6,7 @@ ROOT_FILES = ('README.md', 'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICE
               'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', '.gitignore', '.gitattributes', '.editorconfig',
               'run-slimeybeats.bat', 'run-rust.bat', 'cli-rust.bat',
               'run.bat', 'cli.bat', 'setup.bat', 'requirements.txt')
-GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'MCP.md', 'MCP_ARCHITECTURE.md', 'MCP_VALIDATION.md', 'STUDIO.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md', 'MERGE_VALIDATION.md')
+GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'MCP.md', 'MCP_ARCHITECTURE.md', 'MCP_VALIDATION.md', 'STUDIO.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md', 'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md')
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')
 
@@ -28,7 +28,9 @@ def copy_public_source(repository, destination):
         copy(Path('docs') / name)
     for name in ('welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
                  'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png', 'web-preview.png', 'web-phone-eq.png',
-                 'studio-stems.png', 'studio-repair.png', 'studio-plugins.png', 'studio-web-phone.png', 'studio-large-import.png'):
+                 'studio-stems.png', 'studio-repair.png', 'studio-plugins.png', 'studio-web-phone.png', 'studio-large-import.png',
+                 'ux-first-run.png', 'ux-manual-eq.png', 'ux-web-help.png',
+                 'web-basic-overview.png', 'web-phone-master.png'):
         copy(Path('docs/images') / name)
     for name in ('python-guide.md', 'python-third-party-notices.md', 'python-changelog.md'):
         copy(Path('docs/legacy') / name)

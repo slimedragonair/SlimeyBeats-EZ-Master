@@ -1,0 +1,33 @@
+{
+  "format_version": 1,
+  "name": "eframe",
+  "version": "0.37.0",
+  "source": "registry+https://github.com/rust-lang/crates.io-index",
+  "license": "MIT OR Apache-2.0",
+  "repository": "https://github.com/emilk/egui/tree/main/crates/eframe",
+  "crate_checksum": "9c5642501a65ca657d05f00c643a5c14ff2346cb3818032bfe23d58e1f8e5f84",
+  "crate_vcs": {
+    "git": {
+      "sha1": "3c6eb8261c3293ad9c7ea1ed58487e038860ebef"
+    },
+    "path_in_vcs": "crates/eframe"
+  },
+  "upstream_repository": "https://github.com/emilk/egui",
+  "upstream_commit": "3c6eb8261c3293ad9c7ea1ed58487e038860ebef",
+  "source_selection": "Original workspace-root notices from the published crate VCS commit.",
+  "release_tag_fallback": null,
+  "files": [
+    {
+      "path": "LICENSE-MIT",
+      "upstream_path": "LICENSE-MIT",
+      "url": "https://raw.githubusercontent.com/emilk/egui/3c6eb8261c3293ad9c7ea1ed58487e038860ebef/LICENSE-MIT",
+      "sha256": "95ca92f5f8ea5231f1580b3a2a799e8260af3114b900e1def5355a7f44bcf60c"
+    },
+    {
+      "path": "LICENSE-APACHE",
+      "upstream_path": "LICENSE-APACHE",
+      "url": "https://raw.githubusercontent.com/emilk/egui/3c6eb8261c3293ad9c7ea1ed58487e038860ebef/LICENSE-APACHE",
+      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90"
+    }
+  ]
+}

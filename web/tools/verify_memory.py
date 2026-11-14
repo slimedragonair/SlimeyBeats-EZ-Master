@@ -69,8 +69,12 @@ try:
                 page.locator('#master').click()
                 expect(page.locator('#export')).to_be_enabled(timeout=600000)
                 page.locator('#tab-eq').click()
+                if page.locator('#playback-details').get_attribute('open') is None:
+                    page.locator('#playback-details > summary').click()
+                page.locator('#volume').fill('0')
+                page.locator('#volume').dispatch_event('input')
                 page.locator('#play').click()
-                expect(page.locator('#play')).to_have_text('Ⅱ Pause',timeout=30000)
+                expect(page.locator('#play')).to_have_text('Pause',timeout=30000)
                 band = page.locator('[data-band="2"][data-parameter="gain"]')
                 band.fill(str(-1.5 if cycle%2 else -2))
                 band.dispatch_event('input')

@@ -9,43 +9,33 @@ import tomllib
 from release_packaging.public_source import copy_public_source, DEMO_FILES
 from release_packaging.companion_payload import companion_binaries, copy_companion
 from release_packaging.documentation_payload import copy_documentation, copy_project_notices
+from release_packaging.license_payload import copy_dependency_licenses
 
 
 def dependency_notices(project, destination):
+    # A target build may leave other platforms uncached; honor Cargo's offline opt-in.
     result = subprocess.run(
         ["cargo", "metadata", "--locked", "--format-version", "1"],
         cwd=project, capture_output=True, text=True,
     )
     if result.returncode:
         raise RuntimeError(f"Locked Cargo license inventory failed:\n{result.stderr.strip()}")
-    packages = json.loads(result.stdout)["packages"]
-    records = []
-    for package in sorted(packages, key=lambda item: (item["name"], item["version"])):
-        if package["source"] is None:
-            continue
-        directory = Path(package["manifest_path"]).parent
-        selected = set()
-        for pattern in ("LICENSE*", "LICENCE*", "COPYING*", "NOTICE*", "UNLICENSE*"):
-            selected.update(path for path in directory.glob(pattern) if path.is_file())
-        if package["license_file"]:
-            candidate = (directory / package["license_file"]).resolve()
-            if candidate.is_file() and candidate.is_relative_to(directory.resolve()):
-                selected.add(candidate)
-        key = f"{package['name']}-{package['version']}"
-        for path in sorted(selected):
-            target = destination / "licenses" / key / path.name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, target)
-        records.append({
-            "name": package["name"], "version": package["version"],
-            "license": package["license"], "repository": package["repository"],
-            "license_files": [f"licenses/{key}/{path.name}" for path in sorted(selected)],
-        })
+    metadata = json.loads(result.stdout)
+    packages = metadata["packages"]
+    lock = tomllib.loads((Path(metadata["workspace_root"]) / "Cargo.lock").read_text(encoding="utf-8"))
+    checksums = {(item["name"], item["version"], item.get("source")): item.get("checksum")
+                 for item in lock["package"]}
+    for item in packages:
+        item["checksum"] = checksums.get((item["name"], item["version"], item["source"]))
+    records = copy_dependency_licenses(packages, destination)
     (destination / "THIRD-PARTY.json").write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
     (destination / "THIRD-PARTY-NOTICES.txt").write_text(
         "Rust dependency attribution\n\n"
         "THIRD-PARTY.json lists Cargo dependencies and their declared licenses.\n"
         "Original license/notice files supplied by those packages are in licenses/.\n"
+        "Nested paths are retained; reviewed upstream supplements are pinned locally.\n"
+        "Each package's LICENSE-PROVENANCE.json records sources and SHA-256 hashes.\n"
+        "Packages without separate files are marked explicitly in THIRD-PARTY.json.\n"
         "The inventory also includes platform dependencies not used on Windows.\n"
         "FFmpeg is an optional external installation and is not bundled.\n"
         "The project's original source/docs/artwork are MIT licensed; see LICENSE.\n"
@@ -93,6 +83,10 @@ def package(project, parent, version, evidence):
         "Mastering prepares an in-memory preview. Export is a separate action.\n"
         "Manual EQ updates while playing; its live spectrum shares the EQ graph.\n"
         "Hover names and controls for help. Suggestions are editable starting points.\n\n"
+        "Basic starts with everyday controls. Advanced reveals detail without\n"
+        "resetting your settings. The optional first-use tour remembers a completed\n"
+        "or declined offer. Bottom-right Help (F1) has replay, terms, troubleshooting\n"
+        "and desktop AI connection guidance. Read docs/LEARNING_AND_HELP.md.\n\n"
         "Studio: import aligned stem files or a Suno/stem ZIP without a fixed\n"
         "part-count ceiling. All parts start selected; review before importing.\n"
         "Choose the preferred WAV/MP3 encoding. Original names survive edits/projects.\n"

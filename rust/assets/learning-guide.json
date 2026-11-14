@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "welcome": {
+    "title": "Make your first master",
+    "body": "A short tour shows you how to load a song, shape its sound and save a finished version. You can explore at your own pace.",
+    "privacy_note": "Your audio stays on your device. The tour never starts processing or saves audio for you."
+  },
+  "steps": [
+    {
+      "id": "add",
+      "title": "1. Add your song",
+      "body": "Choose an audio file or try the example. Keep your original mix: SlimeyBeats prepares a separate preview and preserves existing exports.",
+      "detail": "A mix is the whole song. A stem is one part, such as vocals or drums. Start in Mastering for a finished mix, or Studio when you want to edit individual parts.",
+      "desktop_target": "overview",
+      "web_target": "overview"
+    },
+    {
+      "id": "analyze",
+      "title": "2. Understand your mix",
+      "body": "Analyze measures loudness, peaks and tonal balance. It does not change the audio. A measurement is a clue to explore, not a grade for your music.",
+      "detail": "LUFS describes perceived average loudness. True peak estimates the highest reconstructed signal level. Neither tells you whether a song is enjoyable or needs a particular change.",
+      "desktop_target": "overview",
+      "web_target": "overview"
+    },
+    {
+      "id": "master",
+      "title": "3. Prepare a master",
+      "body": "Choose a sound profile and a loudness direction, then Master. This creates a preview. You can change your mind and re-master before exporting.",
+      "detail": "Profiles are editable starting points. Gentler loudness settings preserve more room for transients; louder settings can reduce dynamics. Advanced controls reveal precise targets and processing options without resetting your choices.",
+      "desktop_target": "overview",
+      "web_target": "overview"
+    },
+    {
+      "id": "compare",
+      "title": "4. Listen and compare",
+      "body": "Use A/B to compare the source and the prepared preview. Loudness match helps you compare tone without simply preferring the louder version. Listening volume does not change exports.",
+      "detail": "In Mastering, A is the original mix and B is the master. In Manual EQ, A is the master before your EQ and B includes your EQ. In Studio, the comparison is between the selected edit's before and after audio.",
+      "desktop_target": "overview",
+      "web_target": "overview"
+    },
+    {
+      "id": "eq",
+      "title": "5. Shape the tone",
+      "body": "Manual EQ changes the balance of bass, mids and treble. Try a small change while listening. Suggested EQ prepares an optional starting curve; you decide whether to apply it.",
+      "detail": "Frequency chooses where a band works. Gain boosts or cuts that area. Q chooses how narrow it is. The EQ curve shows the change you apply; the spectrum shows energy in the audio. They use different scales.",
+      "desktop_target": "eq",
+      "web_target": "eq"
+    },
+    {
+      "id": "export",
+      "title": "6. Save when you are ready",
+      "body": "Export saves the prepared audio to a file. Mastering and previewing do not export automatically. Choose a format and destination, then keep the result you prefer.",
+      "detail": "WAV is a useful lossless starting point. Existing exports are preserved with a new name. On the web, your browser manages the download destination. On desktop, mastering and Studio remember their export folders separately.",
+      "desktop_target": "overview",
+      "web_target": "overview"
+    },
+    {
+      "id": "studio",
+      "title": "7. Explore Studio when you need it",
+      "body": "Studio helps you rebalance aligned stems, clean a voice or repair a small audio problem. Import several stem files or a Suno ZIP together. Start with the names you recognize.",
+      "detail": "Imported stems must have matching timing, sample rate and channel count. Render pending fader changes before another edit or export. Desktop Save project keeps a working session you can reopen; exporting a mix is a separate action. Model separation and VST3 effects are desktop features.",
+      "desktop_target": "stems",
+      "web_target": "studio-tools"
+    },
+    {
+      "id": "help",
+      "title": "You are ready to explore",
+      "body": "Help stays available in the bottom-right corner. Replay this tour, look up an unfamiliar term or connect an AI assistant to the desktop app whenever you need it.",
+      "detail": "Use Basic controls for a clear starting point and Advanced controls when you want more detail. Switching views changes what you see, not the processing settings you already chose.",
+      "desktop_target": "overview",
+      "web_target": "overview"
+    }
+  ],
+  "glossary": [
+    {"term": "Mastering", "description": "Finishing a whole mix: adjusting its overall tone, dynamics and final level before saving a delivery file."},
+    {"term": "Mixing", "description": "Balancing individual parts of a song. Studio stem faders help with this; mastering works on the combined result."},
+    {"term": "EQ", "description": "Equalization. Change how much bass, midrange or treble you hear. Small changes are often easier to judge."},
+    {"term": "Frequency / Hz", "description": "Where a sound sits from low bass to high treble. Hertz (Hz) measures cycles per second; 1 kHz is 1,000 Hz."},
+    {"term": "Gain / dB", "description": "A change in level, measured in decibels. Positive gain raises a level; negative gain lowers it."},
+    {"term": "Q / width", "description": "How narrow an EQ band is. Higher Q affects a narrower area; lower Q spreads the change more broadly."},
+    {"term": "LUFS", "description": "A weighted measure of perceived average loudness. A target is an artistic or delivery choice, not a universal quality score."},
+    {"term": "True peak / dBTP", "description": "An estimate of the highest reconstructed signal level, including peaks between digital samples. The ceiling helps leave delivery headroom."},
+    {"term": "Dynamics", "description": "The contrast between quieter and louder moments. Strong loudness processing can reduce that contrast."},
+    {"term": "Limiter", "description": "Peak protection that reduces gain when a signal approaches the chosen ceiling. Pushing it harder can change punch and dynamics."},
+    {"term": "Loudness match", "description": "Listening-only level adjustment for a fairer A/B comparison. It does not change your exported file."},
+    {"term": "Reference track", "description": "A finished song used as an optional tonal guide. Pick a relevant sound; matching its measurements does not guarantee a better master."},
+    {"term": "Stem", "description": "One aligned part of a song, such as vocals, drums or bass. Imported parts must share the same duration, sample rate and channels."},
+    {"term": "Mute / solo", "description": "Mute leaves a part out of the mix. Solo lets you hear the selected part or parts on their own. Neither deletes the source."},
+    {"term": "Preview", "description": "A prepared version you can listen to and change. Export saves that prepared audio; Save project preserves a desktop Studio working session."},
+    {"term": "MCP / AI assistant", "description": "An optional local connection that lets a compatible AI client use SlimeyBeats tools. You choose the audio and export folders it may use."}
+  ],
+  "mcp": {
+    "title": "Connect an AI assistant",
+    "body": "The desktop companion lets a compatible AI client analyze, prepare and edit audio through local tools. SlimeyBeats does not require an AI account to work on its own.",
+    "steps": [
+      "Use the desktop build with its MCP companion included.",
+      "Choose an audio folder for the assistant and a separate folder for its outputs.",
+      "Generate a connection example, then add the executable and arguments through your AI client's supported MCP setup.",
+      "Reconnect the client. Ask it to analyze a track, explain its suggestions and prepare a preview before you approve an export."
+    ],
+    "privacy_note": "The MCP server runs locally. Your AI client may send prompts, paths and returned measurements to its model provider; its own privacy rules apply. The browser app does not connect to your desktop automatically."
+  }
+}

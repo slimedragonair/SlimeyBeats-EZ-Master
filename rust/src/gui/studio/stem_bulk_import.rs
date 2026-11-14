@@ -73,13 +73,15 @@ impl Review {
 
 pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     theme::eyebrow(ui, "IMPORT A STEM SET");
-    ui.label("Combine aligned parts. No fixed track count.");
-    ui.horizontal_wrapped(|ui| {
+    ui.label("Combine aligned parts. No model needed.");
+    if studio.bulk_import.is_none() {
+        ui.horizontal_wrapped(|ui| {
         if ui.add(crystal_button::secondary("Choose stem files…")).on_hover_text("Select multiple aligned files. Matching WAV/MP3 names count as one part; review the format before import.").clicked()
             && let Some(paths) = rfd::FileDialog::new().add_filter("Audio stems", crate::audio::EXTENSIONS).pick_files() { studio.prepare_stem_files(paths, ctx); }
         if ui.add(crystal_button::secondary("Choose Suno / stem ZIP…")).on_hover_text("Read a ZIP locally. Only selected WAV/MP3 files are unpacked into private temporary files. No upload or model download.").clicked()
             && let Some(path) = rfd::FileDialog::new().add_filter("Stem ZIP", &["zip"]).pick_file() { studio.prepare_stem_archive(path, ctx); }
     });
+    }
     if let Some(review) = &studio.bulk_import {
         ui.small(format!(
             "Review {} / {} selected parts in the workspace.",
@@ -90,7 +92,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     actions(studio, ui, ctx);
 }
 
-pub fn review(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, compact: bool) {
+pub fn review(studio: &mut Studio, ui: &mut egui::Ui, _: &egui::Context, compact: bool) {
     if let Some(review) = &mut studio.bulk_import {
         ui.separator();
         if compact {
@@ -182,7 +184,6 @@ pub fn review(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, compa
             ));
         }
     }
-    actions(studio, ui, ctx);
 }
 
 fn kind_picker(choice: &mut Choice, ui: &mut egui::Ui, width: f32, used: &BTreeSet<StemKind>) {

@@ -1,0 +1,32 @@
+{
+  "format_version": 1,
+  "name": "dasp_frame",
+  "version": "0.11.0",
+  "source": "registry+https://github.com/rust-lang/crates.io-index",
+  "license": "MIT OR Apache-2.0",
+  "repository": "https://github.com/rustaudio/dasp.git",
+  "crate_checksum": "b2a3937f5fe2135702897535c8d4a5553f8b116f76c1529088797f2eee7c5cd6",
+  "crate_vcs": {
+    "git": {
+      "sha1": "221b81038c528bf3fc364a8ab5cc4b2e52f7dbfc"
+    }
+  },
+  "upstream_repository": "https://github.com/rustaudio/dasp",
+  "upstream_commit": "221b81038c528bf3fc364a8ab5cc4b2e52f7dbfc",
+  "source_selection": "Original workspace-root notices from the published crate VCS commit.",
+  "release_tag_fallback": null,
+  "files": [
+    {
+      "path": "LICENSE-MIT",
+      "upstream_path": "LICENSE-MIT",
+      "url": "https://raw.githubusercontent.com/rustaudio/dasp/221b81038c528bf3fc364a8ab5cc4b2e52f7dbfc/LICENSE-MIT",
+      "sha256": "b1d6df41ed3aa96806e74c729444d7c121d90e6660a6aed01d298e03fde475a0"
+    },
+    {
+      "path": "LICENSE-APACHE",
+      "upstream_path": "LICENSE-APACHE",
+      "url": "https://raw.githubusercontent.com/rustaudio/dasp/221b81038c528bf3fc364a8ab5cc4b2e52f7dbfc/LICENSE-APACHE",
+      "sha256": "756c8d2ab2dc24f256e1455b5f03937f4933d83d7bc9f2d55009fc962377d512"
+    }
+  ]
+}

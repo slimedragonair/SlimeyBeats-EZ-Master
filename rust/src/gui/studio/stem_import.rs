@@ -108,6 +108,8 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
         let complete = layout == Layout::Multitrack || files.len() == import.rows.len();
         ui.small(format!("{} parts selected", files.len()));
         if files.len() >= 2 && let Err(error) = &valid { ui.colored_label(crate::gui::theme::BONE, error.to_string()); }
+        if files.len() < 2 { ui.small("Choose at least two aligned parts to import."); }
+        else if !complete { ui.small("Choose a file for each slot, or use Custom stem set for optional slots."); }
         if ui.add_enabled(valid.is_ok() && complete, crystal_button::secondary("Import aligned stems")).clicked() {
             studio.import_aligned_stems(files, ctx);
         }

@@ -38,7 +38,9 @@ def installation_snapshot(identity):
     folder = values['InstallLocation']
     files = {}
     if folder:
-        for name in ['SlimeyBeats-EZ-Master.exe', 'SlimeyBeats-EZ-Master-CLI.exe', 'user_data/rust-settings.json']:
+        for name in ['SlimeyBeats-EZ-Master.exe', 'SlimeyBeats-EZ-Master-CLI.exe',
+                     'user_data/rust-settings.json', 'user_data/desktop-preferences.json',
+                     'user_data/interface-preferences.json', 'user_data/tutorial-dismissed.marker']:
             path = Path(folder) / name
             if path.is_file(): files[name] = digest(path)
     shortcuts = Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs'/identity.start_folder
@@ -55,7 +57,7 @@ def main():
     parser.add_argument('--skip-gui', action='store_true', help='Verify command-line lifecycle only; record GUI capture as untested')
     parser.add_argument('--channel', choices=['stable', 'studio-preview'], default='stable')
     args = parser.parse_args()
-    captures = {name:args.report.resolve().with_name(args.report.stem+'-'+name+'.png') for name in ['app','studio']}
+    captures = {name:args.report.resolve().with_name(args.report.stem+'-'+name+'.png') for name in ['app','studio','preferences']}
     for path in [args.report.resolve(),*captures.values(),*(path.with_suffix('.state.json') for path in captures.values())]:
         if path.exists(): raise FileExistsError('Choose a fresh verification report: '+str(path))
     installer, root = args.installer.resolve(), args.test_root.resolve()
@@ -91,6 +93,7 @@ def main():
     record = {'installer_sha256': digest(installer), 'channel':args.channel, 'drive_root_rejected': True, 'other_channel_marker_rejected':True, 'install_exit': result.returncode}
     try:
         gui, cli = root/'SlimeyBeats-EZ-Master.exe', root/'SlimeyBeats-EZ-Master-CLI.exe'
+        gui_command = [str(gui),'--studio-data',str(root/'QA Studio runtime')]
         assert gui.is_file() and cli.is_file()
         assert all((shortcuts/name).is_file() for name in (identity.product+'.lnk','Example audio.lnk','User guide.lnk','Connect AI assistant.lnk','Uninstall.lnk'))
         assert all((root/name).is_file() for name in ['slimeybeats-mcp.exe','slimeybeats-vst3-host.exe','Connect-AI-Assistant.ps1','Connect AI Assistant.bat'])
@@ -127,11 +130,11 @@ def main():
         else:
             screenshot = captures['app']
             screenshot.parent.mkdir(parents=True, exist_ok=True)
-            capture = command([str(gui), str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
+            capture = command([*gui_command, str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
             assert capture.returncode == 0 and screenshot.is_file(), f'Installed GUI capture failed (exit {capture.returncode}):\n{capture.stdout}\n{capture.stderr}'
             record['installed_gui_processing_capture'] = True
             studio_capture = captures['studio']
-            checked = command([str(gui),'--studio-session',str(studio_document),'--capture-ui',str(studio_capture)],cwd=root)
+            checked = command([*gui_command,'--studio-session',str(studio_document),'--capture-ui',str(studio_capture)],cwd=root)
             assert checked.returncode == 0, checked.stderr
             state = json.loads(studio_capture.with_suffix('.state.json').read_text())
             assert state['error'] is None and state['preview_ready'] and state['playback_ready'],state
@@ -141,7 +144,17 @@ def main():
         native_report = json.loads(next((root/'output').glob('*.report.json')).read_text())
         config = json.loads(settings.read_text()) if settings.exists() else native_report['configuration']
         config['intensity'] = .37
+        config['out_dir'] = str(root/'Preserved mastering exports')
         settings.write_text(json.dumps(config, indent=2))
+        desktop = settings.with_name('desktop-preferences.json')
+        desktop.write_text(json.dumps({'studio_output_dir':str(root/'Preserved Studio exports'),
+                                      'studio_export_format':'wav24', 'volume':0,
+                                      'studio_volume':0, 'two_stems':False}, indent=2))
+        interface = settings.with_name('interface-preferences.json')
+        interface.write_text(json.dumps({'advanced':True, 'tutorial_status':'completed',
+                                        'tutorial_step':7}, indent=2))
+        tutorial_marker = settings.with_name('tutorial-dismissed.marker')
+        tutorial_marker.write_bytes(b'')
         profiles = root/'profiles'; profiles.mkdir(exist_ok=True)
         profile_source = Path(__file__).resolve().parents[2]/'mastercraft/data/builtin_profiles.json'
         profile = json.loads(profile_source.read_text())['profiles']['neutral']
@@ -150,12 +163,39 @@ def main():
         example = root/'Examples/demo-input.wav'
         with example.open('ab') as stream: stream.write(b'QA preserved user edit')
         project_files = [path for path in studio_document.parent.iterdir() if path.is_file()]
-        preserved = {str(path):digest(path) for path in [settings, custom, wave, example, *project_files]}
+        preserved = {str(path):digest(path) for path in
+                     [settings, desktop, interface, tutorial_marker, custom, wave, example, *project_files]}
         upgraded = command(f'"{installer}" /S')
         assert upgraded.returncode == 0
         assert Path(registry_value(uninstall_key,'InstallLocation')).resolve() == root
         assert all(digest(path)==checksum for path,checksum in preserved.items())
         record['upgrade_kept_custom_install_path_and_user_files'] = True
+        record['upgrade_preserved_export_destinations_and_tutorial_choice'] = True
+        if not args.skip_gui:
+            # Loading and saving through the installed app verifies the actual
+            # portable data root, beyond merely retaining sentinel files.
+            reopened = command([*gui_command,'--capture-ui',str(captures['preferences']),
+                                '--capture-save-settings'],cwd=root)
+            assert reopened.returncode == 0, reopened.stderr
+            restored = json.loads(settings.read_text())
+            restored_desktop = json.loads(desktop.read_text())
+            restored_interface = json.loads(interface.read_text())
+            assert restored == config, 'Installed GUI changed saved mastering settings'
+            assert restored_desktop['studio_output_dir'] == str(root/'Preserved Studio exports')
+            assert restored_desktop['volume'] == 0 and restored_desktop['studio_volume'] == 0
+            assert not restored_desktop['two_stems'] and restored_desktop['studio_export_format'] == 'wav24'
+            assert restored_interface['advanced'] and restored_interface['tutorial_status'] == 'completed'
+            assert restored_interface['tutorial_step'] == 7
+            assert tutorial_marker.is_file()
+            status = json.loads(captures['preferences'].with_suffix('.state.json').read_text())
+            assert status['error'] is None, status
+            record['installed_gui_restored_preferences_after_upgrade'] = True
+            # Save settings may normalize JSON formatting; uninstall must retain
+            # those newly saved bytes as well as the untouched music/projects.
+            preference_files = {str(path) for path in [settings,desktop,interface]}
+            assert all(digest(path) == checksum for path,checksum in preserved.items()
+                       if path not in preference_files), 'Reopening changed non-preference user files'
+            preserved.update({path:digest(path) for path in preference_files})
     finally:
         uninstall = root/'Uninstall.exe'
         if uninstall.is_file():
@@ -171,7 +211,8 @@ def main():
     assert preserved and all(Path(path).is_file() and digest(path)==checksum for path,checksum in preserved.items())
     record.update(uninstall_removed_program_shortcuts_registration=True,
                   uninstall_preserved_settings_profile_export_edited_example=True,
-                  uninstall_preserved_studio_project=True)
+                  uninstall_preserved_studio_project=True,
+                  uninstall_preserved_desktop_interface_and_tutorial_marker=True)
     record['other_installed_channel_unchanged'] = True
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(record, indent=2)+'\n')

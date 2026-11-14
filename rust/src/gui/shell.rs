@@ -10,11 +10,31 @@ const OUTER_INSET: egui::Vec2 = vec2(14., 12.);
 impl eframe::App for MasterCraftApp {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
         self.persist_preferences(true, false);
+        self.experience.persist(true, false);
     }
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
+        self.render_frame(ui);
+    }
+}
+
+impl MasterCraftApp {
+    pub(super) fn render_frame(&mut self, ui: &mut egui::Ui) {
         self.poll();
         let ctx = ui.ctx().clone();
         self.studio.poll(&ctx);
+        self.experience
+            .offer_when_idle(!self.busy && !self.studio.busy() && self.capture.is_none());
+        if ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::F1)) {
+            self.experience
+                .open_help(super::user_experience::HelpPage::Start, &ctx);
+        }
+        if !self.experience.has_modal()
+            && !self.busy
+            && !self.studio.busy()
+            && ctx.input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::O))
+        {
+            self.pick_files();
+        }
         if !self.busy && !self.studio.busy() {
             let files = ctx.input(|i| {
                 i.raw
@@ -52,7 +72,21 @@ impl eframe::App for MasterCraftApp {
                 }
             }
         }
-        if ctx.input(|i| i.key_pressed(egui::Key::Space)) && !ctx.egui_wants_keyboard_input() {
+        let plain_space = ctx.input_mut(|input| {
+            // egui 0.37 ignores extra Alt in logical shortcut matching, and
+            // focused buttons also react to Space. Keep the OS window menu out
+            // of both transport handling and tutorial/button activation.
+            input.events.retain(|event| {
+                !matches!(event,
+                egui::Event::Key {key: egui::Key::Space, modifiers, ..} if modifiers.alt)
+            });
+            input.events.iter().any(|event| {
+                matches!(event,
+                egui::Event::Key {key: egui::Key::Space, pressed:true, repeat:false, modifiers, ..}
+                    if modifiers.is_none())
+            })
+        });
+        if plain_space && !ctx.egui_wants_keyboard_input() && !self.experience.has_modal() {
             if self.tab == 3 {
                 if self.studio.current.is_some() {
                     self.studio.player.toggle();
@@ -68,18 +102,22 @@ impl eframe::App for MasterCraftApp {
         let (header, gap) = self.sovereign_header(ui, &ctx);
         let footer = self.sovereign_footer(ui);
         let queue_max = (ui.available_width() - 290. - 430.).clamp(190., 420.);
-        let queue = egui::Panel::left("queue")
-            .default_size(250.)
-            .min_size(190.)
-            .max_size(queue_max)
-            .resizable(true)
-            .show(ui, |ui| {
-                egui::Frame::new().inner_margin(12).show(ui, |ui| {
-                    ui.add_enabled_ui(!self.studio.busy(), |ui| super::queue_panel::show(self, ui));
-                });
-            })
-            .response
-            .rect;
+        let queue = (self.tab != 3).then(|| {
+            egui::Panel::left("queue")
+                .default_size(250.)
+                .min_size(190.)
+                .max_size(queue_max)
+                .resizable(true)
+                .show(ui, |ui| {
+                    egui::Frame::new().inner_margin(12).show(ui, |ui| {
+                        ui.add_enabled_ui(!self.studio.busy(), |ui| {
+                            super::queue_panel::show(self, ui)
+                        });
+                    });
+                })
+                .response
+                .rect
+        });
         let settings_max = (ui.available_width() - 430.).clamp(290., 450.);
         let settings = egui::Panel::right("settings")
             .default_size(332.)
@@ -93,7 +131,15 @@ impl eframe::App for MasterCraftApp {
                             .selected
                             .and_then(|i| self.tracks.get(i))
                             .map(|t| t.path.clone());
-                        super::studio::controls::show(&mut self.studio, ui, selected, &ctx);
+                        super::learning_ui::mode_selector(&mut self.experience, ui);
+                        ui.add_space(6.);
+                        super::studio::controls::show(
+                            &mut self.studio,
+                            ui,
+                            selected,
+                            &ctx,
+                            self.experience.advanced(),
+                        );
                     } else {
                         settings_panel::show(self, ui, &ctx);
                     }
@@ -114,7 +160,7 @@ impl eframe::App for MasterCraftApp {
                 .show(ui, |ui| self.sovereign_workspace(ui, &ctx));
         });
         // A single source coordinate grid connects the visible metal through all corners.
-        for rect in [queue, settings, workspace, footer] {
+        for rect in queue.into_iter().chain([settings, workspace, footer]) {
             skin_frame::paint(&ctx, rect, 24.);
         }
         skin_frame::paint(&ctx, root, 28.);
@@ -129,7 +175,7 @@ impl eframe::App for MasterCraftApp {
             [footer.center().x - 290., footer.center().x + 290.],
         );
         let ornament = ctx.layer_painter(egui::LayerId::new(
-            egui::Order::Foreground,
+            theme::DECORATION_ORDER,
             egui::Id::unique("sovereign-crests"),
         ));
         self.brand
@@ -137,6 +183,7 @@ impl eframe::App for MasterCraftApp {
         self.brand.paint_crest(&ornament, footer.center(), 144.);
         self.sync_live_eq(&ctx);
         self.autosave_preferences(&ctx);
+        super::learning_ui::show(self, &ctx);
         let ready = !self.busy && !self.eq_dirty && !self.studio.busy();
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {
@@ -259,7 +306,9 @@ impl MasterCraftApp {
 
     fn sovereign_footer(&mut self, ui: &mut egui::Ui) -> Rect {
         let studio_active = self.tab == 3;
-        let status_text = if studio_active {
+        let status_text = if studio_active && self.studio.mix_dirty {
+            "Mix changes pending · playback uses the previous preview".into()
+        } else if studio_active {
             self.studio.status.clone()
         } else {
             self.status.clone()
@@ -322,24 +371,43 @@ impl MasterCraftApp {
                                     .on_hover_text(&status_text);
                                 },
                             );
-                            ui.add_space(200.);
-                            if studio_active && self.studio.busy() {
-                                ui.spinner();
-                                ui.add(
-                                    egui::ProgressBar::new(self.studio.progress)
-                                        .desired_width(150.),
-                                );
-                                if ui.add(crystal_button::secondary("Cancel")).clicked() {
-                                    self.studio.cancel();
-                                }
-                            } else if self.busy {
-                                ui.spinner();
-                                ui.add(egui::ProgressBar::new(self.progress).desired_width(150.));
-                                if ui.add(crystal_button::secondary("Cancel")).clicked() {
-                                    self.cancel.store(true, Ordering::Relaxed);
-                                    self.status = "Cancelling after current stage".into();
-                                }
-                            }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    super::learning_ui::help_button(self, ui, &ui.ctx().clone());
+                                    if studio_active && self.studio.busy() {
+                                        ui.spinner();
+                                        ui.add(
+                                            egui::ProgressBar::new(self.studio.progress)
+                                                .desired_width(
+                                                    if ui.ctx().viewport_rect().width() < 1250. {
+                                                        90.
+                                                    } else {
+                                                        140.
+                                                    },
+                                                ),
+                                        );
+                                        if ui.add(crystal_button::secondary("Cancel")).clicked() {
+                                            self.studio.cancel();
+                                        }
+                                    } else if self.busy {
+                                        ui.spinner();
+                                        ui.add(
+                                            egui::ProgressBar::new(self.progress).desired_width(
+                                                if ui.ctx().viewport_rect().width() < 1250. {
+                                                    90.
+                                                } else {
+                                                    140.
+                                                },
+                                            ),
+                                        );
+                                        if ui.add(crystal_button::secondary("Cancel")).clicked() {
+                                            self.cancel.store(true, Ordering::Relaxed);
+                                            self.status = "Cancelling after current stage".into();
+                                        }
+                                    }
+                                },
+                            );
                         });
                     });
             })
@@ -351,6 +419,26 @@ impl MasterCraftApp {
         let compact_height = ui.ctx().viewport_rect().height() < 800.;
         if compact_height {
             ui.spacing_mut().item_spacing.y = 5.;
+        }
+        if self.experience.save_error.is_some() {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("Interface choices could not be saved.").color(theme::BONE));
+                if ui
+                    .add(crystal_button::secondary("Review in Help"))
+                    .clicked()
+                {
+                    self.experience
+                        .open_help(super::user_experience::HelpPage::Start, &ui.ctx().clone());
+                }
+            });
+        }
+        if self.tab != 3 && self.mastering_direction_changed() {
+            ui.label(
+                RichText::new(
+                    "This is the earlier master preview. Re-master to apply the new direction.",
+                )
+                .color(theme::BONE),
+            );
         }
         if let Some(error) = self.error.clone() {
             egui::Frame::new()
@@ -402,54 +490,15 @@ impl MasterCraftApp {
         if !compact_height {
             ui.add_space(4.);
         }
-        let full_tab_labels = ["Overview", "Manual EQ", "Processing report", "Studio"];
-        let font = egui::TextStyle::Button.resolve(ui.style());
-        let full_tabs_width: f32 = full_tab_labels
-            .iter()
-            .map(|label| {
-                ui.painter()
-                    .layout_no_wrap((*label).into(), font.clone(), Color32::WHITE)
-                    .size()
-                    .x
-                    + 17.
-                    + ui.spacing().item_spacing.x
-                    + 2. * ui.spacing().button_padding.x
-            })
-            .sum::<f32>()
-            + 2. * ui.spacing().item_spacing.x;
-        let report_label = if full_tabs_width > ui.available_width() {
-            "Report"
-        } else {
-            "Processing report"
-        };
-        ui.horizontal_wrapped(|ui| {
-            for (tab, label, icon) in [
-                (0, "Overview", Icon::Home),
-                (1, "Manual EQ", Icon::Sliders),
-                (2, report_label, Icon::Report),
-                (3, "Studio", Icon::Layers),
-            ] {
-                if ui
-                    .add(
-                        crystal_button::secondary(label)
-                            .icon(icon)
-                            .selected(self.tab == tab)
-                            .min_size(vec2(0., if compact_height { 32. } else { 36. })),
-                    )
-                    .clicked()
-                {
-                    if tab == 3 {
-                        self.player.stop();
-                    } else {
-                        self.studio.player.stop();
-                    }
-                    self.tab = tab;
-                }
-            }
-        });
+        super::workspace_tabs::show(self, ui, compact_height);
         ui.separator();
         if self.tab == 3 {
-            if super::studio::workspace::show(&mut self.studio, ui, &ui.ctx().clone()) {
+            if super::studio::workspace::show(
+                &mut self.studio,
+                ui,
+                &ui.ctx().clone(),
+                self.experience.advanced(),
+            ) {
                 match self.studio.working_copy() {
                     Ok(path) => {
                         self.studio.player.stop();
@@ -465,23 +514,20 @@ impl MasterCraftApp {
             return;
         }
         let timeline = (self.tab == 0 || self.tab == 1) && self.current().is_some();
-        let reserve = (if ui.available_width() >= 820. {
-            65.
-        } else {
-            90.
-        }) + if timeline {
-            if ui.ctx().viewport_rect().height() < 800. {
-                130.
-            } else {
-                165.
-            }
-        } else {
-            0.
-        };
+        egui::Panel::bottom("mastering-listening")
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| {
+                ui.separator();
+                if timeline {
+                    super::timeline_panel::show(self, ui);
+                    ui.separator();
+                }
+                super::transport::show(self, ui);
+            });
         let mut scroll = egui::ScrollArea::vertical()
             .id_salt("workspace")
             .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
-            .max_height((ui.available_height() - reserve).max(110.));
+            .max_height(ui.available_height().max(0.));
         if let Some(offset) = self.capture_workspace_scroll {
             scroll = scroll.vertical_scroll_offset(offset);
         }
@@ -490,11 +536,5 @@ impl MasterCraftApp {
             2 => overview::report(self, ui),
             _ => overview::show(self, ui),
         });
-        ui.separator();
-        if timeline {
-            super::timeline_panel::show(self, ui);
-            ui.separator();
-        }
-        super::transport::show(self, ui);
     }
 }

@@ -1,5 +1,4 @@
 use super::{
-    spectral_view,
     state::{Page, Studio},
     transport,
 };
@@ -7,7 +6,10 @@ use crate::gui::{crystal_button, theme};
 use eframe::egui::{self, RichText};
 
 /// Returns true when the user explicitly sends the prepared mix to mastering.
-pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool {
+pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advanced: bool) -> bool {
+    if studio.spectrogram.is_none() {
+        studio.reveal_spectrogram = false;
+    }
     let mut promote = false;
     let compact = ui.available_height() < 800.;
     transport::dock(studio, ui, compact);
@@ -51,6 +53,11 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool
                 !studio.busy() && !studio.undo.is_empty(),
                 crystal_button::secondary("Undo"),
             )
+            .on_disabled_hover_text(if studio.busy() {
+                "Wait for the current job or cancel it first."
+            } else {
+                "No earlier Studio preview to restore."
+            })
             .clicked()
         {
             studio.history(false);
@@ -60,11 +67,16 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool
                 !studio.busy() && !studio.redo.is_empty(),
                 crystal_button::secondary("Redo"),
             )
+            .on_disabled_hover_text(if studio.busy() {
+                "Wait for the current job or cancel it first."
+            } else {
+                "No undone Studio preview to restore."
+            })
             .clicked()
         {
             studio.history(true);
         }
-        ui.add_enabled(!studio.busy()&&studio.current.is_some()&&!studio.mix_dirty,crystal_button::secondary(if compact {"To master"}else{"Use for mastering"})).on_hover_text("Add a private working copy to the mastering queue. This prepares another stage; it does not export a final delivery file.").clicked()
+        ui.add_enabled(super::controls::preview_unavailable(studio).is_none(),crystal_button::secondary(if compact {"To master"}else{"Use for mastering"})).on_hover_text("Add a private working copy to the mastering queue. This prepares another stage; it does not export a final delivery file.").on_disabled_hover_text(super::controls::preview_unavailable(studio).unwrap_or_default()).clicked()
     };
     if compact {
         ui.scope(|ui| {
@@ -104,7 +116,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool
         ));
     }
     let workspace_height = ui.available_height().max(0.);
-    egui::ScrollArea::vertical().id_salt("studio-workspace").max_height(workspace_height).show(ui,|ui| {
+    egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page)).max_height(workspace_height).show(ui,|ui| {
         match studio.page {
             Page::Stems=>{
                 if studio.bulk_import.is_some() {
@@ -112,31 +124,43 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) -> bool
                     if compact {
                         ui.small("Choose parts and format, then import from the right panel.");
                     } else {
-                        ui.label("Each selected part is imported once. Leave the full mix out when importing its individual stems.");
+                        ui.label("Review the parts, then import from the right panel. Leave the full mix out when importing its individual stems.");
                     }
                     let available = !studio.busy();
                     ui.add_enabled_ui(available, |ui| super::stem_bulk_import::review(studio,ui,ctx,compact));
+                } else if studio.bank.is_some() {
+                    if !compact { ui.label(theme::display("Mix your stems.",24.)); }
+                    super::mix_controls::show(studio, ui, advanced, compact);
                 } else {
                 ui.label(theme::display("Separate. Rebalance. Refine.",24.));
-                ui.label("Combine aligned parts with no fixed track count, or separate two/four stems locally. Compare the mix and save when ready.");
+                ui.label("Import existing stems with no model download. Use the right panel to balance parts, update the preview and export.");
                 if studio.bank.is_none(){ui.add_space(12.);ui.label(RichText::new("01  Choose stem files / a Suno ZIP, or load a music mix\n02  Import aligned parts or separate the mix locally\n03  Balance parts, compare, then export").color(theme::AMETHYST));}
-                for (kind,waveform) in &studio.stem_waveforms {
-                    ui.add_space(6.);theme::eyebrow(ui,studio.bank.as_ref().map_or(kind.name(), |bank| bank.display_name(*kind)).as_ref());
-                    waveform.show_labeled(ui,0.,studio.source.as_ref().map_or(1.,|s|s.audio.duration()),("STEM",""),76.);
-                }
                 }
             },
             Page::Voice=>{
-                ui.label(theme::display("A cleaner voice, on your terms.",24.));
-                ui.label("Work on the original voice, a vocal stem or the current preview. Compare every change; previewing and exporting are separate.");
-                ui.add_space(10.);ui.label("Rumble removal · learned noise reduction · de-essing · optional quiet-gap gate");
-                ui.small("Change settings in the right panel, then Preview voice cleanup to apply them.");
+                let available = !studio.busy();
+                ui.add_enabled_ui(available, |ui| {
+                    super::tool_inputs::target(studio, ui);
+                    super::voice_controls::show(studio, ui, advanced);
+                });
             },
             Page::Repair=>{
-                if !compact {ui.label(theme::display("Refine a precise moment.",24.));}
-                spectral_view::show(studio,ui,if compact {workspace_height}else{workspace_height.min(360.)});
+                let available = !studio.busy();
+                ui.add_enabled_ui(available, |ui| {
+                    super::tool_inputs::target(studio, ui);
+                    super::repair_controls::show(studio, ui, ctx, advanced);
+                });
+                if studio.spectrogram.is_some() {
+                    let graph = ui.scope(|ui| super::spectral_view::show(studio,ui,if compact {180.} else {280.}));
+                    // A completed analysis should expose its result once, without
+                    // fighting later manual scrolling or changing the graph size.
+                    if std::mem::take(&mut studio.reveal_spectrogram) { graph.response.scroll_to_me(Some(egui::Align::Min)); }
+                }
             },
-            Page::Plugins=>{ui.label(theme::display("Your effects. Your workflow.",24.));ui.label("Choose a trusted VST3 effect, adjust its generic controls, and render a preview. The helper compensates reported latency and retains the source duration.");ui.small("Compatible mono/stereo float32 audio effects are supported. Native vendor editors and MIDI/instrument sequencing are outside this host's scope.");},
+            Page::Plugins=>{
+                let available = !studio.busy();
+                ui.add_enabled_ui(available, |ui| super::plugin_controls::show(studio, ui, ctx));
+            },
         }
         if let Some(preview)=&studio.current {
             ui.separator();ui.label(RichText::new(format!("Current preview · {}",preview.label)).color(theme::SLIME));

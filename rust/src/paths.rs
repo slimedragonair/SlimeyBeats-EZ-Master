@@ -20,6 +20,10 @@ pub fn desktop_preferences_file() -> PathBuf {
     settings_file().with_file_name("desktop-preferences.json")
 }
 
+pub fn interface_preferences_file() -> PathBuf {
+    settings_file().with_file_name("interface-preferences.json")
+}
+
 pub fn app_root() -> PathBuf {
     #[cfg(target_os = "linux")]
     if let Some(root) = xdg_directory(

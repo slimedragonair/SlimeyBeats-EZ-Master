@@ -15,20 +15,38 @@ fn dock_layout(
         .frame(egui::Frame::NONE)
         .show(ui, |ui| {
             ui.separator();
-            if let Some(current) = &studio.current {
-                if let Some(seconds) = studio.waveform.show_labeled(
-                    ui,
-                    studio.player.seconds(),
-                    current.audio.duration(),
-                    ("BEFORE", "PREVIEW"),
-                    if compact { 76. } else { 100. },
-                ) {
-                    studio.player.seek(seconds);
-                }
-                ui.separator();
+            if !compact {
+                comparison(studio, ui);
             }
-            show(studio, ui)
+            let controls = show(studio, ui);
+            if compact {
+                egui::CollapsingHeader::new("Comparison waveform")
+                    .id_salt("studio-comparison-details")
+                    .show(ui, |ui| comparison(studio, ui));
+            }
+            controls
         })
+}
+
+fn comparison(studio: &mut Studio, ui: &mut egui::Ui) {
+    if let Some(current) = &studio.current
+        && let Some(seconds) = studio.waveform.show_labeled(
+            ui,
+            studio.player.seconds(),
+            current.audio.duration(),
+            (
+                "BEFORE",
+                if studio.mix_dirty {
+                    "PREVIOUS PREVIEW"
+                } else {
+                    "PREVIEW"
+                },
+            ),
+            112.,
+        )
+    {
+        studio.player.seek(seconds);
+    }
 }
 
 fn show(studio: &mut Studio, ui: &mut egui::Ui) -> egui::Rect {
@@ -38,7 +56,7 @@ fn show(studio: &mut Studio, ui: &mut egui::Ui) -> egui::Rect {
             if ui.add(crystal_button::secondary(if playing{"Pause"}else{"Play"})).clicked() {if studio.player.seconds()>=studio.player.duration {studio.player.seek(0.);}studio.player.toggle();}
             if ui.add(crystal_button::secondary("Stop")).clicked() {studio.player.stop();}
             if ui.add(crystal_button::secondary("A · Before").selected(!studio.player.controls.after.load(Ordering::Relaxed))).on_hover_text("Compare with the input used for this revision, without changing saved samples.").clicked() {studio.player.controls.after.store(false,Ordering::Relaxed);}
-            if ui.add(crystal_button::secondary("B · Preview").selected(studio.player.controls.after.load(Ordering::Relaxed))).clicked() {studio.player.controls.after.store(true,Ordering::Relaxed);}
+            if ui.add(crystal_button::secondary(if studio.mix_dirty {"B · Previous"} else {"B · Preview"}).selected(studio.player.controls.after.load(Ordering::Relaxed))).clicked() {studio.player.controls.after.store(true,Ordering::Relaxed);}
         });
         ui.horizontal_wrapped(|ui| {
             ui.checkbox(&mut studio.match_levels,"Level match").on_hover_text("Listening-only loudness matching. It never alters the saved Studio audio.");

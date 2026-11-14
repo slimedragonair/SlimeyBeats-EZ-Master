@@ -17,6 +17,7 @@ destination.mkdir(parents=True, exist_ok=True)
 shutil.copytree(ROOT/'web/site',destination,dirs_exist_ok=True)
 subprocess.run([args.wasm_bindgen,str(ROOT/'web/dsp/target/wasm32-unknown-unknown/release/slimeybeats_web_dsp.wasm'),'--target','web','--out-dir',str(destination/'pkg'),'--out-name','dsp'],check=True)
 art = destination/'assets'; art.mkdir(exist_ok=True)
+shutil.copy2(ROOT/'rust/assets/learning-guide.json',art/'learning-guide.json')
 for name in ['slimeybeats-small-icon.png','slimeybeats-dragon-portrait.png','sovereign-panel-frame.png','sovereign-amethyst-crest.png','sovereign-ambient-ribbons.png','slimeybeats-slime-frame.png']:
     shutil.copy2(ROOT/'rust/assets'/name,art/name)
 shutil.copy2(ROOT/'examples/audio/demo-input.wav',art/'demo-input.wav')

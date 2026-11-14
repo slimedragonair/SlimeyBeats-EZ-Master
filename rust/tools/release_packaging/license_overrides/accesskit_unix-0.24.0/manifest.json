@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "name": "accesskit_unix",
+  "version": "0.24.0",
+  "source": "registry+https://github.com/rust-lang/crates.io-index",
+  "license": "MIT OR Apache-2.0",
+  "repository": "https://github.com/AccessKit/accesskit",
+  "crate_checksum": "202f24df034a7476d07b7f74284de84f6d62aabd858dbe7ee9cad3b7ad6f8f9d",
+  "crate_vcs": {
+    "git": {
+      "sha1": "ce8164ba92995cfa86005b6259115e08c8244253"
+    },
+    "path_in_vcs": "adapters/unix"
+  },
+  "upstream_repository": "https://github.com/AccessKit/accesskit",
+  "upstream_commit": "ce8164ba92995cfa86005b6259115e08c8244253",
+  "source_selection": "Original workspace-root notices from the published crate VCS commit.",
+  "release_tag_fallback": null,
+  "files": [
+    {
+      "path": "LICENSE-MIT",
+      "upstream_path": "LICENSE-MIT",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/ce8164ba92995cfa86005b6259115e08c8244253/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+    },
+    {
+      "path": "LICENSE-APACHE",
+      "upstream_path": "LICENSE-APACHE",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/ce8164ba92995cfa86005b6259115e08c8244253/LICENSE-APACHE",
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+    },
+    {
+      "path": "LICENSE.chromium",
+      "upstream_path": "LICENSE.chromium",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/ce8164ba92995cfa86005b6259115e08c8244253/LICENSE.chromium",
+      "sha256": "845022e0c1db1abb41a6ba4cd3c4b674ec290f3359d9d3c78ae558d4c0ed9308"
+    }
+  ]
+}

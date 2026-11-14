@@ -1,24 +1,39 @@
 mod app;
 mod audio_source;
 mod brand_art;
+mod bundled_resources;
 mod eq_band_controls;
 mod eq_curve;
 mod eq_jobs;
 mod eq_live_control;
 mod eq_panel;
+mod guide_content;
 mod help;
+mod help_center;
+mod interface_preferences;
 mod job_events;
+#[cfg(test)]
+mod keyboard_interaction_tests;
+#[cfg(test)]
+mod learning_interaction_tests;
+mod learning_ui;
 mod live_spectrum;
+mod mastering_controls;
+mod mastering_preview_state;
+mod mcp_setup;
 mod overview;
 mod playback_tap;
 mod player;
 mod plots;
 mod settings_panel;
 pub mod studio;
+#[cfg(test)]
+mod test_fixture;
 mod theme;
 mod worker;
 pub use app::MasterCraftApp;
 pub use brand_art::window_icon;
+mod control_layout;
 mod crystal_button;
 mod crystal_slider;
 mod desktop_preferences;
@@ -30,5 +45,10 @@ mod skin_icons;
 mod slime_border;
 mod timeline_panel;
 mod transport;
+mod tutorial_history;
 mod ui_capture;
+#[cfg(test)]
+mod ui_test_input;
+mod user_experience;
 mod welcome_panel;
+mod workspace_tabs;
