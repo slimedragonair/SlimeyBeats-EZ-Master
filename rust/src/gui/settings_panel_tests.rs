@@ -5,6 +5,7 @@ use std::sync::{Arc, atomic::AtomicBool, mpsc};
 fn fixture(ctx: &egui::Context) -> MasterCraftApp {
     let (tx, rx) = mpsc::channel();
     MasterCraftApp {
+        preferences: None,
         studio: crate::gui::studio::Studio::new(PathBuf::new()),
         brand: BrandArt::new(ctx),
         settings: Settings::default(),

@@ -8,6 +8,9 @@ use std::{sync::atomic::Ordering, time::Duration};
 const OUTER_INSET: egui::Vec2 = vec2(14., 12.);
 
 impl eframe::App for MasterCraftApp {
+    fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        self.persist_preferences(true, false);
+    }
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
         self.poll();
         let ctx = ui.ctx().clone();
@@ -133,6 +136,7 @@ impl eframe::App for MasterCraftApp {
             .paint_crest(&ornament, pos2(root.center().x, root.top() + 32.), 180.);
         self.brand.paint_crest(&ornament, footer.center(), 144.);
         self.sync_live_eq(&ctx);
+        self.autosave_preferences(&ctx);
         let ready = !self.busy && !self.eq_dirty && !self.studio.busy();
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {

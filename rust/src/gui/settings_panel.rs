@@ -254,7 +254,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
                 }
                 action_row(ui, |ui| {
                     if ui.add(crystal_button::secondary("Browse…")).clicked()
-                        && let Some(path) = rfd::FileDialog::new().pick_folder()
+                        && let Some(path) = rfd::FileDialog::new().set_directory(&app.settings.out_dir).pick_folder()
                     {
                         app.settings.out_dir = path;
                     }

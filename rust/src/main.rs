@@ -122,7 +122,9 @@ fn main() -> eframe::Result {
                     "plugins" => Page::Plugins,
                     _ => Page::Stems,
                 };
-                app.studio.two_stems = !args.studio_four_stems;
+                if args.studio_four_stems {
+                    app.studio.two_stems = false;
+                }
                 app.studio.plugin_path = args.studio_plugin;
                 app.studio.auto_action = args.studio_action.map(|action| match action.as_str() {
                     "voice" => AutoAction::Voice,

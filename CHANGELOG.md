@@ -7,6 +7,7 @@
 - Keep separate import budgets: native defaults to 512 MiB decoded PCM per input and a 4 GiB aggregate decoded bank; browser Studio retains 128 MiB combined decoded input and 15 minutes per track. Available RAM, archive/metadata budgets and working buffers still constrain capacity.
 - Expand the optional local MCP companion to 38 tools, including read-only stem ZIP inspection and job-based import. Preview preparation and explicit audio/project saving remain separate. See the [current Studio guide](docs/STUDIO.md) for workflows and qualification scope.
 - Preserve accented/CJK paths in Windows MCP setup, require pending faders to be applied before further Studio edits/saving, and keep saved MCP projects tied to the current preview's actual source and stem bank. Add native, Windows PowerShell and three-engine browser regressions; see [merge validation and availability](docs/MERGE_VALIDATION.md).
+- Remember desktop mastering settings and independent Studio export preferences, master/Studio listening controls and the two/four-stem choice across normal restarts. Save changes atomically after 750 ms of quiet and flush on normal close; **Save settings** saves both files immediately. Preserve corrupt files and block their autosave until an explicit save, with visible errors. This does not recover audio, queues or projects; Studio work still needs **Save project**. Browser and MCP workflows and older released binaries are unchanged. [Details](docs/USER_GUIDE.md#remembering-desktop-settings).
 
 ## 0.5.0-beta.1 — Studio Preview
 

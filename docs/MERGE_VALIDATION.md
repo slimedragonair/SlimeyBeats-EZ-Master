@@ -10,8 +10,11 @@ This follow-up covers review fixes made after the [initial beta.3 larger-bank qu
 | Desktop pending faders | Voice cleanup, repair and plugin preview require the pending mix to be rendered first. Rejected edits retain both the previous audio and staged controls; export, project saving and mastering handoff remain blocked until the mix is applied. Update mix preview stays available on other Studio pages while faders are pending. Analysis can still inspect the selected audio. Regressions also render the changed mix, perform a later edit and verify consistent project controls. |
 | Browser pending faders | Edit, history, preview export and mastering-promotion handlers preserve unapplied controls until **Stem mix → Update mix preview**. Shared mutation guards cover direct handler calls as well as disabled controls. Raw immutable-stem exports, original-source analysis and spectrogram inspection remain available. Tests cover cancellation, exact audio/history behavior and successful later edits/exports. |
 | MCP project origin | Each preview retains its actual immutable origin and associated bank. Saving or opening a preview of recording A does not attach an unrelated bank from recording B, including when layouts or PCM happen to match. Handoff validates source, comparison and bank alignment before publishing a project. Source-only, bank-associated, chained, promoted and undo/redo cases exercise real project reopening. |
+| Desktop preferences | Current source remembers mastering settings and independent Studio export/listening choices across normal restarts. Valid changes use atomic writes after 750 ms of quiet, with a normal-close flush; Save settings writes both files immediately. A corrupt file is preserved and blocked from autosave until an explicit save, with an error shown. This adds no audio, queue or project recovery; browser and MCP session workflows are unchanged. [Persistence details](USER_GUIDE.md#remembering-desktop-settings). |
 
 ## Validation scope
+
+Eight focused preference regressions passed locally, covering independent export destinations, Unicode paths, persisted formats/EQ/listening settings, debounce and close flushing, reverted edits, failed writes, damaged-file preservation and launch-only session overrides. A reproduced failed-save/revert timer regression also verifies that no stale repaint deadline remains. Formatting and strict all-target Clippy passed. These are file/controller checks; the earlier merge results below do not establish actual GUI restart coverage.
 
 - Native validation includes two pending-mix controller regressions and a test proving their silent playback fixture never opens a native output device. The controller checks require a successful new revision, exact rendered PCM, consistent controls and actual project save/reopen. All processing errors remain fatal. Formatting and strict all-target Clippy are checked separately.
 - The processing tests run on both Windows and Linux without depending on a physical sound card; Linux is also exercised with an intentionally unavailable ALSA output device. Early hosted runs exposed the former hardware-dependent fixture, which is now isolated from native device creation. These checks do not qualify audible output; the CI links below report the complete current suite totals.
@@ -36,6 +39,8 @@ From the repository root:
 ```sh
 cargo test --locked --manifest-path rust/Cargo.toml --lib pending_mix_tests
 cargo test --locked --manifest-path rust/Cargo.toml --lib processing_fixture
+cargo test --locked --manifest-path rust/Cargo.toml --lib preferences
+cargo test --locked --manifest-path rust/Cargo.toml --lib preference_store
 cargo test --locked --manifest-path mcp/server/Cargo.toml
 python mcp/tools/verify_studio_origin.py --server PATH_TO_MATCHING_COMPANION
 python web/tools/verify_studio_browser.py --out NEW_EVIDENCE_FOLDER

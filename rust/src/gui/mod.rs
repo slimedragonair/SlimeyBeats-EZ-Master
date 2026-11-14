@@ -21,6 +21,8 @@ pub use app::MasterCraftApp;
 pub use brand_art::window_icon;
 mod crystal_button;
 mod crystal_slider;
+mod desktop_preferences;
+mod preference_store;
 mod queue_panel;
 mod shell;
 mod skin_frame;
