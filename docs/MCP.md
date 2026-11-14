@@ -8,6 +8,8 @@ Beta.3 is available in the current repository source; its binary packages have *
 
 The **in-development UX/learning preview** on `feature/ux-learning` adds this desktop route. It is pending review and not merged or released; existing public packages do not gain it automatically.
 
+Get [the learning preview source](BUILDING.md#get-the-learning-preview-source) to build the interface described here.
+
 1. Open bottom-right **Help** (**F1**), then **AI setup**.
 2. Choose **1. Choose audio folder…** and **2. Choose export folder…**. Authorize only the library you want the assistant to use.
 3. Select **3. Generate connection example**. The desktop calls the real companion with `--print-config` and displays its connection JSON.

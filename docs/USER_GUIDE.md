@@ -3,13 +3,15 @@
 1. **Add your audio.** Drop a mono/stereo file onto the window or use Add audio files. WAV works without extra codecs.
 2. **Analyze.** The top-right button measures the source. A measurement or tonal deviation is information, not proof that a musical choice is wrong.
 3. **Choose a direction.** Neutral is a processing preset, not bypass. Genre profiles are starting points; custom blends and an optional finished reference can guide the balance.
-4. **Master queue.** This prepares an in-memory preview. It does not export audio. Gentler and Louder choose different loudness intents; Louder can reduce dynamics and may stop short of its target under the safety limits.
+4. **Master.** Use the track or queue button to prepare an in-memory preview. It does not export audio. Gentler and Louder choose different loudness intents; Louder can reduce dynamics and may stop short of its target under the safety limits.
 5. **Listen and adjust.** Compare Original/Master at matched loudness. In Manual EQ, A is the pre-EQ automatic master and B is the live EQ result. Playback continues while you edit.
 6. **Export when ready.** Expand Export settings, choose formats/folder, then Export selected master. You can re-master before exporting. Existing output files receive unique names rather than being replaced.
 
 ## In-development learning preview
 
 On the unmerged `feature/ux-learning` branch, **Basic** is the starting view and **Advanced** reveals detailed controls. Switching modes or pages preserves processing settings; notices flag active custom values whose editors are hidden. Bottom-right **Help** (**F1** on desktop) provides the optional eight-step tour, plain-language terms, troubleshooting and desktop AI setup. Completion, decline and dismissal are remembered immediately when storage succeeds; replay stays in Help. See [Learning and Help](LEARNING_AND_HELP.md) for the tour, browser storage fallback and release status.
+
+In a compact desktop Overview, open **Frequency balance · spectrum** to compare the frequency graph. The waveform and playback remain below the scrolling content. Studio shows essential faders together; **Show part waveforms** and **Comparison waveform** reveal larger plots when wanted. Voice/repair editors occupy the workspace, and their pinned **Preview** action prepares the audio that **Export current preview** saves.
 
 ## Reading the controls
 
@@ -51,7 +53,7 @@ This saves preferences, not loaded audio, prepared previews, the queue or Studio
 
 ## Suggested EQ and the graph
 
-Suggest EQ creates a separate editable proposal. Apply suggested EQ copies it into the seven-band editor. Identical decoded samples, profile and build/platform yield repeatable proposals. The suggestion is a limited rule-based starting point, not a learned mastering model.
+**Suggest EQ** creates a separate editable proposal. When it is ready, **Apply curve** copies it into the seven-band editor in the learning preview; earlier builds label this **Apply suggested EQ**. Identical decoded samples, profile and build/platform yield repeatable proposals. The suggestion is a limited rule-based starting point, not a learned mastering model.
 
 The purple curve shows EQ gain. The gray/teal spectrum uses a separate power scale. During playback, the output trace reads the actual live stream before listening volume/A-B matching. At the paused start it shows a full-track average; a paused seek shows the local playback window. These displays answer different questions and can differ.
 

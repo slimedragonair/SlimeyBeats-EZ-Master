@@ -4,6 +4,10 @@ The native Rust application is the maintained desktop. Current source targets St
 
 For the Ubuntu source-build and validation commands, see [Linux checks](LINUX.md). The published v0.4.2 installer is for Windows.
 
+## Get the learning preview source
+
+The pictured Basic/Advanced interface, optional tour and bottom-right Help are on the unmerged [`feature/ux-learning` branch](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/feature/ux-learning). [Download its source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/archive/refs/heads/feature/ux-learning.zip) and extract it before using the commands below. Start from the extracted folder containing `rust/`, `mcp/` and `web/`. The ordinary `main` checkout and published packages retain their own interface until this work is merged/released.
+
 ## Native development
 
 Use a current stable Rust MSVC toolchain, Microsoft C++ Build Tools/Windows SDK, and Git. From the repository root:

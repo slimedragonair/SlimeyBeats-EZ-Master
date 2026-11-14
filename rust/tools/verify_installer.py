@@ -57,7 +57,7 @@ def main():
     parser.add_argument('--skip-gui', action='store_true', help='Verify command-line lifecycle only; record GUI capture as untested')
     parser.add_argument('--channel', choices=['stable', 'studio-preview'], default='stable')
     args = parser.parse_args()
-    captures = {name:args.report.resolve().with_name(args.report.stem+'-'+name+'.png') for name in ['app','studio']}
+    captures = {name:args.report.resolve().with_name(args.report.stem+'-'+name+'.png') for name in ['app','studio','preferences']}
     for path in [args.report.resolve(),*captures.values(),*(path.with_suffix('.state.json') for path in captures.values())]:
         if path.exists(): raise FileExistsError('Choose a fresh verification report: '+str(path))
     installer, root = args.installer.resolve(), args.test_root.resolve()
@@ -170,6 +170,31 @@ def main():
         assert all(digest(path)==checksum for path,checksum in preserved.items())
         record['upgrade_kept_custom_install_path_and_user_files'] = True
         record['upgrade_preserved_export_destinations_and_tutorial_choice'] = True
+        if not args.skip_gui:
+            # Loading and saving through the installed app verifies the actual
+            # portable data root, beyond merely retaining sentinel files.
+            reopened = command([str(gui),'--capture-ui',str(captures['preferences']),
+                                '--capture-save-settings'],cwd=root)
+            assert reopened.returncode == 0, reopened.stderr
+            restored = json.loads(settings.read_text())
+            restored_desktop = json.loads(desktop.read_text())
+            restored_interface = json.loads(interface.read_text())
+            assert restored == config, 'Installed GUI changed saved mastering settings'
+            assert restored_desktop['studio_output_dir'] == str(root/'Preserved Studio exports')
+            assert restored_desktop['volume'] == 0 and restored_desktop['studio_volume'] == 0
+            assert not restored_desktop['two_stems'] and restored_desktop['studio_export_format'] == 'wav24'
+            assert restored_interface['advanced'] and restored_interface['tutorial_status'] == 'completed'
+            assert restored_interface['tutorial_step'] == 7
+            assert tutorial_marker.is_file()
+            status = json.loads(captures['preferences'].with_suffix('.state.json').read_text())
+            assert status['error'] is None, status
+            record['installed_gui_restored_preferences_after_upgrade'] = True
+            # Save settings may normalize JSON formatting; uninstall must retain
+            # those newly saved bytes as well as the untouched music/projects.
+            preference_files = {str(path) for path in [settings,desktop,interface]}
+            assert all(digest(path) == checksum for path,checksum in preserved.items()
+                       if path not in preference_files), 'Reopening changed non-preference user files'
+            preserved.update({path:digest(path) for path in preference_files})
     finally:
         uninstall = root/'Uninstall.exe'
         if uninstall.is_file():

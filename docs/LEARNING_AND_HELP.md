@@ -4,6 +4,8 @@
 
 For your first file, follow [the mastering workflow](USER_GUIDE.md). For individual parts, use [Studio](STUDIO.md). This page covers the optional guidance and interface choices.
 
+To obtain this interface, use [the learning preview source](BUILDING.md#get-the-learning-preview-source) before building. The default repository branch does not include this unmerged pass.
+
 ## Basic and Advanced
 
 **Basic is the default.** It keeps common actions in view. **Advanced** reveals precise targets and less frequent controls. Switching modes or pages changes visibility; it never resets or silently replaces your audio settings. A custom-setting notice identifies hidden values that still affect processing. Choose Advanced to inspect them.

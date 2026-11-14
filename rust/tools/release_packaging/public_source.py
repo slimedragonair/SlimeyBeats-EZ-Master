@@ -28,7 +28,8 @@ def copy_public_source(repository, destination):
         copy(Path('docs') / name)
     for name in ('welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
                  'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png', 'web-preview.png', 'web-phone-eq.png',
-                 'studio-stems.png', 'studio-repair.png', 'studio-plugins.png', 'studio-web-phone.png', 'studio-large-import.png'):
+                 'studio-stems.png', 'studio-repair.png', 'studio-plugins.png', 'studio-web-phone.png', 'studio-large-import.png',
+                 'ux-first-run.png', 'ux-manual-eq.png', 'ux-web-help.png'):
         copy(Path('docs/images') / name)
     for name in ('python-guide.md', 'python-third-party-notices.md', 'python-changelog.md'):
         copy(Path('docs/legacy') / name)

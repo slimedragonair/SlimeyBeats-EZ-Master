@@ -13,6 +13,8 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
+[Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+
 **Studio Preview 0.5.0-beta.3 — current source; beta.3 binaries are not yet published as a GitHub release:** import aligned stems or mix tracks from multiple files or a Suno/stem ZIP, with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save self-contained projects. Desktop also supports local two/four-stem separation and optional isolated VST3 effects. The matching MCP companion **0.2.0-beta.3** exposes **38 tools**; browser Studio **0.3.0-beta.3** supports imported-stem editing with shared Rust DSP. Preview installs separately from stable; Studio is **not included in the v0.4.2 installer**. See the [Studio guide and validation](docs/STUDIO.md).
 
 [Studio implementation and review #8](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/pull/8) · [Older beta.1 release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.1). Beta.1 predates the nine-part and bulk/ZIP import changes. The stable download below remains v0.4.2. For the current Studio/MCP features, [build this source](docs/BUILDING.md); the browser workflow deploys the current `main` source after its checks pass.
@@ -23,17 +25,33 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Recognizable part names:** original friendly names appear on faders and processing targets and survive edits/undo, raw export manifests and desktop projects. Stable kind IDs and WAV filenames remain unchanged. Native loose-file and ZIP imports preserve distinct source folders, so different takes can share a friendly basename while keeping unique IDs. Filename-based role suggestions keep backing/harmony separate from lead vocals and order the review cards; all parts start selected. This is a naming heuristic, not audio inference: review every selected part before importing.
 
-[Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Download Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.4.2/SlimeyBeats-EZ-Master-0.4.2-Setup.exe) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
-
 **Installer note:** these Windows builds are unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
 
 ![SlimeyBeats welcome screen, with Analyze at the top right and separate Master and Export actions](docs/images/welcome.png)
 
-**Analyze → Master → Export.** Analyze is at the top right. Master queue prepares a preview; the separate Export selected master button saves it when you are ready. You can tweak Manual EQ or re-master in between. [Open the welcome screen at full size](docs/images/welcome.png).
+**Analyze → Master → Export.** Analyze is at the top right. Master queue prepares a preview; the separate Export selected master button saves it when you are ready. You can tweak Manual EQ or re-master in between. This image shows the earlier stable layout. [Open the welcome screen at full size](docs/images/welcome.png).
 
 ## In-development UX/learning preview
 
-The separate `feature/ux-learning` branch adds Basic/Advanced controls, an optional eight-step tour, bottom-right Help and desktop AI connection guidance. **Basic starts first; switching views preserves your audio settings.** This pass is pending review, not merged or released; no new version is assigned. Public v0.4.2 and published beta.1 packages are unchanged, and desktop source remains beta.3. Existing screenshots and qualification figures describe their named earlier candidates. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
+The separate `feature/ux-learning` branch adds **Basic/Advanced controls**, an optional **eight-step tour**, and **bottom-right Help** with plain-language terms, troubleshooting and desktop MCP setup. Basic starts first; changing views preserves your exact audio settings. Finishing or declining the tour is remembered across restarts; Help can replay it whenever you want.
+
+Studio puts active cleanup/repair editors in the workspace and keeps **Preview before Export** visible. Compact stem rows show level, mute and solo together; optional waveforms expand when needed. Manual EQ keeps the spectrum on its curve graph and gives the selected band a sidebar inspector.
+
+**This feature branch is not merged or released.** Public v0.4.2, published beta.1 packages and the public browser deployment retain their own behavior. Desktop source still identifies as beta.3. The captures below show this development candidate; older images and qualification figures elsewhere describe their named versions. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
+
+To try the pictured interface, [download this branch's source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/archive/refs/heads/feature/ux-learning.zip), extract it, then follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source). You can also [browse the preview source](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/feature/ux-learning). The default `main` branch does not contain this unmerged interface.
+
+![The optional first-run introduction with visible tour and decline choices](docs/images/ux-first-run.png)
+
+**Start at your pace.** The tour never processes or saves audio for you. Completion or dismissal suppresses future automatic offers when storage succeeds. [Open the actual native introduction at full size](docs/images/ux-first-run.png).
+
+![Native Manual EQ with a selected-band inspector and the spectrum over the EQ curve](docs/images/ux-manual-eq.png)
+
+**Shape while listening.** Frequency and gain stay in the selected-band inspector; Advanced reveals shape, Q and output details. The graph above is a paused snapshot of the bundled CC0 demo. [Open the complete EQ capture](docs/images/ux-manual-eq.png).
+
+<img src="docs/images/ux-web-help.png" width="300" alt="Browser Help showing the LUFS definition with visible Topics and Close actions">
+
+**Help on a phone-sized screen.** Choose a topic or search a term without leaving your audio session. [Open the browser Help capture](docs/images/ux-web-help.png). This is browser emulation, not physical-phone qualification.
 
 ## What it does
 
