@@ -32,6 +32,8 @@ jobs:
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
       - name: Verify MCP over stdio
         run: python ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+      - name: Verify Unicode connection setup in Windows PowerShell 5.1
+        run: powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File ../mcp/tools/verify_connect_config.ps1 -Server ../mcp/server/target/release/slimeybeats-mcp.exe -Evidence '${{ runner.temp }}/SlimeyBeats-UTF8-config'
       - name: Verify Studio DSP routes and model-cache handling
         run: |
           python tools/test_stem_model_install.py

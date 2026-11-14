@@ -11,7 +11,10 @@ pub fn show(
     ctx: &egui::Context,
 ) {
     if ui.add_enabled(!studio.busy()&&studio.current.is_some()&&!studio.mix_dirty,crystal_button::primary("Export current preview")).on_hover_text("Save the materialized Studio preview and a report. Rendering/preview and exporting are separate.").clicked() {studio.export_preview(ctx);}
-    if studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none() {
+    if (studio.page == Page::Stems || studio.mix_dirty)
+        && studio.bank.is_some()
+        && studio.bulk_import.is_none()
+    {
         let label = if studio.mix_dirty {
             "Update mix preview · pending"
         } else {
@@ -269,7 +272,7 @@ fn voice(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     ui.small("These settings affect the next preview. Export saves the current prepared preview.");
     if ui
         .add_enabled(
-            !studio.busy() && studio.audio_target().is_ok(),
+            !studio.busy() && studio.editing_target().is_ok(),
             crystal_button::primary("Preview voice cleanup"),
         )
         .clicked()
@@ -329,7 +332,7 @@ fn repair(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     ui.radio_value(&mut studio.repair.mode,RepairMode::Heal,"Heal from surroundings").on_hover_text("Estimate surrounding spectral magnitudes to soften a localized burst. It needs unselected time context and cannot recreate missing words.");
     if ui
         .add_enabled(
-            !studio.busy() && studio.audio_target().is_ok(),
+            !studio.busy() && studio.editing_target().is_ok(),
             crystal_button::primary("Preview spectral repair"),
         )
         .clicked()

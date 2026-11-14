@@ -17,6 +17,8 @@ import { download, time } from "./view.js";
 
 const $ = (id) => document.getElementById(`s-${id}`);
 const EMPTY = { loaded: false, stems: [], controls: { tracks: [] }, notes: [] };
+const PENDING_MIX =
+    "Mix controls have pending changes. Go to Stem mix → Update mix preview before further edits or saving.";
 export function createStudio({
     getMainAudio,
     promote,
@@ -41,6 +43,7 @@ export function createStudio({
         image,
         chart,
         dirty = false,
+        pendingMix = false,
         filename = "Studio";
     function notice(text, error = false) {
         $("status").textContent = text;
@@ -65,14 +68,15 @@ export function createStudio({
         $("use-main").disabled ||= !getMainAudio();
         $("close").disabled = busy;
         $("cancel").disabled = !busy || committing || cancelled;
-        $("undo").disabled = busy || !info.can_undo;
-        $("redo").disabled = busy || !info.can_redo;
-        for (const id of ["voice", "repair", "spectrum", "export", "promote"])
-            $(id).disabled = busy || !info.loaded;
+        $("undo").disabled = busy || pendingMix || !info.can_undo;
+        $("redo").disabled = busy || pendingMix || !info.can_redo;
+        $("spectrum").disabled = busy || !info.loaded;
+        for (const id of ["voice", "repair", "export", "promote"])
+            $(id).disabled = busy || pendingMix || !info.loaded;
         for (const id of ["mix", "export-stems"])
             $(id).disabled = busy || !info.stems.length;
         $("apply-stem").disabled =
-            busy || !(info.direct_edit_stems || []).includes($("target").value);
+            busy || pendingMix || !(info.direct_edit_stems || []).includes($("target").value);
         for (const id of ["play", "stop", "before", "after", "seek"])
             $(id).disabled = busy || !info.loaded;
         $("play").textContent = playback.playing ? "Pause" : "Play";
@@ -83,9 +87,19 @@ export function createStudio({
         $("seek").max = info.duration_seconds || 1;
         $("seek").value = playback.position();
         $("pending").hidden = !dirty;
+        $("pending").textContent = pendingMix
+            ? PENDING_MIX
+            : "Settings changed. Run the tool to hear them. Export saves the existing preview.";
     }
-    async function job(text, action) {
+    function requireUpdatedMix() {
+        if (!pendingMix) return true;
+        notice(PENDING_MIX, true);
+        sync();
+        return false;
+    }
+    async function job(text, action, requiresMix = false) {
         if (busy) return;
+        if (requiresMix && !requireUpdatedMix()) return;
         busy = true;
         cancelled = false;
         playback.pause();
@@ -115,6 +129,8 @@ export function createStudio({
         reset = false,
         label = filename,
     ) {
+        // Every non-mix revision replaces controls with the committed settings.
+        if (action !== "mix" && !requireUpdatedMix()) return false;
         const result = await client.call(action, values, transfer);
         if (cancelled) {
             await client.call("discard", { proposal: result.proposal });
@@ -135,6 +151,7 @@ export function createStudio({
         filename = label;
         controls = structuredClone(info.controls);
         dirty = false;
+        pendingMix = false;
         image = null;
         const target = $("target").value;
         $("target").replaceChildren(
@@ -164,7 +181,7 @@ export function createStudio({
                 return li;
             }),
         );
-        mixFaders(controls, changed, info.channels, info.stem_names);
+        mixFaders(controls, mixChanged, info.channels, info.stem_names);
         if (reset) {
             document.querySelector(".edit-import").open = false;
             $("end").value = Math.min(1, info.duration_seconds);
@@ -181,6 +198,10 @@ export function createStudio({
         dirty = true;
         sync();
         draw();
+    }
+    function mixChanged() {
+        pendingMix = true;
+        changed();
     }
     async function load(file) {
         if (!file) return;
@@ -199,7 +220,7 @@ export function createStudio({
                 true,
                 file.name,
             );
-        });
+        }, true);
     }
     $("source").onclick = () => $("file").click();
     $("file").onchange = async () => {
@@ -223,7 +244,7 @@ export function createStudio({
                 true,
                 "Loaded mix",
             );
-        });
+        }, true);
     strengthReadouts();
     const importer = wireStemImport({
         client,
@@ -249,11 +270,12 @@ export function createStudio({
                             : { selection: selection() };
                     await mutate(kind, { target, ...values });
                 },
+                true,
             );
     $("apply-stem").onclick = () =>
         job("Applying this edit to the selected stem…", async () => {
             await mutate("replace", { kind: $("target").value });
-        });
+        }, true);
     for (const [id, redo] of [
         ["undo", false],
         ["redo", true],
@@ -266,6 +288,7 @@ export function createStudio({
                 async () => {
                     await mutate("history", { redo });
                 },
+                true,
             );
     $("spectrum").onclick = () =>
         job(
@@ -329,6 +352,7 @@ export function createStudio({
                         );
                     }
                 },
+                id !== "export-stems",
             );
     $("cancel").onclick = () => {
         cancelled = true;
@@ -346,12 +370,13 @@ export function createStudio({
         controls = null;
         image = null;
         dirty = false;
+        pendingMix = false;
         defaults = null;
         stemInputs();
         document.querySelector(".edit-import").open = false;
         $("info").textContent = "No Studio audio loaded";
         $("notes").replaceChildren();
-        mixFaders({ tracks: [] }, changed);
+        mixFaders({ tracks: [] }, mixChanged);
         notice("Choose a source or aligned stems to begin.");
         leave();
     };
@@ -401,7 +426,7 @@ export function createStudio({
         if (playback.playing && active && !frame)
             frame = requestAnimationFrame(animate);
     };
-    mixFaders({ tracks: [] }, changed);
+    mixFaders({ tracks: [] }, mixChanged);
     sync();
     return {
         activate(value) {

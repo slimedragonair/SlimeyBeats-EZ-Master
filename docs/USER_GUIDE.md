@@ -11,6 +11,10 @@
 
 Studio Preview adds a separate editing workspace for stems, voice cleanup, spectral repair and compatible VST3 effects. It preserves the main mastering workflow above. Follow the [Studio guide](STUDIO.md) for model setup, imported stems, A/B, undo, projects and explicit exports.
 
+Current desktop source is **0.5.0-beta.3**; beta.3 binaries have not been publicly released. Stable v0.4.2 has the mastering workflow above but does not include Studio. In beta.3, **Choose stem files…** or **Choose Suno / stem ZIP…** imports aligned parts without a model or a fixed part-count cap. Review the names, selected parts and encoding, then **Import selected stems**. All distinct parts start selected; matching WAV/MP3 versions count as one part. Supply at least two parts with identical sample rate, channel count and frame count. Imports do not automatically align or resample your stems. Model separation still offers only vocal/instrumental or four stems.
+
+Desktop defaults to **512 MiB decoded PCM per input** and a separate **4 GiB aggregate decoded-bank budget**. Browser Studio retains **128 MiB combined decoded input** and **15 minutes per track**. More parts share those budgets; mixes, processing, undo and export need additional RAM. Archive/metadata limits also apply. The optional [MCP companion](MCP.md) exposes 38 tools for the same local workflows; an AI client connection is not needed to use Studio directly.
+
 | Control | Meaning |
 |---|---|
 | Integrated LUFS | Average programme loudness with weighting/gating; not a quality score or a universal release target |

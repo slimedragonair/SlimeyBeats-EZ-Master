@@ -33,7 +33,7 @@ impl Companion {
             let file=if let Some(file)=&preview.file {file.clone()}else{crate::artifact_files::preview(&ctx.engine,&preview.audio)?};
             let path=file.as_ref().to_path_buf();let identity=SourceIdentity::read(&path,&||ctx.cancelled())?;
             let id=format!("source-{}",ctx.id);
-            let source=Arc::new(Input {id:id.clone(),source:SessionSource {path,identity},audio:preview.audio.clone(),generated:Some(file)});
+            let source=Arc::new(Input {id:id.clone(),source:SessionSource {path,identity},audio:preview.audio.clone(),generated:Some(file),studio_preview:Some(preview.clone())});
             Ok(Product {result:json!({"source_id":id,"label":preview.label,"next":"Analyze/master using this new source_id. Your Studio bank/history is retained; final export is still separate."}),change:Change::Promote(source),committed:false})
         }))
     }

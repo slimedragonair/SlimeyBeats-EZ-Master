@@ -15,8 +15,13 @@ function Select-AudioFolder([string]$description) {
 }
 $inputFolder = Select-AudioFolder 'Choose the audio folder this AI connection may read. Use a dedicated folder for the tracks you want to share.'
 $exportFolder = Select-AudioFolder 'Choose a folder for new exports and temporary previews.'
-$configuration = & $serverPath --input-root $inputFolder --output-root $exportFolder --desktop-exe $desktopPath --print-config
-if ($LASTEXITCODE -ne 0) { throw 'The companion could not generate a configuration.' }
+$consoleOutputEncoding = [Console]::OutputEncoding
+try {
+    # Windows PowerShell 5 uses this encoding to decode native stdout; Rust emits UTF-8.
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+    $configuration = & $serverPath --input-root $inputFolder --output-root $exportFolder --desktop-exe $desktopPath --print-config
+    if ($LASTEXITCODE -ne 0) { throw 'The companion could not generate a configuration.' }
+} finally { [Console]::OutputEncoding = $consoleOutputEncoding }
 $save = New-Object System.Windows.Forms.SaveFileDialog
 $save.Title = 'Save your MCP client configuration example'
 $save.Filter = 'JSON configuration (*.json)|*.json'

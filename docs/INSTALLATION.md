@@ -1,6 +1,6 @@
 # Install SlimeyBeats-EZ-Master
 
-## Windows installer
+## Stable Windows installer — v0.4.2
 
 Download `SlimeyBeats-EZ-Master-0.4.2-Setup.exe` from the repository's Releases page. Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
 
@@ -8,11 +8,15 @@ The installer is unsigned. Check that it came from the project's own release bef
 
 Start **SlimeyBeats-EZ-Master** from the Start menu. The example WAV works without installing anything else. The Start menu also contains an example-audio link and the uninstaller.
 
-## Studio Preview 0.5.0-beta.1
+## Studio Preview — current development
+
+The current source targets desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Beta.3 binaries have not been publicly released. Use the [source-build instructions](BUILDING.md) for this development source; the stable v0.4.2 installer above does not contain Studio or MCP. Earlier beta packages retain their original behavior.
 
 The Studio Preview installer includes the desktop app, MCP companion and VST3 worker. It uses **SlimeyBeats-EZ-Master Studio Preview** in Apps and the Start menu, a separate installation folder and separate registration from stable v0.4.2. Both can coexist. Upgrade a preview in its preview folder; the installer rejects the other channel's marked folder. Preview uninstall preserves settings, exports, profiles, example edits and saved Studio projects.
 
 Open **Connect AI assistant** from its Start menu group to prepare a local connection example. Neural extraction uses an optional one-time engine/model download from Studio; other editing tools work without that runtime. Downloaded model/runtime cache data is outside the program folder and is retained on uninstall. [Studio workflow and limits](STUDIO.md).
+
+Imported stems need no model and have no fixed part-count cap in beta.3. At least two parts must share sample rate, channel count and frame count. Desktop defaults to 512 MiB decoded PCM per input and a separate 4 GiB decoded-bank budget; browser Studio shares 128 MiB across all decoded parts and allows up to 15 minutes per track. Processing needs additional RAM. Automatic model separation remains vocal/instrumental or four stems. The bundled MCP companion is optional to use and exposes 38 tools; see [MCP setup](MCP.md).
 
 ## Portable ZIP
 

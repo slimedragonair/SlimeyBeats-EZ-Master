@@ -1,6 +1,8 @@
 pub mod controls;
 mod jobs;
 mod operations;
+#[cfg(test)]
+mod pending_mix_tests;
 mod plugin_controls;
 mod projects;
 mod spectral_view;

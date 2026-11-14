@@ -1,13 +1,13 @@
 # Studio editing preview
 
-Studio Preview **0.5.0-beta.3** supports aligned imported stems and mix tracks with **no fixed imported-part count**, including multi-file and Suno/stem ZIP import. Practical capacity depends on hardware, decoded input and processing memory; byte/metadata safety budgets still apply. Its matching companion is **MCP 0.2.0-beta.3** and its browser Studio version is **0.3.0-beta.3**. Beta.3 is a local development candidate and is **not publicly released**. Earlier beta.2 packages retain their original nine-part import behavior; stable v0.4.2 does not include Studio. Preview uses a separate install identity and can coexist with stable. Existing mastering and Manual EQ remain available; preparing a preview and exporting remain separate actions.
+Studio Preview **0.5.0-beta.3** supports aligned imported stems and mix tracks with **no fixed imported-part count**, including multi-file and Suno/stem ZIP import. Practical capacity depends on hardware, decoded input and processing memory; byte/metadata safety budgets still apply. Its matching companion is **MCP 0.2.0-beta.3** and its browser Studio version is **0.3.0-beta.3**. Beta.3 is available in the current repository source; its binary packages have **not been published as a GitHub release**. [Build the current source](BUILDING.md). Earlier beta.2 packages retain their original nine-part import behavior; stable v0.4.2 does not include Studio. Preview uses a separate install identity and can coexist with stable. Existing mastering and Manual EQ remain available; preparing a preview and exporting remain separate actions.
 
 ## Desktop workflow
 
 1. Open **Studio**, choose a local recording, or use the selected mastering-queue track. **Analyze** at the top right measures the selected Studio input.
 2. In **Stem Studio**, choose **Vocal + instrumental** or **Four stems** (vocals, drums, bass and other). Install the optional local engine once, then **Separate source**. Setup downloads a private CPU runtime and verified upstream model; separation uses local files. The optional environment does not alter global Python.
 3. Alternatively, use **Choose stem files…** for several aligned files at once or **Choose Suno / stem ZIP…**. Review the center-workspace cards, then **Import selected stems**. [The import workflow below](#import-a-whole-stem-set) covers formats, selection and limits. Imported stems need no model. Automatic separation still produces only two/four stems; larger banks require separately supplied parts.
-4. Adjust gain, mute/solo and stereo balance; **Update mix preview** renders from the bank. A muted part stays muted even if soloed. Repeated fader changes do not accumulate processing.
+4. Adjust gain, mute/solo and stereo balance; **Update mix preview** renders from the bank. Apply pending fader changes before preparing voice, repair or plugin edits, saving a project or exporting the mix. The update action remains visible on other Studio pages while changes are pending. A muted part stays muted even if soloed. Repeated fader changes do not accumulate processing.
 5. Use **Voice cleanup** on a voice recording or vocal stem. Start gently with rumble removal, noise reduction and de-essing. A noise-only region can teach stationary noise; the optional quiet-gap gate reduces low-level gaps. Cleanup does not itself isolate speech from music.
 6. In **Spectral repair**, choose the source and build its spectrogram. Drag a rectangle or enter exact seconds/Hz, then preview attenuation or healing. Bright energy is not automatically a defect. Healing estimates surrounding spectral magnitudes; it cannot reconstruct missing words or instruments.
 7. A direct stem edit can be **applied to the selected stem**, rebuilding the full mix while retaining the other stems. Apply each direct edit before chaining another. Undo/redo retains a bounded set of recent revisions.
@@ -90,6 +90,8 @@ Plugin execution additionally requires owner-configured `--plugin-root` folders;
 ## Beta.3 qualification
 
 Confirmed results include **115 Windows / 117 Linux native tests in the debug/test profile**, **9 Windows / 10 Linux MCP regressions**, **11 native-host web-DSP binding tests**, live 38-tool workflows with **24/64/100-part loose and paired-ZIP banks**, and release data/project checks for full eleven-part and 96-part banks. Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 complete workflow groups**. The native per-input/bank-budget distinction was exercised explicitly. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) for test configurations, fresh-agent discovery, evidence boundaries and the final independent review of the supplied native/browser states.
+
+See the separate [merge regression and availability record](MERGE_VALIDATION.md) for subsequent review fixes.
 
 ## Validation status — November 13, 2026
 

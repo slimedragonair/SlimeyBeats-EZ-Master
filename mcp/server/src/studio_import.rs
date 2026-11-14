@@ -1,7 +1,7 @@
 //! Shared commit path for loose-file and ZIP imports; processing is still a preview.
 use crate::{
     jobs::{Change, ContextData, Product},
-    studio_state::{EditedAudio, StemBank, StudioState},
+    studio_state::{AudioTarget, EditedAudio, StemBank, StudioState},
 };
 use anyhow::Result;
 use mastercraft::studio::stem_mix::{self, StemSet};
@@ -24,6 +24,7 @@ pub fn prepared(ctx: &ContextData, stems: StemSet, step: Value) -> Result<Produc
     });
     let file = crate::artifact_files::preview(&ctx.engine, &audio)?;
     let mut studio = StudioState {
+        origin: Some(AudioTarget::bank_mix(&bank, "Imported stem mix").origin),
         bank: Some(bank.clone()),
         ..Default::default()
     };
@@ -35,6 +36,7 @@ pub fn prepared(ctx: &ContextData, stems: StemSet, step: Value) -> Result<Produc
         file: Some(file),
         steps: vec![step],
         notes: vec![],
+        origin_snapshot: AudioTarget::bank_mix(&bank, "Imported stem mix").origin,
         bank_snapshot: Some(bank),
     }));
     let result = studio.summary(&ctx.engine, &ctx.snapshot)?;

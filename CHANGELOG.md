@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Update the Studio development source to desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Beta.3 binaries have not been publicly released; stable v0.4.2 and earlier beta packages remain unchanged.
+- Remove the fixed count cap for aligned imported stems/mix tracks. Loose-file and Suno/stem ZIP imports select all distinct parts by default, with optional selection and unique `part_N` identities for additional parts. At least two parts with matching sample rate, channels and frame count are still required; neural separation remains two/four stems.
+- Keep separate import budgets: native defaults to 512 MiB decoded PCM per input and a 4 GiB aggregate decoded bank; browser Studio retains 128 MiB combined decoded input and 15 minutes per track. Available RAM, archive/metadata budgets and working buffers still constrain capacity.
+- Expand the optional local MCP companion to 38 tools, including read-only stem ZIP inspection and job-based import. Preview preparation and explicit audio/project saving remain separate. See the [current Studio guide](docs/STUDIO.md) for workflows and qualification scope.
+- Preserve accented/CJK paths in Windows MCP setup, require pending faders to be applied before further Studio edits/saving, and keep saved MCP projects tied to the current preview's actual source and stem bank. Add native, Windows PowerShell and three-engine browser regressions; see [merge validation and availability](docs/MERGE_VALIDATION.md).
+
 ## 0.5.0-beta.1 — Studio Preview
 
 - Add desktop vocal/instrumental and four-stem separation with optional isolated CPU engine setup, verification/repair and preserved model provenance. Import aligned user stems without a model; rebalance, compare, undo and export separately.

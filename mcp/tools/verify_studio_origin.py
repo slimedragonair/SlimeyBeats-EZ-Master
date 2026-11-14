@@ -5,11 +5,13 @@ import json
 import math
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import wave
 
 from protocol_client import Client
+from verify_studio_source_context import verify as verify_source_context
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'plugins/host/tools'))
@@ -24,7 +26,7 @@ def write(path, hz):
     return tuple(sample / 32768 for sample in samples)
 
 
-def verify(server):
+def verify(server, project_loader, evidence):
     with tempfile.TemporaryDirectory(prefix='Studio immutable origin QA ') as temporary:
         root = Path(temporary)
         original = root / 'Original recording.wav'
@@ -60,13 +62,37 @@ def verify(server):
             assert document['source_name'] == 'Imported stem mix.wav'
             assert floats(project.parent / document['source']['name']) == tuple(a + b for a, b in zip(vocal, instrumental))
             assert hashlib.sha256(original.read_bytes()).hexdigest() == source_hash
-            return {'original_retained_after_chaining_and_promotion': True, 'original_id_analyzable': True, 'project_original_PCM_exact': True, 'bank_name_independent_of_mastering_source': True, 'source_file_unchanged': True}
+            result = {'original_retained_after_chaining_and_promotion': True, 'original_id_analyzable': True, 'project_original_PCM_exact': True, 'bank_name_independent_of_mastering_source': True, 'source_file_unchanged': True}
         finally:
             client.close()
+    context = verify_source_context(server, project_loader, evidence)
+    context.pop('projects')
+    result['source_bank_context'] = context
+    return result
+
+
+def native_project_loader(server):
+    # Existing Windows/Linux CI invokes only --server. Build the small native
+    # loader helper here so those calls exercise actual project reopening too.
+    profile = 'release' if server.parent.name == 'release' else 'dev'
+    subprocess.run(['cargo', 'build', '--locked', '--manifest-path',
+                    str(ROOT / 'mcp/server/Cargo.toml'), '--target-dir',
+                    str(server.parent.parent), '--profile', profile,
+                    '--example', 'check_studio_project'], check=True, timeout=180)
+    suffix = '.exe' if sys.platform == 'win32' else ''
+    return server.parent / 'examples' / ('check_studio_project' + suffix)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--server', type=Path, required=True)
+    parser.add_argument('--project-loader', type=Path,
+                        help='Prebuilt native loader; otherwise build the focused Cargo example')
+    parser.add_argument('--evidence', type=Path,
+                        help='Retain source-context projects and stdio/native-loader logs here')
     args = parser.parse_args()
-    print(json.dumps(verify(args.server.resolve()), indent=2))
+    server = args.server.resolve()
+    loader = args.project_loader.resolve() if args.project_loader else native_project_loader(server)
+    with tempfile.TemporaryDirectory(prefix='Studio source context QA ') as temporary:
+        evidence = args.evidence.resolve() if args.evidence else Path(temporary)
+        print(json.dumps(verify(server, loader, evidence), indent=2))

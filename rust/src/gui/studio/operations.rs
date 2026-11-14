@@ -113,7 +113,7 @@ impl Studio {
         );
     }
     pub fn render_plugin(&mut self, ctx: &egui::Context) {
-        let audio = match self.audio_target() {
+        let audio = match self.editing_target() {
             Ok(a) => a,
             Err(e) => {
                 self.error = Some(format!("{e:#}"));
@@ -220,7 +220,7 @@ impl Studio {
         });
     }
     pub fn clean_voice(&mut self, ctx: &egui::Context) {
-        let input = match self.audio_target() {
+        let input = match self.editing_target() {
             Ok(a) => a,
             Err(e) => {
                 self.error = Some(format!("{e:#}"));
@@ -252,7 +252,7 @@ impl Studio {
         );
     }
     pub fn repair_audio(&mut self, ctx: &egui::Context) {
-        let input = match self.audio_target() {
+        let input = match self.editing_target() {
             Ok(a) => a,
             Err(e) => {
                 self.error = Some(format!("{e:#}"));

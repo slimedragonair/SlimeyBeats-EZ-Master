@@ -91,7 +91,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
         }
         if ui
             .add_enabled(
-                studio.audio_target().is_ok(),
+                studio.editing_target().is_ok(),
                 crystal_button::primary("Preview plugin effect"),
             )
             .clicked()

@@ -193,6 +193,13 @@ impl Studio {
                 .clone()),
         }
     }
+    pub(super) fn editing_target(&self) -> anyhow::Result<Arc<Audio>> {
+        anyhow::ensure!(
+            !self.mix_dirty,
+            "Update mix preview to apply pending fader changes before preparing another edit"
+        );
+        self.audio_target()
+    }
     pub fn poll(&mut self, ctx: &egui::Context) {
         while let Ok(event) = self.jobs.receiver.try_recv() {
             match event {

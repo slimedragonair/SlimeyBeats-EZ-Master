@@ -2,7 +2,7 @@
 
 SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **38 tools** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
-Beta.3 is a local development candidate and is **not publicly released**. Earlier beta.2 packages retain their original nine-part import behavior. **The stable v0.4.2 Windows installer does not include MCP or session handoff.** Use the desktop binary built alongside the companion. Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
+Beta.3 is available in the current repository source; its binary packages have **not been published as a GitHub release**. [Build the current source](BUILDING.md). Earlier beta.2 packages retain their original nine-part import behavior. **The stable v0.4.2 Windows installer does not include MCP or session handoff.** Use the desktop binary built alongside the companion. Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
 ## Set up a connection
 

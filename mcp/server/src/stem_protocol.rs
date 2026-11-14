@@ -124,7 +124,8 @@ impl Companion {
             let audio=stem_mix::render(&stems,&bank.controls,&||ctx.cancelled())?;
             let mut studio=ctx.snapshot.studio.clone();
             studio.bank=Some(Arc::new(StemBank {id:format!("stems-{}",ctx.id),source_name:bank.source_name.clone(),stems,controls:bank.controls.clone(),model:bank.model.clone(),original_mix:bank.original_mix.clone()}));
-            let target=crate::studio_state::AudioTarget {audio:bank.original_mix.clone(),label:"Mix with edited stem".into(),steps:preview.steps.clone()};
+            let mut target=crate::studio_state::AudioTarget::bank_mix(studio.bank.as_ref().expect("replacement bank"),"Mix with edited stem");
+            target.steps=preview.steps.clone();
             let bank_id = studio.bank.as_ref().expect("replacement bank").id.clone();
             let mut product = crate::studio_operations::finish(&ctx,target,audio,json!({"operation":"replace_stem","kind":a.kind}),vec!["The prepared stem edit was applied to the mix; other stem audio was retained.".into()],studio)?;
             product.result["stem_set_id"] = bank_id.into();

@@ -25,16 +25,7 @@ pub fn finish(
     mut studio: StudioState,
 ) -> Result<Product> {
     ctx.check()?;
-    if studio.origin.is_none() && studio.bank.is_none() {
-        studio.origin = Some(crate::studio_state::StudioOrigin {
-            id: step["input_audio_id"]
-                .as_str()
-                .unwrap_or("studio-original")
-                .into(),
-            label: target.label.clone(),
-            audio: target.audio.clone(),
-        });
-    }
+    studio.origin = Some(target.origin.clone());
     let file = artifact_files::preview(&ctx.engine, &audio)?;
     ctx.check()?;
     if studio.current.is_none() {
@@ -46,7 +37,8 @@ pub fn finish(
             file: None,
             steps: target.steps.clone(),
             notes: vec![],
-            bank_snapshot: studio.bank.clone(),
+            origin_snapshot: target.origin.clone(),
+            bank_snapshot: target.bank_snapshot.clone(),
         }));
     }
     let mut steps = target.steps;
@@ -62,7 +54,8 @@ pub fn finish(
         file: Some(file),
         steps,
         notes,
-        bank_snapshot: studio.bank.clone(),
+        origin_snapshot: target.origin,
+        bank_snapshot: target.bank_snapshot,
     });
     studio.push(edited, ctx.engine.max_decoded_bytes.saturating_mul(2));
     Ok(Product {
@@ -127,12 +120,13 @@ pub fn separate(ctx: ContextData, source_id: String, mode: SeparationMode) -> Re
         original_mix: source.audio.clone(),
     });
     let mut studio = StudioState {
+        origin: Some(AudioTarget::bank_mix(&bank, "Stem mix").origin),
         bank: Some(bank.clone()),
         ..Default::default()
     };
     let id = format!("studio-{}", ctx.id);
     let file = artifact_files::preview(&ctx.engine, &audio)?;
-    studio.current=Some(Arc::new(EditedAudio {id:id.clone(),label:"Stem mix".into(),audio:Arc::new(audio),before:source.audio.clone(),file:Some(file),steps:vec![json!({"operation":"separate_stems","source_id":source_id,"source_sha256":source.source.identity.sha256,"mode":mode})],notes:vec!["Separation is an estimate, not perfect isolation. Reconstruction residual is retained in instrumental/other so the neutral mix preserves the source.".into()],bank_snapshot:Some(bank.clone())}));
+    studio.current=Some(Arc::new(EditedAudio {id:id.clone(),label:"Stem mix".into(),audio:Arc::new(audio),before:source.audio.clone(),file:Some(file),steps:vec![json!({"operation":"separate_stems","source_id":source_id,"source_sha256":source.source.identity.sha256,"mode":mode})],notes:vec!["Separation is an estimate, not perfect isolation. Reconstruction residual is retained in instrumental/other so the neutral mix preserves the source.".into()],origin_snapshot:AudioTarget::bank_mix(&bank, "Stem mix").origin,bank_snapshot:Some(bank.clone())}));
     let result = studio.summary(&ctx.engine, &ctx.snapshot)?;
     ctx.check()?;
     Ok(Product {
@@ -154,11 +148,7 @@ pub fn mix(ctx: ContextData, bank_id: String, settings: MixSettings) -> Result<P
         model: bank.model.clone(),
         original_mix: bank.original_mix.clone(),
     }));
-    let target = AudioTarget {
-        audio: bank.original_mix.clone(),
-        label: "Stem mix".into(),
-        steps: vec![],
-    };
+    let target = AudioTarget::bank_mix(studio.bank.as_ref().expect("mix bank"), "Stem mix");
     finish(
         &ctx,
         target,
@@ -191,7 +181,12 @@ pub fn history(ctx: ContextData, redo: bool) -> Result<Product> {
             studio.redo.push(current);
         }
     }
-    studio.bank = next.bank_snapshot.clone();
+    studio.origin = Some(next.origin_snapshot.clone());
+    // A source-only revision does not consume the separately available bank.
+    // Its project snapshot excludes that bank through preview.bank_snapshot.
+    if let Some(bank) = &next.bank_snapshot {
+        studio.bank = Some(bank.clone());
+    }
     let result = studio.summary(&ctx.engine, &ctx.snapshot)?;
     Ok(Product {
         result,

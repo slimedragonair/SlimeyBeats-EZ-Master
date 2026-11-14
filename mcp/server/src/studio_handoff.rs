@@ -6,6 +6,11 @@ use anyhow::{Context, Result, ensure};
 use mastercraft::studio_native::session::{self, StudioSnapshot};
 use rmcp::{Json, tool, tool_router};
 use serde_json::{Value, json};
+use std::sync::Arc;
+
+#[cfg(test)]
+#[path = "studio_handoff_tests.rs"]
+mod tests;
 
 fn snapshot(ctx: &ContextData) -> Result<StudioSnapshot> {
     let studio = &ctx.snapshot.studio;
@@ -13,26 +18,29 @@ fn snapshot(ctx: &ContextData) -> Result<StudioSnapshot> {
         .current
         .as_ref()
         .context("Prepare a Studio preview first")?;
-    let source = studio
-        .bank
-        .as_ref()
-        .map(|b| b.original_mix.clone())
-        .or_else(|| studio.origin.as_ref().map(|origin| origin.audio.clone()))
-        .or_else(|| ctx.snapshot.source.as_ref().map(|s| s.audio.clone()))
-        .unwrap_or_else(|| preview.before.clone());
-    let name = studio
-        .bank
-        .as_ref()
-        .map(|bank| bank.source_name.clone())
-        .or_else(|| studio.origin.as_ref().map(|origin| origin.label.clone()))
-        .or_else(|| {
-            ctx.snapshot
-                .source
-                .as_ref()
-                .and_then(|s| s.source.path.file_name())
-                .map(|s| s.to_string_lossy().into_owned())
-        })
-        .unwrap_or_else(|| "Imported stem mix".into());
+    let source = &preview.origin_snapshot.audio;
+    let bank = preview.bank_snapshot.as_ref();
+    let aligned = |audio: &mastercraft::audio::Audio| {
+        audio.sample_rate == preview.audio.sample_rate
+            && audio.channels == preview.audio.channels
+            && audio.frames() == preview.audio.frames()
+    };
+    ensure!(aligned(source), "Studio source and preview are not aligned");
+    ensure!(
+        aligned(&preview.before),
+        "Studio comparison assets are not aligned"
+    );
+    if let Some(bank) = bank {
+        ensure!(
+            Arc::ptr_eq(source, &bank.original_mix),
+            "Studio origin does not match its stem bank"
+        );
+        ensure!(
+            bank.stems.tracks.iter().all(|stem| aligned(&stem.audio)),
+            "Studio stem bank is not aligned with its source"
+        );
+        bank.controls.validate(&bank.stems)?;
+    }
     let last = preview
         .steps
         .last()
@@ -45,14 +53,10 @@ fn snapshot(ctx: &ContextData) -> Result<StudioSnapshot> {
         _ => "stems",
     };
     Ok(StudioSnapshot {
-        source_name: name,
-        source,
-        stems: studio.bank.as_ref().map(|b| b.stems.clone()),
-        mix: studio
-            .bank
-            .as_ref()
-            .map(|b| b.controls.clone())
-            .unwrap_or_default(),
+        source_name: preview.origin_snapshot.label.clone(),
+        source: source.clone(),
+        stems: bank.map(|b| b.stems.clone()),
+        mix: bank.map(|b| b.controls.clone()).unwrap_or_default(),
         before: preview.before.clone(),
         preview: preview.audio.clone(),
         label: preview.label.clone(),

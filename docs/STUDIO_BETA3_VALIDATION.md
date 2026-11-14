@@ -1,6 +1,8 @@
-# Studio beta.3 validation
+# Initial Studio beta.3 validation
 
 This record covers desktop **0.5.0-beta.3**, MCP **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**, following removal of the fixed imported-part ceiling. Earlier beta.2 results remain separately identified in the [Studio guide](STUDIO.md#validation-status--november-13-2026).
+
+This record describes the larger-bank candidate before the subsequent merge-review fixes. Current merge regressions and release/deployment distinctions are recorded in [Merge validation](MERGE_VALIDATION.md).
 
 ## Confirmed results
 

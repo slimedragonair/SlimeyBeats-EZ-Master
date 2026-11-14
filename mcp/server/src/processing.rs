@@ -54,6 +54,7 @@ pub fn load(ctx: ContextData, path: PathBuf, reference: bool) -> Result<Product>
                 source,
                 audio: Arc::new(audio),
                 generated: None,
+                studio_preview: None,
             })),
             committed: false,
         })

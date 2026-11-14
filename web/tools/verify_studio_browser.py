@@ -17,6 +17,7 @@ from studio_waveform_checks import verify_waveform
 from studio_multitrack_checks import verify_multitrack
 from studio_bundle_checks import verify_bundle
 from studio_export_checks import audio_names, verify_manifest
+from studio_pending_checks import verify_pending_mix
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -112,6 +113,7 @@ def run(args):
                 raw_two = save('#s-export-stems', 'two-stems.zip')
                 assert audio_names(zipfile.ZipFile(io.BytesIO(raw_two))) == {'vocals.wav', 'instrumental.wav'}
                 verify_manifest(zipfile.ZipFile(io.BytesIO(raw_two)))
+                result['checks'].extend(verify_pending_mix(page, ready, save, raw_two, args.out, diagnostics.capture))
                 page.locator('#s-tab-mix').click()
                 page.get_by_role('slider', name='vocals Gain / dB', exact=True).fill('-6')
                 page.locator('#s-mix').click()

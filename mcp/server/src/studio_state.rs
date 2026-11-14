@@ -17,6 +17,7 @@ pub struct EditedAudio {
     pub file: Option<Arc<TempPath>>,
     pub steps: Vec<Value>,
     pub notes: Vec<String>,
+    pub origin_snapshot: StudioOrigin,
     pub bank_snapshot: Option<Arc<StemBank>>,
 }
 pub struct StemBank {
@@ -46,67 +47,11 @@ pub struct AudioTarget {
     pub audio: Arc<Audio>,
     pub label: String,
     pub steps: Vec<Value>,
+    pub origin: StudioOrigin,
+    pub bank_snapshot: Option<Arc<StemBank>>,
 }
 
 impl Snapshot {
-    pub fn studio_audio(&self, id: &str) -> Result<AudioTarget> {
-        if let Some(source) = &self.source
-            && source.id == id
-        {
-            return Ok(AudioTarget {
-                audio: source.audio.clone(),
-                label: source
-                    .source
-                    .path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .into_owned(),
-                steps: vec![],
-            });
-        }
-        if let Some(origin) = &self.studio.origin
-            && origin.id == id
-        {
-            return Ok(AudioTarget {
-                audio: origin.audio.clone(),
-                label: origin.label.clone(),
-                steps: vec![],
-            });
-        }
-        if let Some(preview) = &self.studio.current
-            && preview.id == id
-        {
-            return Ok(AudioTarget {
-                audio: preview.audio.clone(),
-                label: preview.label.clone(),
-                steps: preview.steps.clone(),
-            });
-        }
-        if let Some(bank) = &self.studio.bank {
-            if id == format!("{}:original_mix", bank.id) {
-                return Ok(AudioTarget {
-                    audio: bank.original_mix.clone(),
-                    label: "Stem source mix".into(),
-                    steps: vec![],
-                });
-            }
-            for stem in &bank.stems.tracks {
-                if id == stem_id(&bank.id, stem.kind) {
-                    return Ok(AudioTarget {
-                        audio: stem.audio.clone(),
-                        label: format!("{} stem", bank.stems.display_name(stem.kind)),
-                        steps: vec![
-                            json!({"operation":"stem_source","kind":stem.kind,"model":bank.model}),
-                        ],
-                    });
-                }
-            }
-        }
-        anyhow::bail!(
-            "Unknown/stale audio ID; call get_studio_session for currently available source, stem and preview IDs"
-        )
-    }
     pub fn studio_bank(&self, id: &str) -> Result<Arc<StemBank>> {
         let bank = self
             .studio
@@ -148,6 +93,10 @@ impl StudioState {
             assets.push(audio_info(&source.id, "Loaded source", &source.audio));
         }
         if let Some(origin) = &self.origin
+            && self
+                .bank
+                .as_ref()
+                .is_none_or(|bank| origin.id != format!("{}:original_mix", bank.id))
             && snapshot
                 .source
                 .as_ref()

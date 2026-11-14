@@ -20,4 +20,5 @@ mod studio_import;
 pub mod studio_operations;
 pub mod studio_promote;
 pub mod studio_protocol;
+mod studio_provenance;
 pub mod studio_state;

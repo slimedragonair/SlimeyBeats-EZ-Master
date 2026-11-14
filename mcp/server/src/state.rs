@@ -22,6 +22,7 @@ pub struct Input {
     pub source: SessionSource,
     pub audio: Arc<Audio>,
     pub generated: Option<Arc<TempPath>>,
+    pub studio_preview: Option<Arc<crate::studio_state::EditedAudio>>,
 }
 pub struct Reference {
     pub source: SessionSource,
