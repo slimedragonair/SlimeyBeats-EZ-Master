@@ -34,6 +34,12 @@ pub mod studio;
 #[cfg(test)]
 mod test_fixture;
 mod theme;
+mod tool_setup;
+mod update_launch;
+mod update_state;
+mod update_view;
+#[cfg(test)]
+mod update_view_tests;
 mod worker;
 pub use app::MasterCraftApp;
 pub use brand_art::window_icon;

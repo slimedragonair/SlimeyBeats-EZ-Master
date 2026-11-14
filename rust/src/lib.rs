@@ -1,10 +1,16 @@
 pub mod analysis;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod app_update;
 pub mod audio;
 pub mod branding;
 mod clock;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod component_tools;
 pub mod config;
 #[cfg(feature = "gui")]
 pub mod desktop_integration;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod downloads;
 pub mod dsp;
 pub mod engine;
 pub mod export;
@@ -13,6 +19,8 @@ pub mod gui;
 pub mod meters;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod native_process;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod optional_tools;
 pub mod paths;
 pub mod preview;
 #[cfg(not(target_arch = "wasm32"))]

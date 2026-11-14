@@ -32,6 +32,7 @@ pub(super) enum JobKind {
     Suggest,
 }
 pub struct MasterCraftApp {
+    pub(super) updates: super::update_state::UpdateState,
     pub(super) experience: super::user_experience::UserExperience,
     pub(super) preferences: Option<super::desktop_preferences::PreferencePersistence>,
     pub studio: super::studio::Studio,
@@ -116,6 +117,9 @@ impl MasterCraftApp {
             desktop_valid,
         ));
         let mut app = Self {
+            updates: super::update_state::UpdateState::load(
+                crate::paths::settings_file().with_file_name("update-preferences.json"),
+            ),
             experience: super::user_experience::UserExperience::load(
                 crate::paths::interface_preferences_file(),
             ),
@@ -169,6 +173,7 @@ impl MasterCraftApp {
             "tour" => self.experience.tour_open = true,
             "terms" => self.experience.help_page = Some(HelpPage::Terms),
             "mcp" => self.experience.help_page = Some(HelpPage::Assistant),
+            "updates" => self.experience.help_page = Some(HelpPage::Updates),
             _ => self.experience.help_page = Some(HelpPage::Start),
         }
         self.experience.request_dialog_focus = true;

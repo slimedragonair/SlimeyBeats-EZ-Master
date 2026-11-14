@@ -40,7 +40,11 @@ jobs:
           python tools/test_installation_identity.py
           python tools/test_documentation_payload.py
           python tools/test_documentation_links.py
+          python tools/test_update_packaging.py
           python tools/test_license_payload.py
+          python ../mcp/tools/verify_optional_tools.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_profiles_root.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/test_companion_package.py
           python ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
@@ -88,7 +92,11 @@ jobs:
           python3 tools/test_installation_identity.py
           python3 tools/test_documentation_payload.py
           python3 tools/test_documentation_links.py
+          python3 tools/test_update_packaging.py
           python3 tools/test_license_payload.py
+          python3 ../mcp/tools/verify_optional_tools.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/verify_profiles_root.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/test_companion_package.py
           python3 ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp

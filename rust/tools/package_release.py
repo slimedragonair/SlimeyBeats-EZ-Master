@@ -10,6 +10,7 @@ from release_packaging.public_source import copy_public_source, DEMO_FILES
 from release_packaging.companion_payload import companion_binaries, copy_companion
 from release_packaging.documentation_payload import copy_documentation, copy_project_notices
 from release_packaging.license_payload import copy_dependency_licenses
+from release_packaging.artifact_labels import stem
 
 
 def dependency_notices(project, destination):
@@ -44,8 +45,8 @@ def dependency_notices(project, destination):
     )
 
 
-def package(project, parent, version, evidence):
-    destination = parent / f"SlimeyBeats-EZ-Master-{version}"
+def package(project, parent, version, evidence, label=None):
+    destination = parent / stem(version, label)
     archive = parent / f"{destination.name}.zip"
     # A fresh directory protects earlier releases and any user-created settings/exports.
     if destination.exists() or archive.exists():
@@ -109,8 +110,10 @@ def package(project, parent, version, evidence):
         "Expand Export settings in the right pane to choose formats and a folder.\n"
         "The smaller layout scrolls editing content while playback stays pinned.\n\n"
         "WAV input/export works without Python or FFmpeg. Compressed inputs,\n"
-        "FLAC/MP3 exports and sample-rate conversion need ffmpeg and ffprobe on PATH.\n"
-        "No FFmpeg installer or binaries are included.\n\n"
+        "FLAC/MP3 exports and sample-rate conversion prepare verified private codecs\n"
+        "when needed. Existing capable system tools are reused; PATH is unchanged.\n"
+        "Help > Updates & tools checks/downloads application updates. Setup opens\n"
+        "only when you choose Install update; save your current audio work first.\n\n"
         "Batch CLI: SlimeyBeats-EZ-Master-CLI.exe --help\n"
         "Build source: cd source/rust, then cargo build --release --bins\n"
         "Tests: cargo test --release --all-targets\n"
@@ -142,5 +145,6 @@ if __name__ == "__main__":
     default_version = tomllib.loads((Path(__file__).resolve().parents[1] / "Cargo.toml").read_text())["package"]["version"]
     parser.add_argument("--version", default=default_version)
     parser.add_argument("--evidence", type=Path)
+    parser.add_argument("--label", help="Optional filename label, e.g. Hotfix2; application version stays unchanged")
     args = parser.parse_args()
-    package(Path(__file__).resolve().parents[1], args.out, args.version, args.evidence)
+    package(Path(__file__).resolve().parents[1], args.out, args.version, args.evidence, args.label)

@@ -2,6 +2,15 @@
 
 ## 0.5.0-beta.3 — 2026-11-14
 
+### Hotfix2 — easier updates and optional setup
+
+- Add **Help → Updates & tools**, once-daily optional checks, verified background downloads and an explicit saved-work/Setup flow. Build revision distinguishes same-version hotfixes; immutable per-revision catalogs preserve previous releases. Portable/Linux manual routes stay explicit.
+- Prepare private FFmpeg/ffprobe for the action that needs compressed input/export or resampling, without global PATH changes. Reuse capable system tools; verify FLAC/MP3 encode/probe/decode and share the prepared private cache across processes.
+- Chain missing stem-engine setup directly into source separation with cancellation and monotonic progress. Keep existing-stem imports, voice cleanup and spectral repair independent of the separation model.
+- Recover missing application-owned VST3/MCP helpers on use, with bounded/hash-checked bundles and original notices. Do not download third-party plugins or edit AI-client settings.
+- Expose optional-tool discovery/preparation through the MCP companion, preserving explicit owner download policy and custom profile roots. Correct the native live-mix footer description.
+- Keep desktop 0.5.0-beta.3, MCP 0.2.0-beta.3 and browser Studio 0.3.0-beta.3. See [workflow and candidate evidence](docs/UPDATES_AND_OPTIONAL_TOOLS.md).
+
 ### Guided interface and Help
 
 Studio Preview beta.3 includes the guided desktop interface, bulk stem imports and remembered preferences. Its installer remains separate from stable v0.4.2; the MCP companion is 0.2.0-beta.3 and browser Studio is 0.3.0-beta.3. Earlier releases retain their original binaries and qualification records.

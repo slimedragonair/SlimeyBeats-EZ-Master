@@ -18,7 +18,7 @@ Desktop flow:
 
 Exports never replace existing files. WAV 16/24/float, FLAC 16/24, and MP3 320k are supported. Integer exports use optional deterministic TPDF dither. Every encoded file is decoded and metered, with further attenuation/re-encoding if needed to respect the ceiling. The report distinguishes the in-memory master from decoded export measurements.
 
-WAV processing needs neither Python nor FFmpeg. FFmpeg/ffprobe on PATH are required for compressed input, FLAC/MP3 export, and sample-rate conversion. Mono and stereo inputs from 8–384 kHz are accepted; multichannel audio is rejected with an explicit downmix message. Files under 400 ms receive peak protection rather than a reliable integrated-loudness master.
+WAV processing needs neither Python nor FFmpeg. The GUI prepares verified FFmpeg/ffprobe on first use for compressed input, FLAC/MP3 export and resampling; capable system tools are reused without changing PATH. CLI/MCP reuse prepared codecs and keep explicit download policy. Mono and stereo inputs from 8–384 kHz are accepted; multichannel audio is rejected with an explicit downmix message. Files under 400 ms receive peak protection rather than a reliable integrated-loudness master.
 
 ## Build and check
 

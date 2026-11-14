@@ -55,6 +55,9 @@ impl CaptureReadiness {
 
 #[derive(serde::Serialize)]
 pub(super) struct CaptureState {
+    pub update_build_revision: u64,
+    pub update_check_enabled: bool,
+    pub update_error: Option<String>,
     pub error: Option<String>,
     pub preview_ready: bool,
     pub playback_ready: bool,

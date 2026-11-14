@@ -22,6 +22,7 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
                     (HelpPage::Assistant, "AI setup"),
                     (HelpPage::Troubleshooting, "Troubleshooting"),
                     (HelpPage::About, "About"),
+                    (HelpPage::Updates, "Updates & tools"),
                 ] {
                     let response = ui.add(crystal_button::secondary(label).selected(page == value));
                     if app.experience.request_dialog_focus && value == page {
@@ -46,6 +47,7 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
                         HelpPage::Assistant => assistant(app, ui, ctx),
                         HelpPage::Troubleshooting => troubleshooting(ui),
                         HelpPage::About => about(ui),
+                        HelpPage::Updates => super::update_view::show(app, ui, ctx),
                     }
                     if let Some(error) = app.experience.save_error.clone() {
                         ui.separator();
@@ -159,15 +161,10 @@ fn assistant(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
     ui.label(&guide.body);
     ui.label("Choose which audio folder it may read and where outputs go. Your AI client's settings stay unchanged.");
     ui.separator();
-    let Some(binary) = super::mcp_setup::companion(&app.root) else {
-        ui.label("The MCP companion was not found in this build. Use the complete Studio Preview package, or build the companion from source.");
-        ui.hyperlink_to(
-            "Read the MCP setup guide",
-            "https://github.com/slimedragonair/SlimeyBeats-EZ-Master/blob/main/docs/MCP.md",
-        );
-        mcp_details(ui);
-        return;
-    };
+    let binary = super::mcp_setup::companion(&app.root);
+    if binary.is_none() {
+        ui.label("The AI companion will download and verify automatically when you generate the connection example. No audio is uploaded.");
+    }
     let setup = &mut app.experience.mcp;
     ui.add_enabled_ui(!setup.busy(), |ui| {
         for (input, label) in [
@@ -202,14 +199,26 @@ fn assistant(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
             )
             .clicked()
         {
-            setup.generate(&binary, ctx);
+            if let Some(binary) = &binary {
+                setup.generate(binary, ctx);
+            } else {
+                setup.generate_or_prepare(None, ctx);
+            }
         }
     });
     if setup.busy() {
         ui.horizontal(|ui| {
             ui.spinner();
-            ui.label("Preparing your connection example…");
+            ui.label(&setup.status);
         });
+        if ui
+            .add(crystal_button::secondary("Cancel companion setup"))
+            .clicked()
+        {
+            setup.cancel();
+        }
+    } else if !setup.status.is_empty() {
+        ui.small(&setup.status);
     }
     if let Some(error) = &setup.error {
         ui.label(RichText::new(error).color(theme::BONE));
@@ -260,7 +269,7 @@ fn troubleshooting(ui: &mut egui::Ui) {
         ),
         (
             "An audio file will not open",
-            "Native WAV works without extra codecs. Other desktop input formats, MP3/FLAC exports and resampling need FFmpeg and ffprobe on PATH. Restart the app after installing them.",
+            "Native WAV works without extra codecs. The desktop app prepares FFmpeg and ffprobe when compressed formats or resampling need them. Check setup progress or use Updates & tools to retry; no restart is needed for codecs.",
         ),
         (
             "My stems do not line up",
@@ -284,7 +293,7 @@ fn troubleshooting(ui: &mut egui::Ui) {
 fn about(ui: &mut egui::Ui) {
     ui.strong("SlimeyBeats-EZ-Master · SlimeDragon Audio");
     ui.label(format!("Desktop version {}", env!("CARGO_PKG_VERSION")));
-    ui.label("Audio processing happens on this device. The desktop app does not need an AI connection. Optional model setup and external help links need network access when you choose them.");
+    ui.label("Audio processing happens on this device. Update checks contact GitHub and can be disabled in Updates & tools. Optional tool setup downloads software; your audio is not uploaded. An AI connection is not required.");
     ui.label("The software uses the MIT license. The software license does not claim ownership of the music you make or edit. Keep the rights to any source material you use.");
     ui.hyperlink_to(
         "Read the user guide",

@@ -190,6 +190,18 @@ pub(super) fn help_button(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egu
         response.request_focus();
         app.experience.open_help(HelpPage::Start, ctx);
     }
+    if app.updates.available.is_some() {
+        let label = if app.updates.downloaded.is_some() {
+            "Update ready"
+        } else {
+            "Update available"
+        };
+        let update = ui.add(crystal_button::secondary(label)).on_hover_text("Open application updates. Downloading can happen while you work; installation is your choice.");
+        if update.clicked() {
+            update.request_focus();
+            app.experience.open_help(HelpPage::Updates, ctx);
+        }
+    }
     if app.experience.tour_paused
         && ui
             .add(crystal_button::secondary(

@@ -36,6 +36,9 @@ def verify(server, codecs=False):
             raw = client.run('export_stems', {'stem_set_id': session['stem_set']['stem_set_id']})
             return {entry['kind']: (output / raw['folder'] / entry['file']).read_bytes() for entry in raw['manifest']['stems']}
         try:
+            if codecs:
+                prepared = client.run('prepare_optional_tool', {'tool': 'audio_codecs', 'allow_download': True})
+                assert prepared['verification'] == 'encode_probe_decode_checked'
             listing = client.call('list_audio_files', {'library': 0})
             assert any(file['path'] == source.name and file['stem_archive'] for file in listing['files'])
             tools = client.request('tools/list', {})['result']['tools']
@@ -84,6 +87,6 @@ def verify(server, codecs=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server', type=Path, required=True)
-    parser.add_argument('--codecs', action='store_true')
+    parser.add_argument('--codecs', action='store_true', help='Explicitly authorize optional audio_codecs preparation, then qualify actual MP3 preference/fallback; missing capable tools may be downloaded')
     args = parser.parse_args()
     print(json.dumps(verify(args.server.resolve(), args.codecs), indent=2))

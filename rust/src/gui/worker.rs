@@ -88,6 +88,28 @@ pub fn batch(
     root: PathBuf,
 ) {
     std::thread::spawn(move || {
+        let first = files.first().map(|(index, _)| *index).unwrap_or(0);
+        if let Err(error) = super::tool_setup::for_inputs(
+            files
+                .iter()
+                .map(|(_, path)| path.as_path())
+                .chain(settings.reference.as_deref()),
+            cancel.clone(),
+            &|fraction, message| {
+                let _ = tx.send(Event::Progress(first, fraction, message.into()));
+                ctx.request_repaint();
+            },
+        ) {
+            for (index, _) in &files {
+                let _ = tx.send(Event::Failed(
+                    *index,
+                    format!("Codec preparation: {error:#}"),
+                ));
+            }
+            let _ = tx.send(Event::Finished);
+            ctx.request_repaint();
+            return;
+        }
         let profile = profiles::resolve(&settings.profile, &root.join("profiles"));
         let reference: Result<_> = profile
             .as_ref()

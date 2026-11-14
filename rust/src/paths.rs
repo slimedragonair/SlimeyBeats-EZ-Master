@@ -1,7 +1,30 @@
 use std::path::PathBuf;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(windows, target_os = "linux"))]
 const APP_DIRECTORY: &str = "slimeybeats-ez-master";
+
+/// Downloaded application components are user-local and independent of installs.
+pub fn cache_root() -> Option<PathBuf> {
+    #[cfg(windows)]
+    {
+        std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .map(|p| p.join(APP_DIRECTORY))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        xdg_directory(
+            std::env::var_os("XDG_CACHE_HOME").as_deref(),
+            std::env::var_os("HOME").as_deref(),
+            ".cache",
+        )
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        None
+    }
+}
 
 /// Linux uses the user's config directory; Windows retains its portable layout.
 pub fn settings_file() -> PathBuf {

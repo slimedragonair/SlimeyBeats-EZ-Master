@@ -80,6 +80,7 @@ pub struct Engine {
     pub decode_timeout: Duration,
     pub cache: TempDir,
     pub desktop: Option<PathBuf>,
+    pub profiles: crate::profile_catalog::ProfileCatalog,
     pub stem_runtime: mastercraft::studio_native::runtime::RuntimePaths,
     pub connection_id: String,
     pub plugin_host: Option<mastercraft::studio_native::plugins::VstHost>,
@@ -140,6 +141,7 @@ impl Engine {
             policy,
             cache,
             desktop,
+            profiles: crate::profile_catalog::ProfileCatalog::load(args.profiles_root.as_deref())?,
             stem_runtime: args
                 .studio_data
                 .as_ref()

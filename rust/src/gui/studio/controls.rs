@@ -79,14 +79,7 @@ fn stem_engine(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.label(
             "Optional: only needed to split a full mix. Importing existing stems needs no model.",
         );
-        ui.small("Install explicitly downloads an isolated engine and model. Audio stays on this computer.");
-        if ui.add_enabled(!studio.busy(),crystal_button::secondary("Install stem engine")).on_hover_text("One-time download using a private Python environment, separate from other apps. Requires internet, disk space and several minutes. No audio is uploaded.").clicked() {studio.install_engine(false,ctx);}
-    }
-    if ready {
-        section_header(ui, "Engine maintenance").show(ui, |ui| {
-            if ui.add(crystal_button::secondary("Verify installed model")).on_hover_text("Check every model file against the verified installation manifest without downloading it again.").clicked() { studio.install_engine(false, ctx); }
-            if ui.add(crystal_button::secondary("Repair stem engine")).on_hover_text("Reinstall the private dependencies and verified model. Unknown files are preserved in a backup; your audio is not touched.").clicked() { studio.install_engine(true, ctx); }
-        });
+        ui.small("One-time setup needs internet, disk space and several minutes. Setup and separate downloads the engine and model, then splits this source automatically. No audio is uploaded. Use Cancel to stop.");
     }
     ui.add_enabled_ui(!studio.busy(),|ui| {
         ui.radio_value(&mut studio.two_stems,true,"Vocal + instrumental");
@@ -94,16 +87,25 @@ fn stem_engine(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     });
     if ui
         .add_enabled(
-            ready && !studio.busy() && studio.source.is_some(),
-            crystal_button::primary("Separate source"),
+            !studio.busy() && studio.source.is_some(),
+            crystal_button::primary(if ready {
+                "Separate source"
+            } else {
+                "Setup and separate"
+            }),
         )
         .clicked()
     {
         studio.separate(ctx);
     }
-    if !ready {
-        ui.small("Install the optional engine before separating audio.");
-    } else if studio.source.is_none() {
+    if studio.source.is_none() {
         ui.small("Choose a full music mix as the source first.");
     }
+    section_header(ui, "Engine maintenance").show(ui, |ui| {
+        ui.add_enabled_ui(!studio.busy(), |ui| {
+            if !ready && ui.add(crystal_button::secondary("Setup stem engine")).on_hover_text("Download and check the optional engine without separating audio. Requires internet, disk space and several minutes.").clicked() { studio.install_engine(false, ctx); }
+            if ready && ui.add(crystal_button::secondary("Verify installed model")).on_hover_text("Check every model file against the verified installation manifest without downloading it again.").clicked() { studio.install_engine(false, ctx); }
+            if ui.add(crystal_button::secondary("Repair stem engine")).on_hover_text("Reinstall the private dependencies and verified model. Unknown files are preserved in a backup; your audio is not touched.").clicked() { studio.install_engine(true, ctx); }
+        });
+    });
 }

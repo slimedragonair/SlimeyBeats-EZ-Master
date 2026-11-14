@@ -67,8 +67,12 @@ In mastering/Manual EQ, the pinned waveform shows the latest full-track measured
 
 Try [the bundled example](../examples/audio/CREDITS.md) first. Open `Examples/Listen.html` in an installed copy for level-matched before/after playback. A louder example is not automatically a better one.
 
-- **Compressed file fails to open:** install FFmpeg/ffprobe; see [installation](INSTALLATION.md).
+- **Compressed file fails to open:** inspect preparation progress/errors or retry **Help → Updates & tools → Set up audio codecs now**. See [installation](INSTALLATION.md); prepared private or system tools are supported.
 - **Target not reached:** the gain/limiter limits may be protecting the result. Read the report and audition before increasing limits.
 - **Master changes tone too much:** reduce intensity, use a more suitable profile, or adjust Manual EQ. A reference from an unrelated style can suggest an unsuitable balance.
 - **Controls need more room:** enlarge the window or scroll the editing/settings areas. Playback stays pinned.
 - **Silent, extremely short or multichannel input:** reliable loudness/tonal assistance may be unavailable. Multichannel audio needs an explicit downmix outside the app.
+
+## Application updates and first-use setup
+
+Hotfix2 adds **Help → Updates & tools** and a quiet update-available indicator. Download while working, then save/export and explicitly open Setup. Native codecs and a missing separation engine prepare on the action that needs them; voice cleanup/repair and WAV-only processing need no model download. [Complete workflow and platform/privacy limits](UPDATES_AND_OPTIONAL_TOOLS.md).

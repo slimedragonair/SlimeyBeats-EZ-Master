@@ -80,6 +80,15 @@ pub fn export_selected(
                 resolve(&result, &settings, &|| cancel.load(Ordering::Relaxed))?
             };
             let after = next.after.as_ref().context("Master the track first")?;
+            super::tool_setup::for_export(
+                &settings,
+                after.sample_rate,
+                cancel.clone(),
+                &|fraction, message| {
+                    let _ = tx.send(Event::Progress(index, fraction, message.into()));
+                    ctx.request_repaint();
+                },
+            )?;
             if let Some(report) = &mut next.report {
                 report.exports =
                     export::export(after, &file, &settings, &|| cancel.load(Ordering::Relaxed))?;

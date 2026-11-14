@@ -2,7 +2,7 @@
 
 ## Windows Studio Preview installer — v0.5.0-beta.3
 
-Download [SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix-Setup.exe) from the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3). Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
+Download [SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Setup.exe) from the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3). Run it and choose an installation folder. The default is inside your account's Local AppData Programs folder; administrator access is not required. A Start menu shortcut is created. A desktop shortcut is optional.
 
 The installer is unsigned. Check that it came from the project's own release before choosing to run it; Windows can show an unknown-publisher notice. No signing certificate is bundled or purchased by the project.
 
@@ -14,7 +14,7 @@ The Studio Preview installer includes the desktop app, MCP companion and VST3 wo
 
 Open **Connect AI assistant** from its Start menu group to prepare a local connection example. Neural extraction uses an optional one-time engine/model download from Studio; other editing tools work without that runtime. Downloaded model/runtime cache data is outside the program folder and is retained on uninstall. [Studio workflow and limits](STUDIO.md).
 
-Imported stems need no model and have no fixed part-count cap in beta.3. At least two parts must share sample rate, channel count and frame count. Desktop defaults to 512 MiB decoded PCM per input and a separate 4 GiB decoded-bank budget; browser Studio shares 128 MiB across all decoded parts and allows up to 15 minutes per track. Processing needs additional RAM. Automatic model separation remains vocal/instrumental or four stems. The bundled MCP companion is optional to use and exposes 38 tools; see [MCP setup](MCP.md).
+Imported stems need no model and have no fixed part-count cap in beta.3. At least two parts must share sample rate, channel count and frame count. Desktop defaults to 512 MiB decoded PCM per input and a separate 4 GiB decoded-bank budget; browser Studio shares 128 MiB across all decoded parts and allows up to 15 minutes per track. Processing needs additional RAM. Automatic model separation remains vocal/instrumental or four stems. The bundled MCP companion is optional to use and exposes 40 tools; see [MCP setup](MCP.md).
 
 ## Stable Windows fallback — v0.4.2
 
@@ -30,24 +30,13 @@ Linux currently uses a [source build](BUILDING.md#get-the-source), with dependen
 
 ## Optional codecs
 
-WAV input/export is native. Other input codecs, FLAC/MP3 exports and sample-rate conversion need **ffmpeg** and **ffprobe** on PATH. They are separate programs and are not bundled in the installer.
+WAV input/export is native. When compressed audio, MP3/FLAC exports or resampling need codecs, the desktop GUI reuses capable system FFmpeg/ffprobe or prepares a verified private copy and continues. Use **Help → Updates & tools → Set up audio codecs now** to prepare them in advance. There is no global PATH or system Python change, and no codec restart is needed. Progress and Cancel remain available.
 
-On Windows with Windows Package Manager, one available package is:
-
-```powershell
-winget install --exact --id Gyan.FFmpeg
-```
-
-Close and reopen the app after installation. Check the tools in a new terminal:
-
-```powershell
-ffmpeg -version
-ffprobe -version
-```
-
-Use a distribution linked from the FFmpeg project if installing manually. That distribution has its own license and build configuration; the app's MIT license does not replace them.
+Pinned private codec bundles support Windows x64 and glibc Linux x64; Linux extraction needs system `xz`. Other platforms may use their own system FFmpeg. CLI/MCP processing reuses prepared tools without hidden network setup; the MCP companion exposes explicit owner-authorized preparation. Manual system installation remains supported. See [updates and optional tools](UPDATES_AND_OPTIONAL_TOOLS.md) for locations, provenance, limits and first-use workflows.
 
 ## Settings, exports and updates
+
+After installing Hotfix2 once, use **Help → Updates & tools** to check/download later builds and explicitly open Setup when your session is saved. Automatic metadata checks can be disabled. Portable/source and Linux copies retain their documented manual routes. Same-version hotfixes use a separate build revision; the original release tag/assets remain historical.
 
 Ordinary installed/portable copies keep `user_data/rust-settings.json`, custom profiles and the default `output/` directory beside the executable. You can choose a different export directory. Installing inside a source checkout uses the development checkout's detected application root instead.
 

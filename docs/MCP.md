@@ -1,6 +1,6 @@
 # AI assistant connection — desktop MCP preview
 
-SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **38 tools** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
+SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **40 tools in Hotfix 2** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
 The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) includes the matching desktop, companion and VST3 worker. Follow [Windows installation](INSTALLATION.md) or [build from main or the release tag](BUILDING.md#get-the-source); Linux currently requires a source build. **The stable v0.4.2 fallback does not include MCP or session handoff.** Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
@@ -13,7 +13,7 @@ Beta.3 includes this route in bottom-right Help, alongside Basic/Advanced contro
 3. Select **3. Generate connection example**. The desktop calls the real companion with `--print-config` and displays its connection JSON.
 4. Use **Copy connection JSON**, add it through your AI client's supported MCP configuration, then reconnect that client. Clients with another schema need the same command and arguments.
 
-Generating the example does not edit client settings or start an MCP server connection. The AI client launches the configured local stdio server. If the companion is missing, Help explains the requirement and links to this guide; use a complete Studio Preview package or build the companion. Changing a folder invalidates the old example, so generate it again before copying.
+Generating the example does not edit client settings or start an MCP server connection. The AI client launches the configured local stdio server. In Hotfix 2, the setup action can first prepare a missing application-owned companion from the official recovery catalog, then generate its configuration. If no compatible recovery bundle is available, use a complete Studio Preview package or build the companion. Changing a folder invalidates the old example, so generate it again before copying.
 
 Browser **AI / MCP setup** is desktop-only guidance. The browser has no upload or localhost bridge to the companion; follow [desktop connection setup](#set-up-a-connection). The AI client's [privacy rules remain separate](#limits-and-privacy). For tour replay and remembered interface choices, see [Learning and Help](LEARNING_AND_HELP.md).
 
@@ -21,7 +21,7 @@ Browser **AI / MCP setup** is desktop-only guidance. The browser has no upload o
 
 Use an AI client that supports launching a **local stdio MCP server**. It launches the companion; you do not need to start a network service. No account or model subscription is required by SlimeyBeats itself; the AI client has its own requirements.
 
-For a Windows companion ZIP, extract the complete folder to a writable location. Open **Connect AI Assistant.bat**, select an audio library folder and an export folder, and save the generated JSON example. The helper does not edit any client settings. Add its `command` and `args` using your client's MCP configuration UI or file, then reconnect. This example uses the common `mcpServers` format; clients with another format need the same executable and arguments in their own schema.
+For the standalone Windows bundle, [download the Hotfix 2 companion ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-MCP-0.2.0-beta.3-Hotfix2-preview-Windows-x64.zip) and extract the complete folder to a writable location. Open **Connect AI Assistant.bat**, select an audio library folder and an export folder, and save the generated JSON example. The helper does not edit any client settings. Add its `command` and `args` using your client's MCP configuration UI or file, then reconnect. This example uses the common `mcpServers` format; clients with another format need the same executable and arguments in their own schema.
 
 Choose a dedicated input folder containing tracks you want the assistant to access. The assistant can list/read supported audio within that folder, including a subfolder when its path is known. More than one library can be authorized with repeated `--input-root` arguments. The output folder holds new exports, reports, session documents and temporary previews.
 
@@ -46,7 +46,7 @@ On Linux, after installing the [native build dependencies](LINUX.md):
 
 Save this JSON through the client's supported configuration workflow. Omit `--print-config` when running the actual server. Paths are separate arguments, so spaces are supported. Do not launch a stdio server through a wrapper that prints banners to stdout. The server reserves stdout for JSON-RPC and writes diagnostics to stderr. A desktop path is optional; without one, the companion checks for a sibling desktop binary. If neither is present, analysis/mastering/export still work, while desktop handoff is unavailable.
 
-WAV needs no external codec. Other supported inputs, FLAC/MP3 output and resampling require `ffmpeg` and `ffprobe` on the client-launched process's PATH. Restart the AI client after changing PATH. These programs are not bundled. A Linux desktop launch also needs the correct graphical-session environment; an SSH-only service may not have one.
+WAV needs no external codec. Other supported inputs, FLAC/MP3 output and resampling need a capable `ffmpeg`/`ffprobe` pair. With Hotfix 2, inspect `get_optional_tool_status`; only after owner agreement, call `prepare_optional_tool` with `tool: "audio_codecs"` and `allow_download: true`, poll, then explicitly retry the original operation. Preparation reuses capable system tools or installs the pinned private bundle shared with the GUI. Unrelated MCP tools never download codecs automatically. No application restart or client configuration edit is performed. A Linux desktop launch also needs the correct graphical-session environment; an SSH-only service may not have one.
 
 ## Start with a conversation
 
@@ -64,11 +64,13 @@ The Studio Preview installer also includes the companion and VST3 worker. Open *
 
 ## Tools
 
-The beta.3 companion exposes **38 tools**, including read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+The Hotfix 2 companion exposes **40 tools**, including read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
 
 | Tool | Purpose |
 |---|---|
 | `get_capabilities` | Bundled profile names/IDs, defaults, formats, library indexes and configured limits |
+| `get_optional_tool_status` | Read-only codec readiness/host detection; distinguishes private executable hash verification from bundled-helper detection and leaves unobserved versions unknown |
+| `prepare_optional_tool` | Owner-consented codec or official VST host preparation; requires `allow_download: true`, returns a cancellable job, never downloads arbitrary plugins |
 | `get_help` | Self-contained quick start, examples, mastering/EQ units, export, troubleshooting and privacy |
 | `list_audio_files` | A bounded, non-recursive page of supported files in one library folder; ZIPs are marked `stem_archive: true` |
 | `load_audio` | Import one source; replace the session only after successful decode |
@@ -99,7 +101,25 @@ The beta.3 companion exposes **38 tools**, including read-only ZIP inspection an
 
 Long operations return a job ID promptly. Poll `get_job_status` with a short delay between polls until `completed`, `failed` or `cancelled`. Only one audio job runs at once. Cancellation waits for DSP checkpoints; it is not an immediate interruption of every calculation. Decoder subprocesses have a timeout and are killed when cancellation is requested. If audio was already durably saved when cancellation arrives, the job reports its saved output. History retains the latest 64 jobs, not their PCM buffers.
 
-Use the current `source_id` for analysis/mastering and current `preview_id` for EQ/export. Stale IDs are rejected. EQ patches retain omitted settings; a provided band list must contain exactly seven bands. Re-mastering retains manual EQ. Changing a reference invalidates the preview and requires re-mastering. Built-in profile IDs and weighted blends are accepted; arbitrary profile files are deliberately outside this API.
+Use the current `source_id` for analysis/mastering and current `preview_id` for EQ/export. Stale IDs are rejected. EQ patches retain omitted settings; a provided band list must contain exactly seven bands. Re-mastering retains manual EQ. Changing a reference invalidates the preview and requires re-mastering. Built-in profile IDs and weighted blends are accepted. With an owner-configured `--profiles-root`, the catalog also exposes exact `custom:<filename stem>` IDs. Tool-supplied file paths and custom-profile blends remain rejected.
+
+## Optional codecs and the VST host
+
+Hotfix 2 includes these two additional tools, for 40 tools total. The historical beta.3 validation records below remain the frozen results for the original 38-tool release. Start with `get_help` topic `optional_tools`, or the quick start and `get_capabilities.optional_tools`.
+
+```json
+{"tool":"audio_codecs","allow_download":true}
+```
+
+Pass this to `prepare_optional_tool` only after the owner requests/agrees to setup. For explicit private VST3 host recovery/preparation use `tool: "vst3_host"`. This reuses only a verified private cache and may download even when a bundled candidate is detected. It does not validate or replace the selected bundled host; normal discovery may continue to use that candidate. Omitted or false `allow_download` rejects before job/cache setup. Poll `get_job_status` every 250–1000 ms until terminal; `cancel_job` requests cooperative cancellation. Wait for completion and explicitly retry the original operation. Preparing a helper never grants plugin-root access, downloads third-party plugins, edits an AI-client configuration, restarts an app, or updates the installed application. A completed cache may remain after cancellation; cancelled work never resumes audio processing.
+
+Codec archive limits are **192 MiB Windows x64 / 160 MiB Linux x64 GNU**, with **640 MiB** expanded bytes; Linux private decompression also needs system `xz` and uses a **256 MiB** decompression-memory limit. The official Windows x64 host recovery ZIP is capped at **192 MiB**, **384 MiB** expanded and **128 MiB** per entry. Missing/incompatible official recovery assets fail explicitly; use the full installer manually or build the helper from source. These are download/extraction limits, not total RAM/disk requirements. Staging and audio working buffers need more; the configured default per-input decoded PCM allowance remains **512 MiB**, and imported banks retain their separate **4 GiB** allowance.
+
+Read-only status reports shared codec readiness, a private helper checked against its preparation receipt, or a bundled helper detected without a hash certification. Component and installed-application versions remain `null`; a server/library build is not evidence that an installed app was updated. Setup downloads software, never audio. The AI client still controls filenames/measurements sent to its provider. Native WAV work, voice cleanup and spectral repair do not need codec/model setup. Stem model installation remains the separate, explicitly authorized `install_stem_engine` workflow; `separate_stems` never installs it automatically.
+
+For a companion stored in the private cache, pass `--desktop-exe <original GUI executable>` and `--profiles-root <GUI app root>/profiles` when generating configuration. `--print-config` retains both arguments as separate absolute paths. The MCP parser name is exactly `--profiles-root`; it does not derive a custom profile folder from the cached executable.
+
+Without that flag, the original bundled-only profile API remains. With it, `profile_catalog.rs` snapshots valid JSON from the authorized folder at connection startup; `Engine` retains the catalog, and discovery, mastering, analysis, reference loading and EQ use the same snapshot. Use exact `custom:<filename stem>` IDs from `get_capabilities.profiles`. No tool can choose arbitrary profile paths, and symlinks escaping the root are rejected. Files are capped at 64 KiB each, with an 8 MiB aggregate custom-data budget and a 4,096-entry directory scan bound; invalid profiles appear in `profile_catalog.warnings`. A missing folder is empty and is not created. Reconnect explicitly after changing custom profiles. A future custom-blend extension must preserve this same catalog boundary; bundled weighted blends already work.
 
 ## Import loose stems or a Suno/stem ZIP
 

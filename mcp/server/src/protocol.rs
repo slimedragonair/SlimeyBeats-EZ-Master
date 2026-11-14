@@ -105,12 +105,13 @@ impl Companion {
                 + Self::stem_router()
                 + Self::stem_bundle_router()
                 + Self::studio_handoff_router()
-                + Self::studio_promote_router(),
+                + Self::studio_promote_router()
+                + Self::optional_tool_router(),
         }
     }
 
     #[tool(
-        description = "Discover bundled profiles, export formats, folder indexes and local resource limits. Call before processing.",
+        description = "Discover authorized profile IDs, export formats, folder indexes, local resource limits and explicit optional-tool setup policy. Custom IDs require owner-configured --profiles-root; arbitrary profile paths are rejected. Call before processing; get_optional_tool_status inspects readiness without downloads.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
     fn get_capabilities(&self) -> Json<Value> {
@@ -118,7 +119,7 @@ impl Companion {
     }
 
     #[tool(
-        description = "Self-contained guide for an assistant with no project history. Defaults to quick_start with complete tool-call examples, IDs and job polling. Other topics explain mastering/EQ units, export, privacy and error recovery.",
+        description = "Self-contained guide for an assistant with no project history. Defaults to quick_start with complete tool-call examples, IDs and job polling. Other topics explain mastering/EQ units, export, optional_tools consent/download limits, privacy and error recovery.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
     fn get_help(&self, Parameters(a): Parameters<HelpRequest>) -> Json<Value> {
@@ -236,7 +237,11 @@ impl Companion {
             "master_preview",
             |s| {
                 s.source(&a.source_id)?;
-                a.options.apply(&s.settings, s.reference.is_some())?;
+                a.options.apply_with_catalog(
+                    &s.settings,
+                    s.reference.is_some(),
+                    &self.engine.profiles,
+                )?;
                 Ok(())
             },
             {

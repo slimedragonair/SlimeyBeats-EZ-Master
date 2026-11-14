@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct MasterOptions {
-    /// A bundled profile ID or a weighted blend such as rock:0.7+edm:0.3.
+    /// A profile ID from get_capabilities, including owner-authorized custom IDs, or a bundled weighted blend such as rock:0.7+edm:0.3.
     pub profile: Option<String>,
     /// streaming_safe (default) is gentler; loud is a more forceful loudness direction.
     pub mode: Option<LoudnessMode>,
@@ -107,7 +107,7 @@ impl ExportFormat {
 
 pub fn profile(name: &str) -> Result<serde_json::Value> {
     ensure!(
-        !name.is_empty() && name.len() <= 256,
+        !name.is_empty() && name.len() <= crate::profile_catalog::MAX_PROFILE_ID_BYTES,
         "Choose a bundled profile ID"
     );
     let all = profiles::builtin();
@@ -138,9 +138,27 @@ pub fn profile(name: &str) -> Result<serde_json::Value> {
 
 impl MasterOptions {
     pub fn apply(&self, current: &Settings, has_reference: bool) -> Result<Settings> {
+        self.apply_checked(current, has_reference, |name| profile(name).map(|_| ()))
+    }
+    pub(crate) fn apply_with_catalog(
+        &self,
+        current: &Settings,
+        has_reference: bool,
+        catalog: &crate::profile_catalog::ProfileCatalog,
+    ) -> Result<Settings> {
+        self.apply_checked(current, has_reference, |name| {
+            catalog.resolve(name).map(|_| ())
+        })
+    }
+    fn apply_checked(
+        &self,
+        current: &Settings,
+        has_reference: bool,
+        validate_profile: impl FnOnce(&str) -> Result<()>,
+    ) -> Result<Settings> {
         let mut s = current.clone();
         if let Some(v) = &self.profile {
-            profile(v)?;
+            validate_profile(v)?;
             s.profile = v.clone();
         }
         if let Some(v) = self.mode {
