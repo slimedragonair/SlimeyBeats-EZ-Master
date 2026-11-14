@@ -13,6 +13,8 @@ mod help_center;
 mod interface_preferences;
 mod job_events;
 #[cfg(test)]
+mod keyboard_interaction_tests;
+#[cfg(test)]
 mod learning_interaction_tests;
 mod learning_ui;
 mod live_spectrum;

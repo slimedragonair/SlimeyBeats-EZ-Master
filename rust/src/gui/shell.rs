@@ -72,10 +72,21 @@ impl MasterCraftApp {
                 }
             }
         }
-        if ctx.input(|i| i.key_pressed(egui::Key::Space))
-            && !ctx.egui_wants_keyboard_input()
-            && !self.experience.has_modal()
-        {
+        let plain_space = ctx.input_mut(|input| {
+            // egui 0.37 ignores extra Alt in logical shortcut matching, and
+            // focused buttons also react to Space. Keep the OS window menu out
+            // of both transport handling and tutorial/button activation.
+            input.events.retain(|event| {
+                !matches!(event,
+                egui::Event::Key {key: egui::Key::Space, modifiers, ..} if modifiers.alt)
+            });
+            input.events.iter().any(|event| {
+                matches!(event,
+                egui::Event::Key {key: egui::Key::Space, pressed:true, repeat:false, modifiers, ..}
+                    if modifiers.is_none())
+            })
+        });
+        if plain_space && !ctx.egui_wants_keyboard_input() && !self.experience.has_modal() {
             if self.tab == 3 {
                 if self.studio.current.is_some() {
                     self.studio.player.toggle();

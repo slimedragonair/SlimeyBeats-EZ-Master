@@ -10,6 +10,10 @@ This pass is on `feature/ux-learning`, pending review and not merged or released
 - Add bottom-right Help, native F1 access and an optional eight-step tour with replay, terms and troubleshooting. Save completed, declined and dismissed choices immediately, with separate native interface preferences and a tutorial-history marker that protects against stale windows.
 - Add explicit desktop AI setup: choose audio/output folders, generate the real companion's `--print-config` JSON, then copy it into the client's supported setup. Do not edit client settings or start a server automatically. Browser MCP Help remains desktop-only guidance, without a bridge.
 - Share tour/glossary/MCP copy across native and web. Browser storage retains only small interface choices, with a visible session-only fallback and automatic guidance disabled when storage fails. [Guide and implementation ownership](docs/LEARNING_AND_HELP.md).
+- Put selected-band EQ controls in a sidebar inspector, reserve measured playback space and keep compact waveform traces readable. Move Studio voice/repair editors into the workspace, pin Preview before Export, and offer dense named stem rows with optional full-size plots. Use readable export-format labels and part-specific accessible gain names.
+- Preserve precise slider values during untouched rendering; retain native clipboard, links and accessibility integration. Measure platform-font tabs/disclosures, prevent fractional-DPI pane growth, and paint popup/modal content above decorative artwork.
+- Improve enlarged phone navigation, first-import and tour choices, compact playback, pending-mix feedback and Help answer/search focus. Keep terminal browser tutorial choices safe from interleaved stale-tab writes, with explicit storage errors.
+- Keep modified Space chords out of transport handling, prevent held-key playback toggles, and reserve Alt+Space for the native window menu without activating a focused tutorial choice.
 
 ### Earlier beta.3 source changes
 
