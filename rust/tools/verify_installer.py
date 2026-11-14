@@ -28,7 +28,8 @@ def has_key(key):
 def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def command(args, **options):
-    return subprocess.run(args, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60, **options)
+    timeout = options.pop('timeout', 60)
+    return subprocess.run(args, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout, **options)
 
 
 def installation_snapshot(identity):
@@ -98,7 +99,7 @@ def main():
         record['mcp_and_plugin_worker_installed'] = True
         repository = Path(__file__).resolve().parents[2]
         for script in ['verify_studio.py', 'verify_studio_origin.py', 'verify_plugin_faults.py']:
-            checked = command([sys.executable, str(repository/'mcp/tools'/script), '--server', str(root/'slimeybeats-mcp.exe')], cwd=root)
+            checked = command([sys.executable, str(repository/'mcp/tools'/script), '--server', str(root/'slimeybeats-mcp.exe')], cwd=root, timeout=300 if script == 'verify_studio_origin.py' else 60)
             assert checked.returncode == 0, (script, checked.stdout, checked.stderr)
         record['installed_mcp_studio_origin_and_plugin_faults'] = True
         version = command([str(cli), '--version'])

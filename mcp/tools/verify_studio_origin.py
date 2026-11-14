@@ -74,13 +74,18 @@ def verify(server, project_loader, evidence):
 def native_project_loader(server):
     # Existing Windows/Linux CI invokes only --server. Build the small native
     # loader helper here so those calls exercise actual project reopening too.
-    profile = 'release' if server.parent.name == 'release' else 'dev'
+    profile_directory = server.parent
+    if profile_directory.name not in {'debug', 'release'}:
+        # Installed binaries have no Cargo profile directory. Keep compiler
+        # output in the source workspace, never beside an installed app.
+        profile_directory = ROOT / 'mcp/server/target/release'
+    profile = 'release' if profile_directory.name == 'release' else 'dev'
     subprocess.run(['cargo', 'build', '--locked', '--manifest-path',
                     str(ROOT / 'mcp/server/Cargo.toml'), '--target-dir',
-                    str(server.parent.parent), '--profile', profile,
+                    str(profile_directory.parent), '--profile', profile,
                     '--example', 'check_studio_project'], check=True, timeout=180)
     suffix = '.exe' if sys.platform == 'win32' else ''
-    return server.parent / 'examples' / ('check_studio_project' + suffix)
+    return profile_directory / 'examples' / ('check_studio_project' + suffix)
 
 
 if __name__ == '__main__':
