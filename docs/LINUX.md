@@ -52,9 +52,12 @@ cargo build --locked --release --no-default-features --manifest-path rust/Cargo.
 The CLI's WAV path needs neither a graphical session nor an output device. Add FFmpeg only for the formats/resampling that require it.
 
 - Settings: `$XDG_CONFIG_HOME/slimeybeats-ez-master/rust-settings.json`, defaulting to `~/.config/slimeybeats-ez-master/rust-settings.json`.
+- Desktop preferences: `desktop-preferences.json` in the same configuration directory, for Studio's independent export folder/format, master/Studio listening controls and the two/four-stem choice.
 - GUI data/profiles/default exports: `$XDG_DATA_HOME/slimeybeats-ez-master/`, defaulting to `~/.local/share/slimeybeats-ez-master/`. Exports go in its `output/` folder unless you choose another location. The CLI retains its explicit `--out`/working-directory behavior.
 - Relative XDG environment values are ignored. Absolute overrides are useful for isolated tests. If no absolute XDG/HOME location exists, the legacy executable/development-root fallback remains available and filesystem errors remain visible.
 - Open folder uses `xdg-open` with one literal absolute path. DejaVu Sans/Serif are loaded from installed Linux fonts; no Windows fonts are redistributed.
+
+The current desktop source atomically saves valid preference changes after 750 ms of quiet and flushes pending changes on normal close. **Save settings** writes both files immediately. A file that fails to load is preserved and blocked from automatic replacement until an explicit save; errors are shown. Audio, queues and Studio projects are not restored automatically. [Persistence details](USER_GUIDE.md#remembering-desktop-settings).
 
 ## Repeatable checks
 
@@ -67,7 +70,7 @@ sudo apt-get install --no-install-recommends ffmpeg xvfb xauth
 xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out /tmp/slimeybeats-new-evidence
 ```
 
-Use a new evidence directory. The verifier checks native WAV with no FFmpeg on PATH, unchanged native duration/rate/channels, six independently metered formats, actual 48 kHz → 44.1 kHz conversion, source preservation, collisions and errors. GUI captures exercise welcome, default EQ and compact EQ, isolated XDG paths and preview without audio export. The hidden capture-only settings flag invokes the same explicit Save settings action used by the app; settings are not assumed to autosave on exit. Software-rendered captures do not establish physical playback, portal dialogs, every distribution or device latency. Those limits are explicit in the JSON report.
+Use a new evidence directory. The verifier checks native WAV with no FFmpeg on PATH, unchanged native duration/rate/channels, six independently metered formats, actual 48 kHz → 44.1 kHz conversion, source preservation, collisions and errors. GUI captures exercise welcome, default EQ and compact EQ, isolated XDG paths and preview without audio export. The hidden capture-only settings flag invokes the same explicit Save settings action used by the app, now saving both preference files; that capture alone does not test a normal restart. Software-rendered captures do not establish physical playback, portal dialogs, every distribution or device latency. Those limits are explicit in the JSON report.
 
 Render-only checks configure an isolated ALSA null sink rather than depending on a sound card in the test host. This is a synthetic output backend, not physical playback qualification. Each native capture includes a state sidecar; error banners, missing mastered previews or unavailable playback sources fail the smoke check even if a PNG was produced.
 

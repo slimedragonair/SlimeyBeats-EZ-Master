@@ -45,7 +45,7 @@ pub fn show(
             ui.label("Format").on_hover_text("WAV works without extra codecs. FLAC/MP3 need FFmpeg. This saves the current Studio preview, not an automatic master.");
             egui::ComboBox::from_id_salt("studio-format").selected_text(&studio.export_format).width(104.).show_ui(ui,|ui|{for format in crate::config::FORMATS {ui.selectable_value(&mut studio.export_format,(*format).into(),*format);}});
         });
-        if ui.add(crystal_button::secondary("Choose export folder…")).clicked() && let Some(path)=rfd::FileDialog::new().pick_folder() {studio.output_dir=path;}
+        if ui.add(crystal_button::secondary("Choose export folder…")).on_hover_text("This folder is remembered automatically, separately from the mastering export folder.").clicked() && let Some(path)=rfd::FileDialog::new().set_directory(&studio.output_dir).pick_folder() {studio.output_dir=path;}
         ui.small(studio.output_dir.to_string_lossy());
         if studio.bank.is_some() && ui.add_enabled(!studio.busy(),crystal_button::secondary("Export individual stems")).on_hover_text("Save an aligned raw bank as 32-bit float WAVs. Relative levels are retained and existing folders are preserved. Fader/solo settings affect the mix preview, not these raw stem files.").clicked(){studio.export_stems(ctx);}
     });

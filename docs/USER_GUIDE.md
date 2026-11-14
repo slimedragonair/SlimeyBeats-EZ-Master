@@ -28,6 +28,21 @@ Desktop defaults to **512 MiB decoded PCM per input** and a separate **4 GiB agg
 
 Hover names and controls for explanations in the app.
 
+## Remembering desktop settings
+
+The current desktop source remembers these choices across normal restarts:
+
+- **Mastering:** export folder, formats, sample rate, filename suffix, profile, processing settings and Manual EQ.
+- **Desktop preferences:** Studio's independent export folder and format, separate master/Studio listening volume and level matching, and the two/four-stem separation choice. Listening controls still do not change exported audio.
+
+Valid changes save automatically after **750 ms without another preference change**, using atomic file replacement. Closing the app normally flushes pending changes. **Save settings** saves both files immediately.
+
+Mastering settings remain in `rust-settings.json`; the other choices use `desktop-preferences.json`. Windows keeps both in the app's portable `user_data/` directory. Linux uses the existing [XDG configuration directory](LINUX.md#user-files-and-desktop-integration).
+
+If a preference file fails to load, an error is shown and that file is preserved. Automatic saving, including the close flush, is blocked for the affected file until you explicitly use **Save settings** to replace it with the current valid choices. Write failures also show an error.
+
+This saves preferences, not loaded audio, prepared previews, the queue or Studio projects. Use **Save project** and reopen its `session.studio.json` to continue Studio work; exporting audio remains explicit. Browser sessions still disappear on reload/close, and MCP keeps its explicit session/project workflow. Older downloaded binaries retain their original behavior; build the current source for this fix.
+
 ## Suggested EQ and the graph
 
 Suggest EQ creates a separate editable proposal. Apply suggested EQ copies it into the seven-band editor. Identical decoded samples, profile and build/platform yield repeatable proposals. The suggestion is a limited rule-based starting point, not a learned mastering model.

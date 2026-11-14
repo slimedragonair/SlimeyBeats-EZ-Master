@@ -32,6 +32,7 @@ pub(super) enum JobKind {
     Suggest,
 }
 pub struct MasterCraftApp {
+    pub(super) preferences: Option<super::desktop_preferences::PreferencePersistence>,
     pub studio: super::studio::Studio,
     pub brand: super::brand_art::BrandArt,
     pub settings: Settings,
@@ -77,27 +78,44 @@ impl MasterCraftApp {
         theme::apply(&cc.egui_ctx);
         let root = crate::paths::app_root();
         let settings_path = crate::paths::settings_file();
-        let (mut settings, error) = if let Some(settings) = initial {
-            (settings, None)
-        } else if settings_path.is_file() {
-            match Settings::load(&settings_path) {
-                Ok(s) => (s, None),
-                Err(e) => (
-                    Settings::default(),
-                    Some(format!(
-                        "Settings could not be loaded; file preserved: {e:#}"
-                    )),
-                ),
-            }
-        } else {
-            (Settings::default(), None)
-        };
+        let (mut settings, mut error) =
+            super::desktop_preferences::load_mastering_settings(&settings_path, initial);
         if settings.out_dir == *"output" {
             settings.out_dir = root.join("output");
         }
         let (tx, rx) = mpsc::channel();
-        let studio = super::studio::Studio::new(settings.out_dir.clone());
+        let settings_valid = error.is_none();
+        let desktop_path = crate::paths::desktop_preferences_file();
+        let (mut desktop, desktop_valid) = if desktop_path.exists() {
+            match super::desktop_preferences::DesktopPreferences::load(&desktop_path) {
+                Ok(value) => (value, true),
+                Err(e) => {
+                    let message = format!(
+                        "Desktop preferences could not be loaded; file preserved. Use Save settings to replace it: {e:#}"
+                    );
+                    error = Some(error.map_or_else(
+                        || message.clone(),
+                        |previous| format!("{previous}\n{message}"),
+                    ));
+                    (Default::default(), false)
+                }
+            }
+        } else {
+            (Default::default(), true)
+        };
+        desktop.resolve_output(&settings.out_dir);
+        let mut studio = super::studio::Studio::new(settings.out_dir.clone());
+        desktop.apply(&mut studio);
+        let preferences = Some(super::desktop_preferences::PreferencePersistence::new(
+            settings_path,
+            &settings,
+            settings_valid,
+            desktop_path,
+            &desktop,
+            desktop_valid,
+        ));
         let mut app = Self {
+            preferences,
             studio,
             brand: super::brand_art::BrandArt::new(&cc.egui_ctx),
             settings,
@@ -124,8 +142,8 @@ impl MasterCraftApp {
             suggestion_note: None,
             loaded: None,
             loaded_eq: false,
-            volume: 0.5,
-            match_levels: true,
+            volume: desktop.volume(),
+            match_levels: desktop.match_levels(),
             capture: None,
             capture_settings_scroll: None,
             capture_workspace_scroll: None,
@@ -262,19 +280,6 @@ impl MasterCraftApp {
         }
     }
     pub fn save_settings(&mut self) {
-        let result = (|| -> anyhow::Result<()> {
-            self.settings.validate()?;
-            let path = crate::paths::settings_file();
-            std::fs::create_dir_all(path.parent().unwrap())?;
-            let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap())?;
-            serde_json::to_writer_pretty(&mut temp, &self.settings)?;
-            temp.as_file().sync_all()?;
-            temp.persist(path).map_err(|e| e.error)?;
-            Ok(())
-        })();
-        match result {
-            Ok(()) => self.status = "Rust settings saved".into(),
-            Err(e) => self.error = Some(format!("Save settings: {e:#}")),
-        }
+        self.persist_preferences(true, true);
     }
 }
