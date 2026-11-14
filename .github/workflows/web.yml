@@ -60,6 +60,13 @@ jobs:
         run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
       - name: Verify repeated track replacement and export
         run: python3 web/tools/verify_memory.py --tracks 4 --seconds 10 --out '${{ runner.temp }}/browser-checks/replacement'
+      - name: Verify Studio editing in three engines
+        run: |
+          python3 web/tools/verify_studio_browser.py --out '${{ runner.temp }}/browser-checks/studio-chromium'
+          python3 web/tools/verify_studio_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-firefox'
+          python3 web/tools/verify_studio_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-webkit'
+      - name: Verify Studio replacement and decoded input bounds
+        run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
       - uses: actions/upload-artifact@v7
         if: always()
         with:

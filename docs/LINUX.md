@@ -4,6 +4,8 @@ Linux checks target **Ubuntu 24.04 x86_64**. The published v0.4.2 installer rema
 
 ## Additional Linux-server check
 
+The **0.5.0-beta.1 Studio source** separately passed 96 native tests, nine MCP regressions, strict Clippy and release builds in Ubuntu 24.04/WSL. Actual local model setup, two/four separation, stem editing/projects, six formats, plugin failure/cancellation and mono/stereo latency cases passed. Four real Studio GUI jobs/captures used isolated XDG data, Xvfb and a synthetic ALSA null sink. This is distinct from the maintainer's server report below and does not qualify physical sound or portal dialogs. [Studio validation](STUDIO.md#validation-status--november-13-2026).
+
 The maintainer supplied a separate Linux-server validation result confirming that the app was installed with desktop and application-menu launchers and left open. This run required **no application source changes**.
 
 | Check | Reported result |

@@ -19,6 +19,7 @@
         <link rel="icon" href="assets/slimeybeats-small-icon.png" />
         <link rel="stylesheet" href="styles.css" />
         <link rel="stylesheet" href="responsive.css" />
+        <link rel="stylesheet" href="studio.css" />
     </head>
     <body>
         <div class="app-shell">
@@ -134,7 +135,8 @@
                         >
                             ⌂ Overview</button
                         ><button id="tab-eq">☷ Manual EQ</button
-                        ><button id="tab-report">▤ Report</button>
+                        ><button id="tab-report">▤ Report</button
+                        ><button id="tab-studio-tools">◇ Studio</button>
                     </nav>
                     <div class="mobile-actions">
                         <button id="mobile-master" class="primary" disabled>
@@ -306,6 +308,7 @@
                         </p>
                         <div id="report-content"></div>
                     </div>
+                    <div id="studio-tools" class="page" hidden></div>
                     <div class="playback">
                         <div class="waveform">
                             <canvas
@@ -540,7 +543,7 @@
                 <div class="footer-tools">
                     <button class="text-button" data-help="privacy">
                         Privacy</button
-                    ><span class="small">Web preview · v0.2</span>
+                    ><span class="small">Web Studio · v0.3 beta</span>
                 </div>
             </footer>
         </div>

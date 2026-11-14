@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- Update the Studio development source to desktop **0.5.0-beta.3**, optional MCP companion **0.2.0-beta.3** and browser Studio **0.3.0-beta.3**. Beta.3 binaries have not been publicly released; stable v0.4.2 and earlier beta packages remain unchanged.
+- Remove the fixed count cap for aligned imported stems/mix tracks. Loose-file and Suno/stem ZIP imports select all distinct parts by default, with optional selection and unique `part_N` identities for additional parts. At least two parts with matching sample rate, channels and frame count are still required; neural separation remains two/four stems.
+- Keep separate import budgets: native defaults to 512 MiB decoded PCM per input and a 4 GiB aggregate decoded bank; browser Studio retains 128 MiB combined decoded input and 15 minutes per track. Available RAM, archive/metadata budgets and working buffers still constrain capacity.
+- Expand the optional local MCP companion to 38 tools, including read-only stem ZIP inspection and job-based import. Preview preparation and explicit audio/project saving remain separate. See the [current Studio guide](docs/STUDIO.md) for workflows and qualification scope.
+- Preserve accented/CJK paths in Windows MCP setup, require pending faders to be applied before further Studio edits/saving, and keep saved MCP projects tied to the current preview's actual source and stem bank. Add native, Windows PowerShell and three-engine browser regressions; see [merge validation and availability](docs/MERGE_VALIDATION.md).
+
+## 0.5.0-beta.1 — Studio Preview
+
+- Add desktop vocal/instrumental and four-stem separation with optional isolated CPU engine setup, verification/repair and preserved model provenance. Import aligned user stems without a model; rebalance, compare, undo and export separately.
+- Add voice cleanup, learned stationary-noise reduction, de-essing, an optional quiet-gap gate and selectable time/frequency repair. Keep original audio, prepared previews and saved files distinct.
+- Add optional isolated VST3 effect rendering with generic controls, mono/stereo handling, reported-latency compensation, bounded process supervision and separate plugin logs. Vendor editors/MIDI and universal plugin compatibility are outside this initial host.
+- Expand MCP to 36 self-describing tools, including editing analysis, stem operations, projects, native effects and mastering promotion. Preserve immutable Studio origins/IDs across promotion and exact direct-stem lineage after project reload.
+- Add private browser Studio for imported stems, rebalancing, cleanup, repair, A/B and WAV/ZIP saving. Enforce a separate 128 MiB combined decoded-input budget; desktop remains the flagship for neural extraction, plugins and longer projects.
+- Show right-only stereo audio correctly in Studio waveforms and cache peak envelopes for playback redraws. Keep capture-verification artifacts distinct for each report and reject collisions before installing.
+- Bundle the MCP companion, VST3 worker and connection helper in the Studio Preview installer. Use separate preview folders/registration/shortcuts, retaining stable v0.4.2 and preserving user audio/projects on upgrade/uninstall.
+- Validate the beta source with 94 Windows / 96 Linux native tests, MCP regressions and real stdio/model/plugin workflows. Browser Studio passes Chromium, Firefox and Linux WebKit; physical mobile playback and broad third-party effect qualification remain separate.
+
+## Earlier source development after 0.4.2
+
+- Add an optional local stdio MCP companion preview with 16 tools for scoped audio import, analysis, deterministic EQ suggestions, mastering previews, EQ revisions, explicit non-clobber exports, progress/cancellation and desktop session handoff. Keep the desktop as the flagship; no models, stems or cloud audio service are bundled.
+- Share native preview/EQ preparation between desktop and companion, preserve the existing DSP sample path, and verify handoff source files with SHA-256 fingerprints. Add job, access, input-budget, cancellation and wire-protocol regressions plus MCP setup/privacy documentation. The published v0.4.2 installer is unchanged.
+
 - Raise the private browser preview to 15 minutes per track, with coordinated 384 MiB source/decoded bounds and visible mobile import errors. Reduce redundant input/reference/preview/convolution allocations and reserve export buffers. Keep one active mix rather than a growing queue.
 - Version connected browser runtime assets together to prevent cached JS/WASM API mismatches. Add duration/byte boundary regressions, real long WAV/MP3 imports and repeat-use/master/export memory checks.
 - Honor declared MP3 gapless timing when a browser leaves encoder padding in the decoded audio, fixing WebKit's rejection at the 15-minute boundary without widening the WAV limit or shortening overlong recordings. Cross-check decoded timing with independent FFmpeg PCM.

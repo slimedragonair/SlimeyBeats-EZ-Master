@@ -32,6 +32,7 @@ pub(super) enum JobKind {
     Suggest,
 }
 pub struct MasterCraftApp {
+    pub studio: super::studio::Studio,
     pub brand: super::brand_art::BrandArt,
     pub settings: Settings,
     pub root: PathBuf,
@@ -65,10 +66,20 @@ pub struct MasterCraftApp {
 }
 impl MasterCraftApp {
     pub fn new(cc: &eframe::CreationContext<'_>, files: Vec<PathBuf>, auto_master: bool) -> Self {
+        Self::with_initial_settings(cc, files, auto_master, None)
+    }
+    pub fn with_initial_settings(
+        cc: &eframe::CreationContext<'_>,
+        files: Vec<PathBuf>,
+        auto_master: bool,
+        initial: Option<Settings>,
+    ) -> Self {
         theme::apply(&cc.egui_ctx);
         let root = crate::paths::app_root();
         let settings_path = crate::paths::settings_file();
-        let (mut settings, error) = if settings_path.is_file() {
+        let (mut settings, error) = if let Some(settings) = initial {
+            (settings, None)
+        } else if settings_path.is_file() {
             match Settings::load(&settings_path) {
                 Ok(s) => (s, None),
                 Err(e) => (
@@ -85,7 +96,9 @@ impl MasterCraftApp {
             settings.out_dir = root.join("output");
         }
         let (tx, rx) = mpsc::channel();
+        let studio = super::studio::Studio::new(settings.out_dir.clone());
         let mut app = Self {
+            studio,
             brand: super::brand_art::BrandArt::new(&cc.egui_ctx),
             settings,
             root,
@@ -123,8 +136,8 @@ impl MasterCraftApp {
         }
         app
     }
-    pub fn capture_ui_once(&mut self, destination: PathBuf) {
-        self.capture = Some(super::ui_capture::UiCapture::new(destination));
+    pub fn capture_ui_once(&mut self, destination: PathBuf, failed: Arc<AtomicBool>) {
+        self.capture = Some(super::ui_capture::UiCapture::new(destination, failed));
     }
     pub fn capture_settings_at(&mut self, offset: f32) {
         self.capture_settings_scroll = Some(offset);

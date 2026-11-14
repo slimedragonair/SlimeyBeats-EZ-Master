@@ -2,22 +2,26 @@
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
+from .installation_identity import for_version, for_channel, numeric_version
 
 def escaped(text):
     return str(text).replace('$', '$$').replace('"', '$\\"')
 
 def build_installer(project, portable, output, compiler, version):
     project, portable, output = map(lambda path: Path(path).resolve(), (project, portable, output))
-    build = project / 'target/installer' / version
-    if build.exists():
-        raise FileExistsError(f'Installer staging already exists: {build}')
+    identity = for_version(version)
+    staging = project / 'target/installer'
+    staging.mkdir(parents=True,exist_ok=True)
+    build = Path(tempfile.mkdtemp(prefix=version+'-',dir=staging))
     payload = build / 'payload'
     payload.mkdir(parents=True)
     root_files = ('SlimeyBeats-EZ-Master.exe', 'SlimeyBeats-EZ-Master-CLI.exe', 'README.txt',
-                  'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD-PARTY.json', 'THIRD-PARTY-NOTICES.txt')
+                  'slimeybeats-mcp.exe', 'slimeybeats-vst3-host.exe', 'Connect-AI-Assistant.ps1', 'Connect AI Assistant.bat',
+                  'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICES.md', 'THIRD-PARTY.json', 'THIRD-PARTY-NOTICES.txt')
     for name in root_files:
         shutil.copy2(portable / name, payload / name)
-    for name in ('docs', 'licenses', 'Examples'):
+    for name in ('docs', 'licenses', 'Examples', 'MCP-dependencies', 'Plugin-dependencies'):
         shutil.copytree(portable / name, payload / name)
     shutil.copy2(project / 'assets/slimeybeats-installer.ico', payload / 'SlimeyBeats.ico')
     # NSIS is a build tool; keep the redistributable stub's original notice with the release.
@@ -56,7 +60,10 @@ def build_installer(project, portable, output, compiler, version):
     installer = output / f'SlimeyBeats-EZ-Master-{version}-Setup.exe'
     if installer.exists():
         raise FileExistsError(installer)
+    other = for_channel('stable' if identity.channel == 'studio-preview' else 'studio-preview')
     subprocess.run([str(compiler), '/V3', '/WX', f'/DAPP_VERSION={version}',
+                    f'/DNUMERIC_VERSION={numeric_version(version)}', f'/DAPP_ID={identity.app_id}',
+                    f'/DPRODUCT={identity.product}', f'/DAPP_CHANNEL={identity.channel}', f'/DOTHER_APP_ID={other.app_id}',
                     f'/DOUTPUT_FILE={installer}', f'/DINSTALL_FILES={install_include}',
                     f'/DUNINSTALL_FILES={uninstall_include}',
                     f'/DAPP_ICON={project / "assets/slimeybeats-installer.ico"}',

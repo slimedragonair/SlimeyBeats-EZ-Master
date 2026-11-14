@@ -13,6 +13,7 @@ import {
     download,
 } from "./view.js";
 import { Plots } from "./plots.js";
+import { createStudio } from "./studio-app.js";
 
 let settings,
     defaults,
@@ -37,6 +38,44 @@ const dsp = new DspClient((value, text) => {
     $("progress").value = value;
     status(text);
 });
+const studio = createStudio({
+    getMainAudio: () => player.original,
+    pauseMain: () => player.pause(),
+    promote: async (file) => {
+        if (busy || restoring)
+            throw new Error(
+                "Wait for the mastering job before sending Studio audio.",
+            );
+        await loadFile(file);
+        if (currentFile !== file)
+            throw new Error(
+                "The mastering source could not be loaded. Your Studio preview is still available.",
+            );
+    },
+    leave: () => page("overview"),
+    onStatus: (text, error) => {
+        $("status").textContent = `Studio · ${text}`;
+        $("status").classList.toggle("status-error", error);
+    },
+    onState: syncControls,
+});
+document.addEventListener("studio-page", (event) => {
+    studio.activate(event.detail === "studio-tools");
+    if (event.detail !== "studio-tools") {
+        $("track-title").textContent = currentFile
+            ? currentFile.name.replace(/\.[^.]+$/, "")
+            : "Shape your sound.";
+        $("session-state").textContent = currentFile
+            ? "Track loaded · Analyze or Master to begin"
+            : "Your next master starts here";
+        status(
+            player.original
+                ? "Mastering · analyze, prepare a preview and export when ready."
+                : "Ready for a mix. Add audio or try the example.",
+        );
+    }
+    syncControls();
+});
 wireHelp();
 syncControls();
 function masterSignature() {
@@ -58,7 +97,9 @@ function syncControls() {
         stale = mastered && masterKey !== masterSignature();
     for (const id of ["add", "demo", "reference", "clear"])
         $(id).disabled = locked || !ready;
-    $("analyze").disabled = locked || !loaded;
+    $("analyze").disabled = document.body.classList.contains("studio-mode")
+        ? studio.busy || !studio.loaded
+        : locked || !loaded;
     $("master").disabled = locked || !loaded;
     $("export").disabled = locked || !mastered || stale;
     $("mobile-master").disabled = $("master").disabled;
@@ -96,7 +137,11 @@ function syncControls() {
             ? "● EQ live"
             : "EQ ready · Play B to hear"
         : "Master a track to begin";
-    if (stale)
+    if (document.body.classList.contains("studio-mode")) {
+        $("track-title").textContent = studio.label;
+        $("session-state").textContent =
+            "Studio editing · preview, compare, then export";
+    } else if (stale)
         $("session-state").textContent =
             "Direction changed · Master again to apply";
     else if (mastered)
@@ -224,6 +269,8 @@ async function loadFile(file) {
     });
 }
 async function analyze() {
+    if (document.body.classList.contains("studio-mode"))
+        return studio.analyze();
     await job(async () => {
         const source = trackRevision;
         const result = await dsp.call("analyze", {
@@ -349,7 +396,7 @@ function directionChanged() {
                 : "Mastering direction changed. Re-master from the original to apply it.",
         );
 }
-for (const id of ["overview", "eq", "report"])
+for (const id of ["overview", "eq", "report", "studio-tools"])
     $(`tab-${id}`).onclick = () => page(id);
 $("add").onclick = $("drop").onclick = () => $("file").click();
 $("file").onchange = () => {
@@ -471,7 +518,9 @@ $("reference-file").onchange = () =>
         const buffer = await player.decode(file);
         ensureCurrent();
         const samples = interleave(buffer);
-        status("Measuring the reference locally. Long tracks can take a while…");
+        status(
+            "Measuring the reference locally. Long tracks can take a while…",
+        );
         await dsp.call(
             "reference",
             {
@@ -554,10 +603,14 @@ document.addEventListener("dragleave", (event) => {
 document.addEventListener("drop", (event) => {
     event.preventDefault();
     document.body.classList.remove("dragging");
-    if (!busy && ready) loadFile(event.dataTransfer.files[0]);
+    if (!busy && ready) {
+        if (document.body.classList.contains("studio-mode"))
+            studio.load(event.dataTransfer.files[0]);
+        else loadFile(event.dataTransfer.files[0]);
+    }
 });
 window.addEventListener("beforeunload", (event) => {
-    if (player.original) {
+    if (player.original || studio.loaded) {
         event.preventDefault();
         event.returnValue = "";
     }

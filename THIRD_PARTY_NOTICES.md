@@ -12,6 +12,12 @@ The runtime does not bundle the legacy Python virtual environment, PySide6/Qt or
 
 The static browser build includes its own `THIRD-PARTY.json` and dependency `licenses/`, generated from the locked `web/dsp` Cargo graph. WebAssembly bindings use wasm-bindgen and the browser clock uses web-time, under their original licenses. The browser build does not bundle FFmpeg, external fonts, or analytics. The optional example recording keeps its CC0 credits. Original software/artwork and audio-output ownership follow the same terms as the native app.
 
+## Optional Studio components
+
+The MCP companion and isolated VST3 worker include separate locked Cargo inventories in `MCP-dependencies/` and `Plugin-dependencies/`. VST3 bindings use the `vst3` crate under its upstream MIT OR Apache-2.0 terms. User-installed audio effects retain their own licenses; the app does not distribute or relicense those effects.
+
+Neural separation is an optional download, outside the installer. Setup installs an isolated Python environment with Spleeter 2.4.2, TensorFlow 2.12.1 and their dependencies, retaining the packages' supplied license files. Spleeter's code is MIT; TensorFlow's code is Apache-2.0. The upstream model archive is fetched from the Spleeter v1.4.0 release and checked against a pinned SHA-256. The extracted cache retains provenance and per-file hashes. Model files are third-party material and are not relicensed by this project's MIT notice. See the [Studio guide](docs/STUDIO.md) and the upstream release referenced in the installed provenance.
+
 ## Separately licensed content
 
 | Content | License and attribution |

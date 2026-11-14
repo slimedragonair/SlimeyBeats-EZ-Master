@@ -13,13 +13,23 @@ jobs:
         run: |
           rustup default stable
           cargo build --locked --release --bins --manifest-path rust/Cargo.toml
+          cargo build --locked --release --manifest-path mcp/server/Cargo.toml
+          cargo build --locked --release --manifest-path plugins/host/Cargo.toml
       - name: Assemble portable, source and installer
         run: python rust/tools/build_release.py --out dist
       - name: Verify command-line installer lifecycle
         shell: pwsh
         run: |
           $setup = (Get-ChildItem dist/*-Setup.exe).FullName
-          python rust/tools/verify_installer.py --installer "$setup" --test-root "${{ runner.temp }}/SlimeyBeats Installer QA" --report "${{ runner.temp }}/SlimeyBeats-QA/installer-check.json" --skip-gui
+          $channel = python -c "import sys,tomllib;sys.path.insert(0,'rust/tools');from release_packaging.installation_identity import for_version;print(for_version(tomllib.load(open('rust/Cargo.toml','rb'))['package']['version']).channel)"
+          python rust/tools/verify_installer.py --installer "$setup" --channel "$channel" --test-root "${{ runner.temp }}/SlimeyBeats Installer QA" --report "${{ runner.temp }}/SlimeyBeats-QA/installer-check.json" --skip-gui
+      - name: Assemble separate MCP preview ZIP
+        run: python mcp/tools/package_companion.py --out dist/MCP
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-MCP-preview
+          path: dist/MCP/*.zip
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         with:
           name: SlimeyBeats-installer-verification

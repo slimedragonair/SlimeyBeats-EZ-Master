@@ -1,0 +1,2 @@
+# The upstream 0.32.0 pin has no Windows wheels. Local inference does not use GCS.
+tensorflow-io-gcs-filesystem==0.31.0 ; sys_platform == "win32"

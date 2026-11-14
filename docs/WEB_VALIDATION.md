@@ -1,6 +1,8 @@
 # Browser preview validation
 
-Latest local validation: November 13, 2026 (America/New_York). Earlier three-engine and appearance qualification was recorded November 12; GitHub Actions may use the following UTC date.
+Historical local validation: November 13, 2026 (America/New_York). Earlier three-engine and appearance qualification was recorded November 12; GitHub Actions may use the following UTC date.
+
+**Initial beta.3 results:** Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 complete larger-bank workflow groups**, including 24 manual rows, 64-part import/export, twelve-part all-selected ZIPs, folder-aware names/manifests and 390px controls. Separately, **11 native-host web-DSP binding tests passed**, including 24/64 parts, exact float exports/history, the 128 MiB combined-input boundary and rejection of the next sample over it. Browser Studio retains that budget and its 15-minute per-track guard. The final WebKit rerun completed with `passed: true`, 20 groups and zero application errors. These desktop-engine checks do not qualify physical mobile devices. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md); the tables and measurements below predate this follow-up.
 
 This record separates measured behavior, automated integration coverage, appearance review, and physical-device work that remains open. The maintained [browser workflow](../.github/workflows/web.yml) runs against each pull request and main; [its current results and artifacts](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml) are the source of truth for the latest commit. Windows, Linux and browser checks are all required before merging.
 
@@ -15,7 +17,7 @@ This record separates measured behavior, automated integration coverage, appeara
 | Chromium 143.0.7499.4, Firefox 144.0.2, WebKit 26.0 on Ubuntu CI | Three-engine integration matrix using a synthetic audio sink. Initial complete three-engine qualification: [run 43354121252](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43354121252). Later state regressions are enforced by the maintained workflow. |
 | iPhone / Android hardware | **Not qualified yet.** Responsive desktop-engine captures are not physical-device acceptance. |
 
-The 78/80 counts describe current native source, including platform-specific tests and a new exact-output convolution regression. Three binding-crate tests cover duration/decoded-size boundaries and deterministic export allocation changes. Two Python tests cover connected runtime cache versions. These do not replace the **73-test historical record for the published v0.4.2 installer** or the separate maintainer-reported 79-test server run. The release tag, installer and portable archive were not rebuilt or overwritten for the browser preview.
+The 78/80 counts describe the native source at that historical checkpoint, including platform-specific tests and a new exact-output convolution regression. Three binding-crate tests cover duration/decoded-size boundaries and deterministic export allocation changes. Two Python tests cover connected runtime cache versions. These do not replace the **73-test historical record for the published v0.4.2 installer** or the separate maintainer-reported 79-test server run. The release tag, installer and portable archive were not rebuilt or overwritten for the browser preview.
 
 ## Audio and export checks
 

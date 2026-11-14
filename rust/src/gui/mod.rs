@@ -14,6 +14,7 @@ mod playback_tap;
 mod player;
 mod plots;
 mod settings_panel;
+pub mod studio;
 mod theme;
 mod worker;
 pub use app::MasterCraftApp;

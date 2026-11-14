@@ -1,6 +1,8 @@
 mod import_limits;
 mod live_eq;
 mod session;
+mod stem_import;
+mod studio;
 mod wav_output;
 
 use mastercraft::{config::Settings, profiles};

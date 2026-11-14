@@ -156,6 +156,7 @@ pub fn export(
             source.gain(s.ceiling_dbtp - 0.15 - measured.true_peak_dbtp);
             ensure!(!cancel(), "Cancelled");
         };
+        ensure!(!cancel(), "Cancelled");
         temp.as_file().sync_all()?;
         let path = persist_unique(temp, &s.out_dir, &base, ext)?;
         results.push(json!({"path":path,"format":format,"sample_rate":source.sample_rate,"encode_passes":passes,

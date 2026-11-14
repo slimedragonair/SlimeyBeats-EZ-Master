@@ -1,0 +1,15 @@
+pub mod controls;
+mod jobs;
+mod operations;
+#[cfg(test)]
+mod pending_mix_tests;
+mod plugin_controls;
+mod projects;
+mod spectral_view;
+pub mod state;
+mod stem_bulk_import;
+mod stem_import;
+mod stem_import_operations;
+mod transport;
+pub mod workspace;
+pub use state::Studio;

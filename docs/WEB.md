@@ -13,9 +13,17 @@ The browser preview uses the project's Rust mastering engine, compiled to WebAss
 5. On desktop, each band's frequency button expands its frequency, Q and filter type. On narrow screens, choose a numbered band to edit it. **?** buttons explain controls, including on touchscreens. Playback remains accessible while you edit.
 6. **Export WAV** resolves the latest EQ, measures the encoded file after decoding it, and downloads it. Use **Report → Save JSON** for the corresponding report. Your browser controls the download folder and any save prompt.
 
+The hosted site follows the protected `main` branch after its browser workflow passes. A source merge and a completed Pages deployment are separate events. See the [merge validation and availability record](MERGE_VALIDATION.md).
+
 Changing an automatic mastering setting marks the preview as needing **Re-master** and disables export until it is applied. Choosing a new reference also invalidates the master, even if the file has the same name. EQ edits do not require re-mastering. Listening volume and Level match never change the exported samples. Cancel stops the processing worker and restores the original; create a new master after cancellation.
 
 ## Formats and practical limits
+
+The **0.3.0-beta.3 source preview** includes a separate **Studio** tab for aligned imported stems/mix tracks, rebalancing, voice cleanup and spectral repair. Imported banks have **no fixed nine-part ceiling**: all discovered parts start selected for review, and extensible unique `part_N` IDs cover custom/repeated instruments. Review the names, selected parts and encoding before explicitly importing. ZIPs retain source-folder identity for repeated basenames; browser bulk pickers expose filenames without original folders, so use a ZIP or individual assignments when those names would be ambiguous.
+
+Studio retains its **128 MiB combined decoded-input budget across the whole bank**, **128 MiB encoded file/ZIP and audio-entry bounds**, and **15-minute per-track guard**. ZIP inspection also retains an **8 MiB aggregate metadata budget**, counting UTF-8 filename bytes plus 256 bytes per entry, including ignored files. More parts share the same memory allowance; compression does not reduce decoded PCM. Processing/history/export use additional memory, and hardware can impose a lower practical limit. Use desktop for larger or full-length banks, subject to its per-input and bank/working-memory limits.
+
+Decoded parts must have identical sample rate, channel count and frame count. This remains an aligned mixer: removing the count ceiling adds no free timeline, beat matching, automatic alignment or new resampling controls. The existing 48 kHz browser decoding context is unchanged. Neural two/four-stem separation and native VST3 remain desktop features. See the [Studio workflow, resource limits and qualification scope](STUDIO.md). Earlier beta.2 packages retain their original behavior; stable v0.4.2 does not include Studio. The table below describes the separate mastering page, not Studio's smaller budget.
 
 | Item | Browser preview |
 | --- | --- |
@@ -71,6 +79,10 @@ python web/tools/verify_memory.py --tracks 40 --seconds 30 --out /tmp/slimeybeat
 The verification exercises the actual application, worker and AudioWorklet, compares worklet PCM with direct shared-Rust processing, checks deterministic suggestions and exports, tests mono/silence, verifies all three WAV formats using FFmpeg, and records all request methods/hosts. `verify_imports.py` uses actual 6-/15-minute WAV/MP3 files and an over-limit file. `verify_memory.py` replaces the mix repeatedly without Clear, masters, auditions with live EQ and exports on each cycle; `--tracks 1 --seconds 900` exercises the entire 15-minute UI workflow. On Windows it samples private committed memory for its isolated Chromium process group; WASM heap capacity is recorded separately. It never forces garbage collection. Its safety budget is a test stop condition, not a measured browser limit.
 
 FFmpeg is a test tool, not a browser runtime dependency. The harness separately records Playwright 1.57’s WebKit screenshot synchronization warning only when it observes the matching empty style insertion; the production security policy stays unchanged, and other application errors still fail verification. `--browser firefox` and `--browser webkit` select other installed Playwright engines for the main and import checks; those desktop engines do not stand in for physical mobile devices.
+
+## Larger-bank validation scope
+
+Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 complete beta.3 workflow groups**, including 24 manual rows, 64-part import/export, all-selected ZIPs, names/manifests, error retention and responsive controls. The web-DSP library separately passed **11 native-host binding tests**, including the 128 MiB boundary and rejection of the next sample over it. See the [beta.3 validation record](STUDIO_BETA3_VALIDATION.md) for exact scope and the separate independent GUI review and physical-device limits; earlier browser measurements remain historical.
 
 ## Architecture and extension points
 

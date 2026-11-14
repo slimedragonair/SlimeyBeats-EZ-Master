@@ -26,6 +26,29 @@ jobs:
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked --release --all-targets
       - run: cargo build --locked --release --bins
+      - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
+      - run: cargo clippy --locked --manifest-path ../mcp/server/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --release --manifest-path ../mcp/server/Cargo.toml --all-targets
+      - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
+      - name: Verify MCP over stdio
+        run: python ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+      - name: Verify Unicode connection setup in Windows PowerShell 5.1
+        run: powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File ../mcp/tools/verify_connect_config.ps1 -Server ../mcp/server/target/release/slimeybeats-mcp.exe -Evidence '${{ runner.temp }}/SlimeyBeats-UTF8-config'
+      - name: Verify Studio DSP routes and model-cache handling
+        run: |
+          python tools/test_stem_model_install.py
+          python tools/test_installation_identity.py
+          python ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_unbounded_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+      - name: Build and check isolated VST3 worker
+        run: |
+          cargo fmt --manifest-path ../plugins/host/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path ../plugins/host/Cargo.toml --all-targets -- -D warnings
+          cargo build --locked --release --manifest-path ../plugins/host/Cargo.toml
+          python ../mcp/tools/verify_plugin_faults.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -50,6 +73,27 @@ jobs:
         run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks'
       - name: Check headless CLI without desktop features
         run: cargo check --locked --no-default-features --bin slimeybeats-ez-master-cli
+      - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
+      - run: cargo clippy --locked --manifest-path ../mcp/server/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --release --manifest-path ../mcp/server/Cargo.toml --all-targets
+      - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
+      - name: Verify MCP over stdio and six codecs
+        run: python3 ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
+      - name: Verify Studio DSP routes and model-cache handling
+        run: |
+          python3 tools/test_stem_model_install.py
+          python3 tools/test_installation_identity.py
+          python3 ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/verify_studio_origin.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/verify_unbounded_stems.py --server ../mcp/server/target/release/slimeybeats-mcp
+          python3 ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
+      - name: Build and check isolated VST3 worker
+        run: |
+          cargo fmt --manifest-path ../plugins/host/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path ../plugins/host/Cargo.toml --all-targets -- -D warnings
+          cargo build --locked --release --manifest-path ../plugins/host/Cargo.toml
+          python3 ../mcp/tools/verify_plugin_faults.py --server ../mcp/server/target/release/slimeybeats-mcp
       - uses: actions/upload-artifact@v7
         with:
           name: SlimeyBeats-Linux-validation
