@@ -150,7 +150,9 @@ Audio and measurements stay in tab memory until you download them. There are no 
 
 ## Evidence and limits
 
-The figures below qualify their named candidates. They are not a final qualification matrix for the [in-development UX/learning preview](docs/LEARNING_AND_HELP.md).
+The figures below qualify their named candidates.
+
+**UI/learning preview, November 14:** 171 Windows and 173 Linux native tests, strict Clippy and optimized builds passed. Independent reviews scored the inspected native/browser layouts 9/10 for readability, task clarity, layout/usability and polish. The final browser build also passed its learning/audio and landscape/tablet checks. This remains unmerged development work. [Exact artifacts, input coverage and remaining limits](docs/UX_VALIDATION.md). These local results are separate from the hosted main-branch badges above.
 
 **Initial beta.3 larger-bank results:** **115 Windows / 117 Linux native tests** passed in the debug/test profile, plus **9 Windows / 10 Linux MCP regressions** and **11 native-host web-DSP binding tests**. Windows native used the `schemas` feature. Live 38-tool checks passed 24/64/100-part loose and paired-ZIP banks; release data/project checks passed eleven-part full-length and 96-part synthetic banks with original inputs unchanged. Chrome 156, Firefox 144 and Linux WebKit 26 each passed **20 workflow groups**. [Measured scope, fresh-agent results and remaining qualification](docs/STUDIO_BETA3_VALIDATION.md).
 

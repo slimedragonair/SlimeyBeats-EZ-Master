@@ -93,6 +93,7 @@ def main():
     record = {'installer_sha256': digest(installer), 'channel':args.channel, 'drive_root_rejected': True, 'other_channel_marker_rejected':True, 'install_exit': result.returncode}
     try:
         gui, cli = root/'SlimeyBeats-EZ-Master.exe', root/'SlimeyBeats-EZ-Master-CLI.exe'
+        gui_command = [str(gui),'--studio-data',str(root/'QA Studio runtime')]
         assert gui.is_file() and cli.is_file()
         assert all((shortcuts/name).is_file() for name in (identity.product+'.lnk','Example audio.lnk','User guide.lnk','Connect AI assistant.lnk','Uninstall.lnk'))
         assert all((root/name).is_file() for name in ['slimeybeats-mcp.exe','slimeybeats-vst3-host.exe','Connect-AI-Assistant.ps1','Connect AI Assistant.bat'])
@@ -129,11 +130,11 @@ def main():
         else:
             screenshot = captures['app']
             screenshot.parent.mkdir(parents=True, exist_ok=True)
-            capture = command([str(gui), str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
+            capture = command([*gui_command, str(root/'Examples/demo-input.wav'), '--auto-master', '--view', 'eq', '--capture-ui', str(screenshot)], cwd=root)
             assert capture.returncode == 0 and screenshot.is_file(), f'Installed GUI capture failed (exit {capture.returncode}):\n{capture.stdout}\n{capture.stderr}'
             record['installed_gui_processing_capture'] = True
             studio_capture = captures['studio']
-            checked = command([str(gui),'--studio-session',str(studio_document),'--capture-ui',str(studio_capture)],cwd=root)
+            checked = command([*gui_command,'--studio-session',str(studio_document),'--capture-ui',str(studio_capture)],cwd=root)
             assert checked.returncode == 0, checked.stderr
             state = json.loads(studio_capture.with_suffix('.state.json').read_text())
             assert state['error'] is None and state['preview_ready'] and state['playback_ready'],state
@@ -173,7 +174,7 @@ def main():
         if not args.skip_gui:
             # Loading and saving through the installed app verifies the actual
             # portable data root, beyond merely retaining sentinel files.
-            reopened = command([str(gui),'--capture-ui',str(captures['preferences']),
+            reopened = command([*gui_command,'--capture-ui',str(captures['preferences']),
                                 '--capture-save-settings'],cwd=root)
             assert reopened.returncode == 0, reopened.stderr
             restored = json.loads(settings.read_text())

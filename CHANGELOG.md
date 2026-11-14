@@ -14,6 +14,7 @@ This pass is on `feature/ux-learning`, pending review and not merged or released
 - Preserve precise slider values during untouched rendering; retain native clipboard, links and accessibility integration. Measure platform-font tabs/disclosures, prevent fractional-DPI pane growth, and paint popup/modal content above decorative artwork.
 - Improve enlarged phone navigation, first-import and tour choices, compact playback, pending-mix feedback and Help answer/search focus. Keep terminal browser tutorial choices safe from interleaved stale-tab writes, with explicit storage errors.
 - Keep modified Space chords out of transport handling, prevent held-key playback toggles, and reserve Alt+Space for the native window menu without activating a focused tutorial choice.
+- Reveal completed spectrograms once, retain independent Studio page positions, and put plugin choices/controls in the workspace. Add current illustrated guidance and [candidate-specific UI validation](docs/UX_VALIDATION.md).
 
 ### Earlier beta.3 source changes
 
