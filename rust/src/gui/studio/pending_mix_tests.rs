@@ -39,6 +39,7 @@ fn loaded_studio(output: PathBuf) -> Studio {
     let mix = bank.defaults();
     let audio = Arc::new(stem_mix::render(&bank, &mix, &|| false).unwrap());
     let mut studio = Studio::new(output);
+    studio.player = crate::gui::player::Player::for_processing_tests();
     studio.source = Some(LoadedSource {
         audio: audio.clone(),
         path: "Original mix.wav".into(),
@@ -68,15 +69,7 @@ fn finish(studio: &mut Studio, context: &egui::Context, expected_label: &str) {
         std::thread::sleep(Duration::from_millis(2));
     }
     assert!(!studio.busy(), "Studio job did not finish");
-    // A headless runner may report missing playback hardware after a successful
-    // render. Processing still has to advance to the expected revision and PCM.
-    if let Some(error) = &studio.error {
-        assert!(
-            error.starts_with("Playback unavailable: ")
-                && error.ends_with("Processing/export remain available."),
-            "{error}"
-        );
-    }
+    assert!(studio.error.is_none(), "{:?}", studio.error);
     assert_eq!(studio.current.as_ref().unwrap().label, expected_label);
 }
 
@@ -144,6 +137,9 @@ fn rendering_pending_faders_then_editing_keeps_the_materialized_mix_and_project_
     let preview = studio.current.as_ref().unwrap();
     let vocals = &bank.track(StemKind::Vocals).unwrap().audio;
     let instrumental = &bank.track(StemKind::Instrumental).unwrap().audio;
+    assert_eq!(preview.audio.samples.len(), vocals.samples.len());
+    assert_eq!(preview.audio.sample_rate, vocals.sample_rate);
+    assert_eq!(preview.audio.channels, vocals.channels);
     for (index, sample) in preview.audio.samples.iter().enumerate() {
         let expected = vocals.samples[index] * 10f32.powf(-6. / 20.) + instrumental.samples[index];
         assert!((sample - expected).abs() < 1e-7);
@@ -155,5 +151,11 @@ fn rendering_pending_faders_then_editing_keeps_the_materialized_mix_and_project_
     let current = studio.current.as_ref().unwrap();
     assert!(Arc::ptr_eq(&current.before, &applied));
     assert_eq!(current.mix.tracks[0].gain_db, -6.);
-    assert_eq!(studio.snapshot().unwrap().mix.tracks[0].gain_db, -6.);
+    let snapshot = studio.snapshot().unwrap();
+    assert_eq!(snapshot.mix.tracks[0].gain_db, -6.);
+    let project = crate::studio_native::session::save(&snapshot, root.path(), &|| false).unwrap();
+    let reopened = crate::studio_native::session::StudioDocument::load(&project).unwrap();
+    assert_eq!(reopened.mix.tracks[0].gain_db, -6.);
+    assert_eq!(reopened.before.samples, applied.samples);
+    assert_eq!(reopened.preview.samples, current.audio.samples);
 }

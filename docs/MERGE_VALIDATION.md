@@ -13,8 +13,8 @@ This follow-up covers review fixes made after the [initial beta.3 larger-bank qu
 
 ## Validation scope
 
-- **117 Windows native tests passed** in the debug/test profile with default features plus `schemas`, including two new pending-mix regressions. Formatting and strict all-target Clippy passed.
-- Both added processing regressions also passed on Linux with an intentionally unavailable ALSA output device. They require the expected completed revision, exact rendered PCM and consistent saved controls; only the specifically identified nonfatal playback-device notice is permitted. This does not qualify audible output.
+- Native validation includes two pending-mix controller regressions and a test proving their silent playback fixture never opens a native output device. The controller checks require a successful new revision, exact rendered PCM, consistent controls and actual project save/reopen. All processing errors remain fatal. Formatting and strict all-target Clippy are checked separately.
+- The processing tests run on both Windows and Linux without depending on a physical sound card; Linux is also exercised with an intentionally unavailable ALSA output device. Early hosted runs exposed the former hardware-dependent fixture, which is now isolated from native device creation. These checks do not qualify audible output; the CI links below report the complete current suite totals.
 - **Nine Windows PowerShell 5.1 connection-helper cases passed** against the actual companion; no GUI dialogs or personal files were used. The former helper reproduced path corruption under non-UTF-8 console encodings.
 - **Chrome 156, Firefox 144 and Linux WebKit 26 each passed 25 Studio workflow groups**, with five additional pending-control groups and zero application errors. Test-tool screenshot diagnostics are recorded separately from application failures. Runtime-cache checks passed; the frozen static runtime is `9f53b4d1a651a506`, and the WASM bytes are unchanged by the browser UI fix.
 - **15 Windows MCP Rust tests passed**, including six new origin regressions. Ten source-context cases exercised **120 actual native project loads** across explicit saves and desktop handoffs; two source-A projects also reopened in the desktop with preview/playback ready. Existing origin, handoff, Studio and large-bank checks passed. These checks retain source identity, omit unrelated banks from saved projects and preserve valid bank edits. Linux executes the same added matrix through required CI.
@@ -35,6 +35,7 @@ From the repository root:
 
 ```sh
 cargo test --locked --manifest-path rust/Cargo.toml --lib pending_mix_tests
+cargo test --locked --manifest-path rust/Cargo.toml --lib processing_fixture
 cargo test --locked --manifest-path mcp/server/Cargo.toml
 python mcp/tools/verify_studio_origin.py --server PATH_TO_MATCHING_COMPANION
 python web/tools/verify_studio_browser.py --out NEW_EVIDENCE_FOLDER

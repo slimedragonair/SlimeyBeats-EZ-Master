@@ -50,8 +50,17 @@ pub struct Player {
     pub rate: u32,
     pub tap: Arc<PlaybackTap>,
     live_sender: Option<Sender<EqParameters>>,
+    #[cfg(test)]
+    without_output_device: bool,
 }
 impl Player {
+    #[cfg(test)]
+    pub(crate) fn for_processing_tests() -> Self {
+        Self {
+            without_output_device: true,
+            ..Self::default()
+        }
+    }
     pub fn unload(&mut self) {
         self.controls.playing.store(false, Ordering::Relaxed);
         if let Some(sink) = self.sink.take() {
@@ -74,6 +83,14 @@ impl Player {
         self.controls.playing.store(false, Ordering::Relaxed);
         self.controls.position.store(0, Ordering::Relaxed);
         self.controls.seek.store(u64::MAX, Ordering::Relaxed);
+        #[cfg(test)]
+        if self.without_output_device {
+            // Controller/DSP tests own and verify their rendered Audio buffers.
+            // They must not open a real native device or claim audible playback.
+            self.duration = before.duration();
+            self.rate = before.sample_rate;
+            return Ok(());
+        }
         if self.stream.is_none() {
             self.stream = Some(OutputStreamBuilder::open_default_stream()?);
         }
@@ -164,6 +181,18 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn processing_fixture_prepares_metadata_without_opening_a_native_device() {
+        assert!(!Player::default().without_output_device);
+        let mut player = Player::for_processing_tests();
+        let audio = Arc::new(Audio::new(vec![0.05; 16000], 16000, 1).unwrap());
+        player
+            .load(audio.clone(), Some(audio), -20., -20., None)
+            .unwrap();
+        assert!(player.stream.is_none() && player.sink.is_none());
+        assert_eq!(player.duration, 1.);
+        assert_eq!(player.rate, 16000);
+    }
     fn source() -> ABSource {
         let controls = Arc::new(Controls::default());
         controls.playing.store(true, Ordering::Relaxed);
