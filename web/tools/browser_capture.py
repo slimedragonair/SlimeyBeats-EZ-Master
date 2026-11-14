@@ -3,11 +3,17 @@ STYLE_REFUSAL = "Refused to apply a stylesheet because its hash, its nonce, or '
 
 
 class BrowserDiagnostics:
-    def __init__(self, page, browser, result):
+    def __init__(self, page, browser, result, *, interface_profile='processing'):
         self.page, self.browser, self.result = page, browser, result
         self.capturing = False
         self.capture_messages = []
-        result['automation_diagnostics'] = []
+        result.setdefault('automation_diagnostics', [])
+        # Existing DSP/import harnesses use an experienced interface profile so
+        # optional first-use guidance cannot intercept their processing actions.
+        # The learning harness explicitly requests a fresh profile instead.
+        if interface_profile == 'processing':
+            page.add_init_script("""if (!localStorage.getItem('slimeybeats.interface-preferences'))
+                localStorage.setItem('slimeybeats.interface-preferences', JSON.stringify({version:1,advanced:true,tutorial:'declined',step:0}));""")
         # Playwright 1.57 screenshotter.js synchronizes WebKit animations by
         # appending precisely `body {}`. Observe that insertion without changing
         # the DOM operation or relaxing the production CSP.

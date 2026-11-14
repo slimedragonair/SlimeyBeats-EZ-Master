@@ -1,0 +1,59 @@
+/* Human labels wrap at words; filenames and unbroken diagnostic data retain
+   their specific anywhere-wrapping rules. */
+button, label, select, summary { overflow-wrap: normal; word-break: normal; hyphens: none; }
+.brand strong { overflow-wrap: normal; font-size: 1.875rem; }
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: 8px; }
+.tabs button { min-width: 0; white-space: normal; }
+.control-visibility [role="group"] { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.control-visibility button { flex: 0 0 auto; min-width: max-content; }
+.workspace-disclosure { flex-shrink: 0; margin: 0 0 12px; min-width: 0; }
+.workspace-disclosure > summary { display: none; }
+.workspace-disclosure .tabs, .workspace-disclosure .control-visibility { margin-bottom: 0; }
+.band-picker { grid-template-columns: repeat(auto-fit, minmax(min(100%, 4rem), 1fr)); }
+.edit-fader label { flex-wrap: wrap; max-width: 100%; min-width: 0; }
+.edit-visual h3, .edit-save h3 { font-size: 1.1875rem; }
+.edit-import > label { display: block; min-width: 0; max-width: 100%; }
+.edit-import select { display: block; width: 100%; min-width: 0; max-width: 100%; }
+body.large-text .edit-target { flex-direction: column; align-items: stretch; }
+body.large-text .edit-target select { width: 100%; }
+body.compact-workspace .workspace-disclosure > summary {
+    display: list-item;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: .875rem;
+    line-height: 1.35;
+    border: 1px solid #80628f;
+    border-radius: 6px;
+    background: #211a2b;
+}
+body.compact-workspace .workspace-disclosure[open] > summary { margin-bottom: 8px; }
+body.compact-workspace .studio-heading .eyebrow { display: none; }
+body.compact-workspace .studio-heading { margin-bottom: 8px; }
+body.compact-workspace .studio-heading h1 { font-size: 1rem; line-height: 1.3; margin: 0; }
+body.large-text .workspace { display: flex; flex-direction: column; overflow: visible; }
+body.large-text .panel { width: 100%; }
+body.large-text.studio-mode .workspace > .library { display: none; }
+body.large-text .library { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center; }
+body.large-text .library > .eyebrow, body.large-text .library > h2,
+body.large-text .library > .muted, body.large-text .library-art,
+body.large-text .library > .drop-zone, body.large-text .library > #privacy { display: none; }
+body.large-text .library .wide { width: auto; flex: 1; }
+body.large-text .library .track-card { width: 100%; }
+body.large-text .mobile-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+body.large-text.studio-mode .mobile-actions { display: none; }
+body.large-text .direction > #master, body.large-text .direction > #export,
+body.large-text .direction > .action-note { display: none; }
+body.large-text .crest, body.large-text .slime-crown { display: none; }
+@media (max-width: 680px) {
+    /* Native select text can outgrow a compressed flex item on Linux WebKit. */
+    .edit-target { flex-direction: column; align-items: stretch; min-width: 0; max-width: 100%; }
+    .edit-target select { width: 100%; max-width: 100%; }
+    #s-source { padding-inline: 10px; }
+    .brand strong { font-size: 1.0625rem; }
+    body.large-text .brand strong { display: none; }
+    body.large-text .help-dock-note { display: none; }
+    body.compact-workspace .studio { padding: 12px 12px 14px; }
+    body.compact-workspace .workspace-disclosure { margin-bottom: 8px; }
+    body.compact-workspace #controls-description { font-size: .8125rem; }
+}

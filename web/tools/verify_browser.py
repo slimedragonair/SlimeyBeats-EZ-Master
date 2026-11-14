@@ -75,12 +75,12 @@ try:
             diagnostics.capture(args.out/'desktop-master.png',full_page=True)
             page.locator('#tab-eq').click()
             page.locator('#play').click()
-            expect(page.locator('#play')).to_have_text('Ⅱ Pause',timeout=30000)
+            expect(page.locator('#play')).to_have_text('Pause',timeout=30000)
             baseline=page.evaluate('()=>window.dspJobs.length')
             page.locator('[data-band="2"][data-parameter="gain"]').evaluate("async el=>{for(let i=0;i<20;i++){el.value=-i/6;el.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,35));}el.value=-3;el.dispatchEvent(new Event('input',{bubbles:true}));}")
             page.wait_for_timeout(1200)
             assert not any(action in ['master','export'] for action in page.evaluate('n=>window.dspJobs.slice(n)',baseline))
-            expect(page.locator('#play')).to_have_text('Ⅱ Pause')
+            expect(page.locator('#play')).to_have_text('Pause')
             diagnostics.capture(args.out/'desktop-live-eq.png',full_page=True)
             assert 'EQ live' in page.locator('#live-state').inner_text()
             assert page.locator('#clock').inner_text() != '0:00 / 0:00'
@@ -93,6 +93,7 @@ try:
                 page.locator('#save-report').click()
             download.value.save_as(str(args.out/'example-web-master.report.json'))
             # Listening controls must have no effect on the deterministic export.
+            page.locator('#playback-details > summary').click()
             page.locator('#volume').fill('0.1')
             page.locator('#volume').dispatch_event('input')
             page.locator('#match').uncheck()

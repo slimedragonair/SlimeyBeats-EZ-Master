@@ -12,7 +12,7 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
       - name: Set up Rust and WebAssembly
@@ -67,6 +67,11 @@ jobs:
           python3 web/tools/verify_studio_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-webkit'
       - name: Verify Studio replacement and decoded input bounds
         run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
+      - name: Verify learning, persistent choices and compact layouts
+        run: |
+          python3 web/tools/verify_learning_browser.py --out '${{ runner.temp }}/browser-checks/learning-chromium'
+          python3 web/tools/verify_learning_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/learning-firefox'
+          python3 web/tools/verify_learning_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/learning-webkit'
       - uses: actions/upload-artifact@v7
         if: always()
         with:

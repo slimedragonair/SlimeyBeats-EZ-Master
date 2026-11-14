@@ -1,3 +1,5 @@
+import { wireDialogFocus } from "./dialog-focus.js";
+let helpModal;
 const tips = {
     profile: [
         "Tonal profile",
@@ -76,7 +78,7 @@ export function openHelp(key) {
             return p;
         }),
     );
-    document.querySelector("#help-dialog").showModal();
+    helpModal.open();
 }
 export function wireHelp() {
     document.addEventListener("click", (event) => {
@@ -90,6 +92,7 @@ export function wireHelp() {
         button.title = tips[button.dataset.help]?.[1] || "";
     document.querySelector("#privacy").onclick = () => openHelp("privacy");
     const dialog = document.querySelector("#help-dialog");
+    helpModal = wireDialogFocus(dialog);
     dialog.addEventListener("click", (event) => {
         if (event.target === dialog) {
             const r = dialog.getBoundingClientRect();

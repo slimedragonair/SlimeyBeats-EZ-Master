@@ -14,6 +14,12 @@ import {
 } from "./view.js";
 import { Plots } from "./plots.js";
 import { createStudio } from "./studio-app.js";
+import { createUiPreferences } from "./ui-preferences.js";
+import { wireControlVisibility } from "./control-visibility.js";
+import { wireLearning } from "./learning.js";
+import { wireViewportLayout } from "./viewport-layout.js";
+import { wireJobFeedback } from "./job-feedback.js";
+import { wireWorkspaceNavigation } from "./workspace-navigation.js";
 
 let settings,
     defaults,
@@ -29,7 +35,9 @@ let settings,
     trackRevision = 0,
     referenceRevision = 0,
     jobRevision = 0,
-    curveTimer;
+    curveTimer,
+    visibility,
+    jobFeedback;
 const player = new Player(syncControls, (error) => {
     status(error.message, true);
 });
@@ -37,6 +45,7 @@ const plots = new Plots(player);
 const dsp = new DspClient((value, text) => {
     $("progress").value = value;
     status(text);
+    jobFeedback?.refresh();
 });
 const studio = createStudio({
     getMainAudio: () => player.original,
@@ -77,6 +86,12 @@ document.addEventListener("studio-page", (event) => {
     syncControls();
 });
 wireHelp();
+const preferences = createUiPreferences();
+visibility = wireControlVisibility(preferences, () => ({ settings, defaults }));
+wireLearning(preferences);
+jobFeedback = wireJobFeedback(() => studio.busy);
+wireWorkspaceNavigation();
+wireViewportLayout();
 syncControls();
 function masterSignature() {
     if (!settings) return "";
@@ -91,10 +106,12 @@ function masterSignature() {
     return JSON.stringify({ ...auto, reference_revision: referenceRevision });
 }
 function syncControls() {
+    visibility?.refresh();
     const locked = busy || restoring;
     const loaded = Boolean(player.original),
         mastered = Boolean(player.master),
         stale = mastered && masterKey !== masterSignature();
+    document.body.classList.toggle("master-loaded", loaded);
     for (const id of ["add", "demo", "reference", "clear"])
         $(id).disabled = locked || !ready;
     $("analyze").disabled = document.body.classList.contains("studio-mode")
@@ -127,7 +144,7 @@ function syncControls() {
     $("stop").disabled = !loaded;
     $("master-source").disabled = !mastered;
     $("seek").disabled = !loaded;
-    $("play").textContent = player.playing ? "Ⅱ Pause" : "▶ Play";
+    $("play").textContent = player.playing ? "Pause" : "Play";
     $("original").classList.toggle("selected", player.source === "original");
     $("master-source").classList.toggle("selected", player.source === "master");
     $("job").hidden = !busy;
@@ -140,13 +157,14 @@ function syncControls() {
     if (document.body.classList.contains("studio-mode")) {
         $("track-title").textContent = studio.label;
         $("session-state").textContent =
-            "Studio editing · preview, compare, then export";
+            "Studio · preview before exporting";
     } else if (stale)
         $("session-state").textContent =
             "Direction changed · Master again to apply";
     else if (mastered)
         $("session-state").textContent =
             "Master preview ready · Listen, tweak, then export";
+    jobFeedback?.refresh();
 }
 async function job(action) {
     if (busy || restoring) return;
@@ -171,6 +189,7 @@ async function job(action) {
 }
 function eqChanged() {
     if (!settings) return;
+    visibility?.refresh();
     revision++;
     player.updateSettings(settings, revision);
     clearTimeout(curveTimer);

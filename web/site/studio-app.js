@@ -14,6 +14,8 @@ import { stemZip } from "./studio-zip.js";
 import { wireStemImport } from "./studio-import-actions.js";
 import { interleave } from "./dsp-client.js";
 import { download, time } from "./view.js";
+import { wireStudioFeedback } from "./studio-feedback.js";
+import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
 
 const $ = (id) => document.getElementById(`s-${id}`);
 const EMPTY = { loaded: false, stems: [], controls: { tracks: [] }, notes: [] };
@@ -45,9 +47,14 @@ export function createStudio({
         dirty = false,
         pendingMix = false,
         filename = "Studio";
+    const feedback = wireStudioFeedback(() => active);
+    const previewStatus = wireStudioPreviewStatus();
     function notice(text, error = false) {
+        if (pendingMix && !error && text !== MIX_PENDING_NOTICE)
+            text = `${text} ${MIX_PENDING_NOTICE}`;
         $("status").textContent = text;
         $("status").classList.toggle("error", error);
+        if (error) feedback.error(text);
         if (active) onStatus(text, error);
     }
     function draw() {
@@ -56,6 +63,7 @@ export function createStudio({
         chart = spectrum($("spectrum-canvas"), image, selection());
     }
     function sync() {
+        document.getElementById("studio-tools").dataset.loaded = String(info.loaded);
         for (const input of document.querySelectorAll(
             "#studio-tools input, #studio-tools select",
         ))
@@ -90,6 +98,7 @@ export function createStudio({
         $("pending").textContent = pendingMix
             ? PENDING_MIX
             : "Settings changed. Run the tool to hear them. Export saves the existing preview.";
+        previewStatus(pendingMix);
     }
     function requireUpdatedMix() {
         if (!pendingMix) return true;
@@ -99,6 +108,7 @@ export function createStudio({
     }
     async function job(text, action, requiresMix = false) {
         if (busy) return;
+        feedback.begin();
         if (requiresMix && !requireUpdatedMix()) return;
         busy = true;
         cancelled = false;
@@ -201,6 +211,7 @@ export function createStudio({
     }
     function mixChanged() {
         pendingMix = true;
+        notice(MIX_PENDING_NOTICE);
         changed();
     }
     async function load(file) {
@@ -377,7 +388,7 @@ export function createStudio({
         $("info").textContent = "No Studio audio loaded";
         $("notes").replaceChildren();
         mixFaders({ tracks: [] }, mixChanged);
-        notice("Choose a source or aligned stems to begin.");
+        notice("Choose audio.");
         leave();
     };
     for (const key of ["mix", "voice", "repair"])

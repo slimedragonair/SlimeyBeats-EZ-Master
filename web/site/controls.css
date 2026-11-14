@@ -1,0 +1,64 @@
+.control-visibility {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 14px;
+    flex-shrink: 0;
+}
+.control-visibility [role="group"] { display: flex; gap: 6px; }
+#controls-description { font-size: .8125rem; color: var(--muted); }
+.control-visibility .engine-tag { margin-left: auto; }
+.advanced-notice, .ui-storage-notice {
+    padding: 10px 12px;
+    border-left: 3px solid var(--teal);
+    background: #231a2d;
+    font-size: .875rem;
+    overflow-wrap: anywhere;
+    flex-shrink: 0;
+}
+.basic-controls [data-advanced],
+.basic-controls .band .frequency-label,
+.basic-controls .band .q-label,
+.basic-controls .band .type-label { display: none !important; }
+body:not(.basic-controls) .band .frequency-label,
+body:not(.basic-controls) .band .q-label,
+body:not(.basic-controls) .band .type-label { display: block; }
+body:not(.basic-controls) .band-shape { display: none; }
+.basic-controls .band-shape {
+    display: block;
+    min-height: 44px;
+    font-size: .75rem;
+    white-space: normal;
+}
+.band .band-name { white-space: normal; }
+.band input, .band select { min-width: 0; }
+.direction > [data-advanced] { min-width: 0; }
+.direction > [data-advanced] .wide { font-size: .9375rem; }
+
+@media (max-width: 1190px) {
+    .band.active {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px;
+    }
+    .band .band-name { grid-column: 1; grid-row: 1; }
+    .band .on-label { grid-column: 2; grid-row: 1; justify-content: flex-end; }
+    .band .gain-label { grid-column: 1; grid-row: 2; }
+    .band output { grid-column: 2; grid-row: 2; }
+    .band .frequency-label { grid-column: 1; grid-row: 3; }
+    .band .q-label { grid-column: 2; grid-row: 3; }
+    .band .type-label { grid-column: 1/-1; grid-row: 4; }
+    .band-shape { grid-column: 1/-1; grid-row: 3; }
+    .band .type-label select { display: block; width: 100%; margin: 4px 0 0; }
+    .band input[type="range"] { width: 100%; }
+}
+@media (max-width: 680px) {
+    .band-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .mobile-actions { flex-wrap: wrap; }
+    .mobile-actions button { min-width: 7rem; }
+    .control-visibility { margin-bottom: 12px; }
+    #controls-description { order: 3; flex-basis: 100%; }
+    .direction .segmented { flex-wrap: wrap; }
+    .direction .segmented button { flex: 1; }
+}
