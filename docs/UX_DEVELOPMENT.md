@@ -19,6 +19,8 @@ Native `user_experience.rs` coordinates interface preferences and view state; `l
 
 The sidebar coordinator delegates mastering direction, delivery and processing options to `gui/mastering_controls`. EQ has a contextual band inspector. Studio keeps source waveforms and faders in the same workspace, with pending edits distinct from the committed preview. Visibility changes preserve exact parameters: native sliders use edit-only clamping rather than rounding a stored value to its display precision during paint.
 
+Mastering playback reserves its measured panel height before laying out scrollable content. Waveform labels, traces and time ticks have separate space; short requests cannot reduce a trace to a line of dots. Compact Overview makes the frequency spectrum an explicit disclosure and reveals the expanded graph in the scroll area. Diagnostic captures wait for both layout passes and elapsed presentation time, so modal fade-in is not mistaken for settled appearance.
+
 `mcp_setup.rs` prepares configuration through the actual companion's bounded `--print-config` process. Generation runs off the UI thread and can be cancelled when Help closes. It does not start a server or modify an AI client's settings. `bundled_resources.rs` locates installed resources and explicit development paths without scanning a music library.
 
 The browser separates UI storage, disclosure, dialogs, viewport reserves, job feedback and local error feedback into dedicated modules. The static build copies canonical guide JSON into web assets. Small interface preferences remain separate from audio buffers; no persistent audio cache or browser-to-desktop bridge is added.
