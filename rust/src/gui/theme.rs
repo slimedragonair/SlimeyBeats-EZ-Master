@@ -9,6 +9,8 @@ pub const BORDER: Color32 = Color32::from_rgb(98, 82, 116);
 pub const SILVER: Color32 = Color32::from_rgb(173, 158, 189);
 pub const TEXT: Color32 = Color32::from_rgb(245, 239, 252);
 pub const DISPLAY_FONT: &str = "slimeybeats-display";
+// Artwork sits above the base panels, while popups and modal content stay on top.
+pub const DECORATION_ORDER: egui::Order = egui::Order::Middle;
 
 pub fn apply(ctx: &egui::Context) {
     install_fonts(ctx);

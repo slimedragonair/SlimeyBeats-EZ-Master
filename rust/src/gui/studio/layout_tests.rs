@@ -368,3 +368,39 @@ fn compact_comparison_and_part_plots_are_explicit_and_do_not_hide_playback_or_ch
     assert!(!studio.mix_dirty && !studio.busy());
     assert_eq!(studio.volume, 0.);
 }
+
+#[test]
+fn narrow_studio_sidebar_disclosures_stay_bounded_with_native_fonts_and_pending_edits() {
+    for scale in [1., 1.25] {
+        for parts in [0, 2] {
+            for pending in [false, true] {
+                if parts == 0 && pending {
+                    continue;
+                }
+                let ctx = egui::Context::default();
+                ctx.set_pixels_per_point(scale);
+                theme::apply(&ctx);
+                let mut studio = fixture(parts);
+                studio.mix_dirty = pending;
+                let settings = serde_json::to_value(&studio.mix).unwrap();
+                for frame_index in 0..32 {
+                    let (_, width) = frame(
+                        &ctx,
+                        &mut studio,
+                        false,
+                        egui::vec2(1100., 720.),
+                        290.,
+                        vec![],
+                    );
+                    assert!(
+                        width <= 290.5,
+                        "Studio sidebar grew to {width}; parts={parts}, pending={pending}, scale={scale}, frame={frame_index}"
+                    );
+                }
+                assert_eq!(serde_json::to_value(&studio.mix).unwrap(), settings);
+                assert_eq!(studio.mix_dirty, pending);
+                assert!(!studio.busy());
+            }
+        }
+    }
+}

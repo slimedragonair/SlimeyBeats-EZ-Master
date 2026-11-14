@@ -260,7 +260,28 @@ mod layout_tests {
                     "Playback hidden: {label}"
                 );
             }
+            let tab_tops: Vec<_> = ["Overview", "Manual EQ", "Studio"]
+                .iter()
+                .map(|label| text_rect(&output, label).unwrap().top())
+                .collect();
+            let top = tab_tops.iter().copied().fold(f32::INFINITY, f32::min);
+            let bottom = tab_tops.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+            assert!(bottom - top < 4., "Workspace tabs wrapped: {tab_tops:?}");
             assert!(text_rect(&output, "FREQUENCY BALANCE").is_none());
+            assert!(
+                text_rect(&output, "Frequency balance · spectrum").is_some(),
+                "Spectrum disclosure clipped: {:?}",
+                output
+                    .shapes
+                    .iter()
+                    .filter_map(|item| match &item.shape {
+                        egui::Shape::Text(text)
+                            if text.galley.text().contains("Frequency balance") =>
+                            Some((text.visual_bounding_rect(), item.clip_rect)),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+            );
             let output = click(
                 &ctx,
                 &mut app,

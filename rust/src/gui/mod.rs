@@ -49,3 +49,4 @@ mod ui_capture;
 mod ui_test_input;
 mod user_experience;
 mod welcome_panel;
+mod workspace_tabs;

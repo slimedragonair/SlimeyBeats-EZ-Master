@@ -164,7 +164,7 @@ impl MasterCraftApp {
             [footer.center().x - 290., footer.center().x + 290.],
         );
         let ornament = ctx.layer_painter(egui::LayerId::new(
-            egui::Order::Foreground,
+            theme::DECORATION_ORDER,
             egui::Id::unique("sovereign-crests"),
         ));
         self.brand
@@ -479,51 +479,7 @@ impl MasterCraftApp {
         if !compact_height {
             ui.add_space(4.);
         }
-        let full_tab_labels = ["Overview", "Manual EQ", "Processing report", "Studio"];
-        let font = egui::TextStyle::Button.resolve(ui.style());
-        let full_tabs_width: f32 = full_tab_labels
-            .iter()
-            .map(|label| {
-                ui.painter()
-                    .layout_no_wrap((*label).into(), font.clone(), Color32::WHITE)
-                    .size()
-                    .x
-                    + 17.
-                    + ui.spacing().item_spacing.x
-                    + 2. * ui.spacing().button_padding.x
-            })
-            .sum::<f32>()
-            + 2. * ui.spacing().item_spacing.x;
-        let report_label = if full_tabs_width > ui.available_width() {
-            "Report"
-        } else {
-            "Processing report"
-        };
-        ui.horizontal_wrapped(|ui| {
-            for (tab, label, icon) in [
-                (0, "Overview", Icon::Home),
-                (1, "Manual EQ", Icon::Sliders),
-                (2, report_label, Icon::Report),
-                (3, "Studio", Icon::Layers),
-            ] {
-                if ui
-                    .add(
-                        crystal_button::secondary(label)
-                            .icon(icon)
-                            .selected(self.tab == tab)
-                            .min_size(vec2(0., if compact_height { 32. } else { 36. })),
-                    )
-                    .clicked()
-                {
-                    if tab == 3 {
-                        self.player.stop();
-                    } else {
-                        self.studio.player.stop();
-                    }
-                    self.tab = tab;
-                }
-            }
-        });
+        super::workspace_tabs::show(self, ui, compact_height);
         ui.separator();
         if self.tab == 3 {
             if super::studio::workspace::show(

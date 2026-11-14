@@ -1,7 +1,7 @@
 //! Project/import sidebar; active editors are in the workspace and actions stay pinned.
 pub(super) use super::preview_actions::preview_unavailable;
 use super::state::{Page, Studio};
-use crate::gui::{crystal_button, theme};
+use crate::gui::{control_layout::section_header, crystal_button, theme};
 use eframe::egui::{self, RichText};
 use std::path::PathBuf;
 
@@ -20,10 +20,13 @@ pub fn show(
 
     ui.separator();
     egui::ScrollArea::vertical().id_salt("studio-source-and-import").auto_shrink([false, false]).show(ui, |ui| {
+        // The scroll content rounds its origin separately from the pane at fractional
+        // DPI. Leave one physical pixel so full-width separators cannot grow the pane.
+        ui.set_max_width((ui.available_width() - 1. / ui.pixels_per_point()).max(1.));
         if matches!(studio.page, Page::Voice | Page::Repair) || studio.source.is_none() {
             super::tool_inputs::source(studio, ui, selected.clone(), ctx);
         } else {
-            ui.collapsing("Studio source", |ui| super::tool_inputs::source(studio, ui, selected.clone(), ctx));
+            section_header(ui, "Studio source").show(ui, |ui| super::tool_inputs::source(studio, ui, selected.clone(), ctx));
         }
         ui.separator();
         let available = !studio.busy();
@@ -40,13 +43,12 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     if studio.bank.is_some() && studio.bulk_import.is_none() {
         ui.label(format!("{} stems loaded", studio.mix.tracks.len()));
         ui.small("Adjust each part beside its waveform in the workspace. Update the mix preview to hear changes.");
-        ui.collapsing("Import another stem set", |ui| {
+        section_header(ui, "Import another stem set").show(ui, |ui| {
             super::stem_bulk_import::show(studio, ui, ctx);
             super::stem_import::show(studio, ui, ctx);
         });
-        ui.collapsing("Optional local stem engine", |ui| {
-            stem_engine(studio, ui, ctx)
-        });
+        section_header(ui, "Optional local stem engine")
+            .show(ui, |ui| stem_engine(studio, ui, ctx));
         return;
     }
     super::stem_bulk_import::show(studio, ui, ctx);
@@ -58,9 +60,8 @@ fn stems(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     }
     super::stem_import::show(studio, ui, ctx);
     ui.separator();
-    ui.collapsing("Optional: separate a full mix locally", |ui| {
-        stem_engine(studio, ui, ctx)
-    });
+    section_header(ui, "Optional: separate a full mix locally")
+        .show(ui, |ui| stem_engine(studio, ui, ctx));
 }
 
 fn stem_engine(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
@@ -82,7 +83,7 @@ fn stem_engine(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
         if ui.add_enabled(!studio.busy(),crystal_button::secondary("Install stem engine")).on_hover_text("One-time download using a private Python environment, separate from other apps. Requires internet, disk space and several minutes. No audio is uploaded.").clicked() {studio.install_engine(false,ctx);}
     }
     if ready {
-        ui.collapsing("Engine maintenance", |ui| {
+        section_header(ui, "Engine maintenance").show(ui, |ui| {
             if ui.add(crystal_button::secondary("Verify installed model")).on_hover_text("Check every model file against the verified installation manifest without downloading it again.").clicked() { studio.install_engine(false, ctx); }
             if ui.add(crystal_button::secondary("Repair stem engine")).on_hover_text("Reinstall the private dependencies and verified model. Unknown files are preserved in a backup; your audio is not touched.").clicked() { studio.install_engine(true, ctx); }
         });
