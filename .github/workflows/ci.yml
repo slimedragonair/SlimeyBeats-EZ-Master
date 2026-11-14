@@ -17,7 +17,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up stable Rust
         run: |
           rustup default stable
@@ -59,7 +59,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Linux build and validation dependencies
         run: |
           sudo apt-get update -qq

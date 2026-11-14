@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build native binaries
         run: |
           rustup default stable
