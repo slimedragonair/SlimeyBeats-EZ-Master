@@ -32,6 +32,7 @@ pub(super) enum JobKind {
     Suggest,
 }
 pub struct MasterCraftApp {
+    pub(super) experience: super::user_experience::UserExperience,
     pub(super) preferences: Option<super::desktop_preferences::PreferencePersistence>,
     pub studio: super::studio::Studio,
     pub brand: super::brand_art::BrandArt,
@@ -115,6 +116,9 @@ impl MasterCraftApp {
             desktop_valid,
         ));
         let mut app = Self {
+            experience: super::user_experience::UserExperience::load(
+                crate::paths::interface_preferences_file(),
+            ),
             preferences,
             studio,
             brand: super::brand_art::BrandArt::new(&cc.egui_ctx),
@@ -155,7 +159,19 @@ impl MasterCraftApp {
         app
     }
     pub fn capture_ui_once(&mut self, destination: PathBuf, failed: Arc<AtomicBool>) {
+        self.experience.suppress_automatic_offer();
         self.capture = Some(super::ui_capture::UiCapture::new(destination, failed));
+    }
+    pub fn capture_learning_at(&mut self, view: &str) {
+        use super::user_experience::HelpPage;
+        match view {
+            "welcome" => self.experience.welcome_open = true,
+            "tour" => self.experience.tour_open = true,
+            "terms" => self.experience.help_page = Some(HelpPage::Terms),
+            "mcp" => self.experience.help_page = Some(HelpPage::Assistant),
+            _ => self.experience.help_page = Some(HelpPage::Start),
+        }
+        self.experience.request_dialog_focus = true;
     }
     pub fn capture_settings_at(&mut self, offset: f32) {
         self.capture_settings_scroll = Some(offset);
@@ -194,6 +210,23 @@ impl MasterCraftApp {
             .pick_files()
         {
             self.add_paths(files);
+        }
+    }
+    pub(super) fn example_path(&self) -> Option<PathBuf> {
+        super::bundled_resources::file(
+            &self.root,
+            &[
+                "Examples/demo-input.wav".into(),
+                "examples/audio/demo-input.wav".into(),
+            ],
+        )
+    }
+    pub(super) fn add_example(&mut self) {
+        if let Some(path) = self.example_path() {
+            self.add_paths(vec![path]);
+            self.status =
+                "Example added · Analyze to learn about the mix, or Master to prepare a preview"
+                    .into();
         }
     }
     pub fn start(&mut self, analysis: bool, ctx: &egui::Context) {
@@ -238,6 +271,12 @@ impl MasterCraftApp {
     }
     pub fn export_revision(&mut self, ctx: &egui::Context) {
         if let Some((i, result)) = self.current() {
+            if result.report.as_ref().is_some_and(|report| {
+                super::mastering_preview_state::direction_changed(report, &self.settings)
+            }) {
+                self.error = Some("The mastering direction has changed. Re-master to prepare those choices before exporting. The previous preview is still available for comparison.".into());
+                return;
+            }
             self.busy = true;
             self.active_job = Some(JobKind::Export);
             self.error = None;
@@ -261,6 +300,15 @@ impl MasterCraftApp {
                 .and_then(|t| t.result.clone())
                 .map(|r| (i, r))
         })
+    }
+    pub(super) fn mastering_direction_changed(&self) -> bool {
+        self.current()
+            .and_then(|(_, result)| {
+                result.report.as_ref().map(|report| {
+                    super::mastering_preview_state::direction_changed(report, &self.settings)
+                })
+            })
+            .unwrap_or(false)
     }
     pub fn suggest_eq(&mut self, ctx: &egui::Context) {
         if let Some((index, result)) = self.current() {

@@ -9,7 +9,7 @@ const FOOTER_GAP: f32 = 12.;
 pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
     ui.add_space(5.);
     ui.vertical_centered(|ui| {
-        ui.label(theme::display("SESSION QUEUE", 16.));
+        ui.label(theme::display("MASTERING TRACKS", 16.));
     });
     queue_rule(ui);
     ui.label(theme::display(
@@ -96,8 +96,9 @@ fn queue_actions(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
         {
             app.pick_files();
         }
-        ui.horizontal_wrapped(|ui| {
-            if ui
+        if !app.tracks.is_empty() {
+            ui.horizontal_wrapped(|ui| {
+                if ui
                 .add(
                     crystal_button::secondary("Remove")
                         .icon(Icon::Trash)
@@ -119,24 +120,25 @@ fn queue_actions(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 app.player.unload();
                 app.eq_live.reset_source();
             }
-            if ui
-                .add(
-                    crystal_button::secondary("Clear")
-                        .icon(Icon::Clear)
-                        .min_size(egui::vec2(0., 36.)),
-                )
-                .on_hover_text(
-                    "Clear the session queue. Source audio and exported files are preserved.",
-                )
-                .clicked()
-            {
-                app.tracks.clear();
-                app.selected = None;
-                app.loaded = None;
-                app.player.unload();
-                app.eq_live.reset_source();
-            }
-        });
+                if ui
+                    .add(
+                        crystal_button::secondary("Clear")
+                            .icon(Icon::Clear)
+                            .min_size(egui::vec2(0., 36.)),
+                    )
+                    .on_hover_text(
+                        "Clear the session queue. Source audio and exported files are preserved.",
+                    )
+                    .clicked()
+                {
+                    app.tracks.clear();
+                    app.selected = None;
+                    app.loaded = None;
+                    app.player.unload();
+                    app.eq_live.reset_source();
+                }
+            });
+        }
     });
 }
 

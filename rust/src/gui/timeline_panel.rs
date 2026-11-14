@@ -37,7 +37,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
         });
     });
     let height = if ui.ctx().viewport_rect().height() < 800. {
-        96.
+        72.
     } else {
         120.
     };

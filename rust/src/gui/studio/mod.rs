@@ -1,4 +1,6 @@
 pub mod controls;
+#[cfg(test)]
+mod interaction_tests;
 mod jobs;
 mod operations;
 #[cfg(test)]

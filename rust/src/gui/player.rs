@@ -52,6 +52,8 @@ pub struct Player {
     live_sender: Option<Sender<EqParameters>>,
     #[cfg(test)]
     without_output_device: bool,
+    #[cfg(test)]
+    test_live_receiver: Option<mpsc::Receiver<EqParameters>>,
 }
 impl Player {
     #[cfg(test)]
@@ -67,6 +69,10 @@ impl Player {
             sink.stop();
         }
         self.live_sender = None;
+        #[cfg(test)]
+        {
+            self.test_live_receiver = None;
+        }
         self.duration = 0.;
         self.rate = 0;
         self.controls.position.store(0, Ordering::Relaxed);
@@ -89,6 +95,14 @@ impl Player {
             // They must not open a real native device or claim audible playback.
             self.duration = before.duration();
             self.rate = before.sample_rate;
+            self.live_sender = None;
+            self.test_live_receiver = None;
+            if live_input.is_some() {
+                // Keep a real control channel for UI tests; no audio stream is opened.
+                let (sender, receiver) = mpsc::channel();
+                self.live_sender = Some(sender);
+                self.test_live_receiver = Some(receiver);
+            }
             return Ok(());
         }
         if self.stream.is_none() {
@@ -192,6 +206,40 @@ mod tests {
         assert!(player.stream.is_none() && player.sink.is_none());
         assert_eq!(player.duration, 1.);
         assert_eq!(player.rate, 16000);
+    }
+    #[test]
+    fn processing_fixture_captures_live_control_messages_without_claiming_audio_output() {
+        let mut player = Player::for_processing_tests();
+        let audio = Arc::new(Audio::new(vec![0.05; 16000], 16000, 1).unwrap());
+        let parameters = EqParameters::new(&crate::config::Settings::default(), 16000, 0.);
+        player
+            .load(
+                audio.clone(),
+                Some(audio.clone()),
+                -20.,
+                -20.,
+                Some((audio.clone(), parameters)),
+            )
+            .unwrap();
+        let mut changed = parameters;
+        changed.ceiling_dbtp = -3.;
+        assert!(player.set_eq(changed));
+        assert_eq!(
+            player
+                .test_live_receiver
+                .as_ref()
+                .unwrap()
+                .try_recv()
+                .unwrap()
+                .ceiling_dbtp,
+            -3.
+        );
+        assert!(player.stream.is_none() && player.sink.is_none());
+        player
+            .load(audio.clone(), Some(audio), -20., -20., None)
+            .unwrap();
+        assert!(!player.set_eq(changed));
+        assert!(player.test_live_receiver.is_none());
     }
     fn source() -> ABSource {
         let controls = Arc::new(Controls::default());

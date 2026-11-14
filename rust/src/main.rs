@@ -39,6 +39,8 @@ struct Arguments {
     capture_settings_scroll: Option<u32>,
     #[arg(long, hide = true, requires = "capture_ui")]
     capture_workspace_scroll: Option<u32>,
+    #[arg(long, hide = true, requires = "capture_ui", value_parser = ["welcome", "tour", "help", "terms", "mcp"])]
+    capture_learning: Option<String>,
 }
 fn main() -> eframe::Result {
     let args = Arguments::parse();
@@ -156,6 +158,9 @@ fn main() -> eframe::Result {
             }
             if let Some(offset) = args.capture_workspace_scroll {
                 app.capture_workspace_at(offset as f32);
+            }
+            if let Some(view) = args.capture_learning {
+                app.capture_learning_at(&view);
             }
             Ok(Box::new(app))
         }),

@@ -1,5 +1,5 @@
 //! The unmeasured workspace: portrait, getting-started steps, and local-processing help.
-use super::{app::MasterCraftApp, theme};
+use super::{app::MasterCraftApp, crystal_button, theme};
 use eframe::egui::{self, Color32, Pos2, Rect, RichText, Sense, Stroke};
 
 const STEP_FILL: Color32 = Color32::from_rgb(34, 25, 46);
@@ -11,9 +11,13 @@ const STEP_GAP: f32 = 12.;
 const HERO_GAP: f32 = 18.;
 const HERO_COPY_GAP: f32 = 9.;
 
-pub fn show(app: &MasterCraftApp, ui: &mut egui::Ui) {
+pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
     ui.add_space(5.);
     hero(app, ui);
+    if app.tracks.is_empty() && app.example_path().is_some() {
+        ui.add_space(8.);
+        if ui.add(crystal_button::primary("Try the example track")).on_hover_text("Add the bundled example to the mastering queue. You choose when to analyze, master and export.").clicked() { app.add_example(); }
+    }
     ui.add_space(10.);
     for (number, title, body, icon) in [
         (
@@ -46,11 +50,22 @@ fn hero(app: &MasterCraftApp, ui: &mut egui::Ui) {
     let portrait_size = (width * 0.30).clamp(128., 220.);
     let text_width = (width - portrait_size - HERO_GAP).max(60.);
     let copy = [
-        theme::display("Shape your sound.", if width < 560. { 28. } else { 36. }),
-        RichText::new("Analyze the mix. Refine the master. Export when you are ready.")
-            .size(17.)
-            .color(STEP_INK),
-        RichText::new("Hover a control name for a plain-language explanation.")
+        theme::display(
+            if app.tracks.is_empty() {
+                "Shape your sound."
+            } else {
+                "Your mix is loaded."
+            },
+            if width < 560. { 28. } else { 36. },
+        ),
+        RichText::new(if app.tracks.is_empty() {
+            "Add a mix or try the example. Master creates a preview; Export saves it."
+        } else {
+            "Choose Analyze to understand the mix, or Master to prepare a preview."
+        })
+        .size(17.)
+        .color(STEP_INK),
+        RichText::new("Help explains the controls and can replay the quick tour.")
             .size(14.)
             .color(theme::AMETHYST),
     ]

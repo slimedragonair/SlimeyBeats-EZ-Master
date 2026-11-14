@@ -13,6 +13,10 @@ pub const COLORS: [Color32; 7] = [
     Color32::from_rgb(151, 180, 244),
 ];
 
+const MIN_PLOT_HEIGHT: f32 = 140.;
+const MAX_PLOT_HEIGHT: f32 = 320.;
+const TALL_VIEWPORT_CHROME: f32 = 610.;
+
 pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, sr: u32) {
     ui.horizontal_wrapped(|ui| {
         for (label, color) in [
@@ -43,7 +47,12 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, sr: u32) {
     let (rect, response) = ui.allocate_exact_size(
         egui::vec2(
             ui.available_width(),
-            (ui.ctx().viewport_rect().height() - 790.).clamp(140., 270.),
+            if ui.ctx().viewport_rect().height() < 800. {
+                MIN_PLOT_HEIGHT
+            } else {
+                (ui.ctx().viewport_rect().height() - TALL_VIEWPORT_CHROME)
+                    .clamp(MIN_PLOT_HEIGHT, MAX_PLOT_HEIGHT)
+            },
         ),
         Sense::click_and_drag(),
     );

@@ -6,9 +6,10 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     super::controls::target(studio, ui);
     ui.separator();
     theme::eyebrow(ui, "OPTIONAL VST3 EFFECT");
-    ui.label("Plugins run local native code. Choose a plugin you trust; its processing is isolated from the app.");
+    ui.label("Optional: run a trusted VST3 audio effect in a separate local helper. This is not a security sandbox.");
+    ui.small("Mono/stereo float32 effects only. No vendor editor, MIDI or instruments.");
     if studio.plugin_host.is_none() {
-        ui.label("The optional plugin-host helper is missing. Use the full desktop Studio package or build plugins/host.");
+        ui.label("The optional plugin helper is missing. Install the full desktop Studio package to use effects.");
         return;
     }
     ui.horizontal_wrapped(|ui| {
@@ -46,6 +47,8 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
             .map_or("Choose an effect", |p| p.class.name.as_str());
         egui::ComboBox::from_id_salt("studio-vst-class")
             .selected_text(selected)
+            .width((ui.available_width() - 16.).max(80.))
+            .truncate()
             .show_ui(ui, |ui| {
                 for info in &probe.plugins {
                     if info.error.is_none() {
@@ -61,42 +64,64 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
             studio.reset_plugin_values();
         }
     }
-    if let Some(info) = studio
-        .plugin_probe
-        .as_ref()
-        .and_then(|p| p.plugins.iter().find(|p| p.class.id == studio.plugin_class))
-    {
-        ui.small("Generic controls use normalized 0–1 values. Preview applies the effect; export remains separate.");
-        for parameter in &info.parameters {
-            if let Some(value) = studio
-                .plugin_values
-                .iter_mut()
-                .find(|v| v.id == parameter.id)
-            {
-                ui.label(&parameter.name).on_hover_text(format!(
-                    "Plugin control · {}. Values use the plugin's normalized 0–1 mapping.",
-                    parameter.units
-                ));
-                ui.add_enabled(
-                    !parameter.read_only,
-                    CrystalSlider::new(&mut value.normalized, 0. ..=1.),
-                );
-            }
-        }
-        if ui
-            .add(crystal_button::secondary("Reset plugin controls"))
-            .clicked()
-        {
-            studio.reset_plugin_values();
-        }
+    let effect_selected = studio.plugin_probe.as_ref().is_some_and(|probe| {
+        probe
+            .plugins
+            .iter()
+            .any(|info| info.class.id == studio.plugin_class && info.error.is_none())
+    });
+    if effect_selected {
+        let reason = super::controls::edit_unavailable(studio);
         if ui
             .add_enabled(
-                studio.editing_target().is_ok(),
+                reason.is_none(),
                 crystal_button::primary("Preview plugin effect"),
             )
             .clicked()
         {
             studio.render_plugin(ctx);
+        }
+        if let Some(reason) = reason {
+            ui.small(reason);
+        }
+    }
+    if let Some(info) = studio
+        .plugin_probe
+        .as_ref()
+        .and_then(|p| p.plugins.iter().find(|p| p.class.id == studio.plugin_class))
+    {
+        ui.small("Controls use the plugin's 0–1 scale. Preview prepares audio to compare; Export saves that preview.");
+        egui::ScrollArea::vertical()
+            .id_salt("studio-plugin-parameters")
+            .max_height(340.)
+            .show(ui, |ui| {
+                for parameter in &info.parameters {
+                    ui.push_id(parameter.id, |ui| {
+                        if let Some(value) = studio
+                            .plugin_values
+                            .iter_mut()
+                            .find(|v| v.id == parameter.id)
+                        {
+                            ui.label(&parameter.name).on_hover_text(format!(
+                    "Plugin control · {}. Values use the plugin's normalized 0–1 mapping.",
+                    parameter.units
+                ));
+                            ui.add_enabled(
+                                !parameter.read_only,
+                                CrystalSlider::new(&mut value.normalized, 0. ..=1.),
+                            );
+                            if parameter.read_only {
+                                ui.small("Read-only · reported by the plugin");
+                            }
+                        }
+                    });
+                }
+            });
+        if ui
+            .add(crystal_button::secondary("Reset plugin controls"))
+            .clicked()
+        {
+            studio.reset_plugin_values();
         }
     }
 }

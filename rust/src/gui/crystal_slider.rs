@@ -14,7 +14,9 @@ impl<'a> CrystalSlider<'a> {
         range: impl Into<RangeInclusive<Num>>,
     ) -> Self {
         Self {
-            inner: egui::Slider::new(value, range),
+            // Native Always clamping also rounds an existing value to display precision.
+            // Revealing a control must not silently change a preset or MCP parameter.
+            inner: egui::Slider::new(value, range).clamping(egui::SliderClamping::Edits),
         }
     }
 

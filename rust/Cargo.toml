@@ -14,7 +14,7 @@ schemas = ["dep:schemars"]
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
-eframe = { version = "0.37", optional = true, default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
+eframe = { version = "0.37", optional = true, default-features = false, features = ["accesskit", "clipboard", "default_fonts", "glow", "links", "x11", "wayland"] }
 ebur128 = "0.1.11"
 glob = "0.3"
 hound = "3.5"

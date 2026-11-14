@@ -86,7 +86,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 report.target_lufs, report.output.metrics.integrated_lufs
             ));
             if !report.limiter.reachable {
-                ui.label(RichText::new("Gain or peak limits prevented the loudness target. See the report before accepting.").color(theme::BONE));
+                ui.label(RichText::new("Peak or gain limits affected the target. Compare the preview and read the report before exporting.").color(theme::BONE));
             }
         } else {
             ui.label(
@@ -148,6 +148,7 @@ pub fn report(app: &MasterCraftApp, ui: &mut egui::Ui) {
         ui.label(RichText::new("Live EQ uses an estimate. These measurements describe the previous revision while full-track measurements prepare.").color(theme::BONE));
     }
     theme::eyebrow(ui, "INPUT FINDINGS");
+    ui.label(RichText::new("These automated flags suggest things to listen for. A bigger number means a stronger detected pattern, not a quality grade.").size(14.).color(theme::MUTED));
     for issue in &r.analysis.issues {
         ui.horizontal_wrapped(|ui| {
             ui.label(
