@@ -80,7 +80,7 @@ WAV input and output work immediately, without Python or FFmpeg. Compressed form
 
 ## Studio Preview
 
-Import aligned stems or mix tracks with **Choose stem files…** or **Choose Suno / stem ZIP…**. There is no fixed nine-part import limit; practical capacity depends on hardware, decoded audio and working memory. On desktop, dropping a ZIP anywhere opens Studio review; dropping several audio files in Studio also prepares a review. Confirm the parts and encoding in the center workspace, then click **Import selected stems**. Leave an original/full mix out when importing its constituent stems. Alternatively, separate a mix into vocals/instrumental or four stems with the optional local model. Rebalance, clean or repair, compare and undo before saving. Imported parts must have identical decoded sample rate, channel count and frame count. This is an aligned mixer: removing the count limit does not add a free timeline, beat matching or new resampling controls. **Use for mastering** sends the prepared mix into the mastering workflow; Export remains separate.
+Import aligned stems or mix tracks with **Choose stem files…** or **Choose Suno / stem ZIP…**. There is no fixed nine-part import limit; practical capacity depends on hardware, decoded audio and working memory. On desktop, dropping a ZIP anywhere opens Studio review; dropping several audio files in Studio also prepares a review. Confirm the parts and encoding in the center workspace, then click **Import selected stems**. Leave an original/full mix out when importing its constituent stems. Alternatively, separate a mix into vocals/instrumental or four stems with the optional local model. Rebalance, clean or repair, compare and undo before saving. Imported parts must have identical decoded sample rate, channel count and frame count. This is an aligned mixer: removing the count limit does not add a free timeline, beat matching or new resampling controls. **To master** (**Use for mastering** in wider layouts) sends the prepared mix into the mastering workflow; Export remains separate.
 
 ![Current Studio Preview mixing four synthetic parts, with paired gain, mute and solo controls](docs/images/studio-stems.png)
 
@@ -135,13 +135,13 @@ The **desktop app is the flagship workstation**. The browser remains a private, 
 
 Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV. The browser mastering page supports **up to 15 minutes per mono/stereo track**, with separate **384 MiB decoded PCM and source-file limits**. Studio has a separate **128 MiB combined decoded-input limit**; the beta.3 removal of the part-count ceiling does not raise it. Available device memory can impose a lower practical limit. It uses a 48 kHz decoded sample rate and exports 16/24-bit PCM or 32-bit float WAV. The app keeps one active mix plus an optional reference; importing another mix replaces the previous one. The desktop app supports longer files, source-rate handling, batch queues and compressed exports. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
 
-![The real browser preview with live spectrum and EQ, separate Master and Export, and local Rust processing](docs/images/web-preview.png)
+![Current browser Basic overview with a prepared master, separate Export and pinned comparison controls](docs/images/web-basic-overview.png)
 
-The browser screenshot above is from the running app. [Open it at full size](docs/images/web-preview.png). On phones, select one of seven bands and keep the playback dock available while editing.
+The browser screenshot above uses generated test audio in the current app. [Open it at full size](docs/images/web-basic-overview.png). Basic keeps everyday choices visible; Advanced reveals more detail. Manual EQ shares its curve graph with the spectrum.
 
-<img src="docs/images/web-phone-eq.png" width="300" alt="Actual responsive browser EQ page with readable gain and spectrum scales above the playback dock">
+<img src="docs/images/web-phone-master.png" width="300" alt="Current responsive browser Basic view with separate Re-master and Export actions above pinned playback">
 
-**Phone layout:** the EQ and spectrum share a graph, and playback stays available while scrolling. [Open the phone capture at full size](docs/images/web-phone-eq.png). This is a responsive browser capture, not physical iPhone/Android qualification.
+**Phone layout:** Re-master and Export stay separate, and playback remains available while scrolling. The capture uses generated test audio. [Open it at full size](docs/images/web-phone-master.png). This is browser emulation, not physical iPhone/Android qualification.
 
 Audio and measurements stay in tab memory until you download them. There are no uploads, accounts, analytics or server DSP. The host still serves ordinary static files. Reloading/closing the tab discards the session; save your WAV first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
 
@@ -180,7 +180,7 @@ Earlier native suites passed **107 Windows / 109 Linux tests**, with **nine Wind
 | Browser matrix | Chromium, Firefox and Linux WebKit integration in [Browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/workflows/web.yml). Required together with Windows/Linux checks before merging. |
 | Earlier appearance review | Actual beta.1 Studio captures—four native views and desktop/phone browser repair—passed independent review **≥9/10** for look, polish and readability. Earlier mastering/EQ states passed separately. Static review does not certify interaction or sound. |
 
-Read the [browser validation record](docs/WEB_VALIDATION.md) and [Linux validation guide](docs/LINUX.md) for environments, fixtures, measured results, reproduction commands and remaining gaps. Badges track main; preview development is tracked in PR #8. Earlier artifacts do not certify the new beta.2 import review. **Physical iPhone/Android playback is still unqualified.** Linux-server build, export and GUI checks passed; audible playback awaits a connected output device, and the file-picker portal still needs testing. A responsive layout or synthetic audio sink does not establish device acceptance.
+Read the [browser validation record](docs/WEB_VALIDATION.md), [UI qualification](docs/UX_VALIDATION.md) and [Linux validation guide](docs/LINUX.md) for fixtures, results and remaining gaps. Badges track `main`; historical reports qualify their named candidates. **Physical iPhone/Android playback is still unqualified.** Linux-server build, export and GUI checks passed for the reported candidate; audible playback awaits a connected output device, and the file-picker portal still needs testing. A responsive layout or synthetic audio sink does not establish device acceptance.
 
 The following evidence concerns the published native release, rather than the larger current-source suite:
 
