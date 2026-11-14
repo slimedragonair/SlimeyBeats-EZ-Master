@@ -96,3 +96,21 @@ fn failed_save_is_reported_once_and_can_retry_without_losing_the_old_file() {
         "No abandoned temporary files"
     );
 }
+
+#[test]
+fn returning_to_a_failed_value_cancels_another_pending_deadline() {
+    let folder = tempfile::tempdir().unwrap();
+    let path = folder.path().join("prefs.json");
+    std::fs::create_dir(&path).unwrap();
+    let mut store = PreferenceStore::new(path, &0, true);
+    let now = Instant::now();
+    assert!(store.update(&1, now, true, false).is_err());
+    store.update(&2, now, false, false).unwrap();
+    assert!(store.due_in(now).is_some());
+    store.update(&1, now, false, false).unwrap();
+    assert!(store.due_in(now).is_none());
+    store
+        .update(&1, now + SAVE_DELAY * 2, false, false)
+        .unwrap();
+    assert!(store.due_in(now + SAVE_DELAY * 2).is_none());
+}

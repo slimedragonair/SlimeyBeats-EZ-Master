@@ -43,6 +43,7 @@ impl PreferenceStore {
             return Ok(());
         }
         if !explicit && !immediate && self.failed.as_ref() == Some(&bytes) {
+            self.pending = None;
             return Ok(());
         }
         if self
