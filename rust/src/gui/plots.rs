@@ -146,7 +146,7 @@ impl Waveform {
             ui.painter().layout_no_wrap(labels.1.into(), font, SLIME),
         ];
         let label_height = texts.iter().map(|text| text.size().y).fold(0_f32, f32::max);
-        let height = height.max(label_height * 3. + 24.);
+        let height = waveform_height(height, label_height);
         let (rect, response) = ui.allocate_exact_size(
             egui::vec2(ui.available_width(), height),
             Sense::click_and_drag(),
@@ -221,6 +221,12 @@ struct WaveformLayout {
     traces: [Rect; 2],
     labels: [Pos2; 2],
 }
+fn waveform_height(requested: f32, label_height: f32) -> f32 {
+    const MIN_TRACE_HEIGHT: f32 = 12.;
+    // Two label/trace lanes plus the time ticks. Keeping labels legible must not
+    // consume the entire envelope when a caller requests a compact graph.
+    requested.max(label_height * 3. + 2. * (MIN_TRACE_HEIGHT + 7.) + 7.)
+}
 fn waveform_layout(rect: Rect, label_height: f32) -> WaveformLayout {
     let plot = Rect::from_min_max(
         rect.min + egui::vec2(12., 0.),
@@ -249,6 +255,25 @@ fn waveform_layout(rect: Rect, label_height: f32) -> WaveformLayout {
 #[cfg(test)]
 mod waveform_layout_tests {
     use super::*;
+    #[test]
+    fn short_waveforms_leave_useful_trace_height_after_labels_and_ticks() {
+        for requested in [72., 76., 96., 120.] {
+            for label_height in [14., 16., 20.] {
+                let height = waveform_height(requested, label_height);
+                let layout = waveform_layout(
+                    Rect::from_min_size(Pos2::ZERO, egui::vec2(450., height)),
+                    label_height,
+                );
+                for trace in layout.traces {
+                    assert!(
+                        trace.height() >= 12.,
+                        "Trace is only {} px high",
+                        trace.height()
+                    );
+                }
+            }
+        }
+    }
     #[test]
     fn compact_and_large_waveforms_reserve_label_and_tick_bands() {
         for height in [96., 120., 160.] {

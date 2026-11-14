@@ -547,23 +547,20 @@ impl MasterCraftApp {
             return;
         }
         let timeline = (self.tab == 0 || self.tab == 1) && self.current().is_some();
-        let reserve = (if ui.available_width() >= 820. {
-            65.
-        } else {
-            90.
-        }) + if timeline {
-            if ui.ctx().viewport_rect().height() < 800. {
-                130.
-            } else {
-                165.
-            }
-        } else {
-            0.
-        };
+        egui::Panel::bottom("mastering-listening")
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| {
+                ui.separator();
+                if timeline {
+                    super::timeline_panel::show(self, ui);
+                    ui.separator();
+                }
+                super::transport::show(self, ui);
+            });
         let mut scroll = egui::ScrollArea::vertical()
             .id_salt("workspace")
             .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
-            .max_height((ui.available_height() - reserve).max(110.));
+            .max_height(ui.available_height().max(0.));
         if let Some(offset) = self.capture_workspace_scroll {
             scroll = scroll.vertical_scroll_offset(offset);
         }
@@ -572,11 +569,5 @@ impl MasterCraftApp {
             2 => overview::report(self, ui),
             _ => overview::show(self, ui),
         });
-        ui.separator();
-        if timeline {
-            super::timeline_panel::show(self, ui);
-            ui.separator();
-        }
-        super::transport::show(self, ui);
     }
 }

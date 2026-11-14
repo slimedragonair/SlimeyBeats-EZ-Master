@@ -15,3 +15,13 @@ mod stem_import_operations;
 mod transport;
 pub mod workspace;
 pub use state::Studio;
+
+mod mix_controls;
+mod preview_actions;
+mod repair_controls;
+mod tool_fields;
+mod tool_inputs;
+mod voice_controls;
+
+#[cfg(test)]
+mod layout_tests;

@@ -1,12 +1,8 @@
 use super::{
-    spectral_view,
     state::{Page, Studio},
     transport,
 };
-use crate::{
-    gui::{crystal_button, crystal_slider::CrystalSlider, theme},
-    studio::stem_mix::StemControl,
-};
+use crate::gui::{crystal_button, theme};
 use eframe::egui::{self, RichText};
 
 /// Returns true when the user explicitly sends the prepared mix to mastering.
@@ -130,9 +126,8 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                     let available = !studio.busy();
                     ui.add_enabled_ui(available, |ui| super::stem_bulk_import::review(studio,ui,ctx,compact));
                 } else if studio.bank.is_some() {
-                    ui.label(theme::display("Mix your stems.", if compact {20.} else {24.}));
-                    ui.small("Adjust parts here → Update mix preview → compare A/B → Export.");
-                    mixer(studio, ui, advanced, compact);
+                    if !compact { ui.label(theme::display("Mix your stems.",24.)); }
+                    super::mix_controls::show(studio, ui, advanced, compact);
                 } else {
                 ui.label(theme::display("Separate. Rebalance. Refine.",24.));
                 ui.label("Import existing stems with no model download. Use the right panel to balance parts, update the preview and export.");
@@ -140,14 +135,19 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                 }
             },
             Page::Voice=>{
-                ui.label(theme::display("A cleaner voice, on your terms.",24.));
-                ui.label("Work on the original voice, a vocal stem or the current preview. Compare every change; previewing and exporting are separate.");
-                ui.add_space(10.);ui.label("Rumble removal · learned noise reduction · de-essing · optional quiet-gap gate");
-                ui.small("1. Choose the input and settings. 2. Preview voice cleanup to compare A/B. 3. Export the prepared audio. A stem edit can be applied back into the mix first.");
+                let available = !studio.busy();
+                ui.add_enabled_ui(available, |ui| {
+                    super::tool_inputs::target(studio, ui);
+                    super::voice_controls::show(studio, ui, advanced);
+                });
             },
             Page::Repair=>{
-                if !compact {ui.label(theme::display("Refine a precise moment.",24.));}
-                spectral_view::show(studio,ui,if compact {workspace_height}else{workspace_height.min(360.)});
+                let available = !studio.busy();
+                ui.add_enabled_ui(available, |ui| {
+                    super::tool_inputs::target(studio, ui);
+                    super::repair_controls::show(studio, ui, ctx, advanced);
+                });
+                if studio.spectrogram.is_some() { super::spectral_view::show(studio,ui,if compact {180.} else {280.}); }
             },
             Page::Plugins=>{ui.label(theme::display("Your effects. Your workflow.",24.));ui.label("Choose a trusted VST3 effect, adjust its generic controls, and render a preview. The helper compensates reported latency and retains the source duration.");ui.small("Compatible mono/stereo float32 audio effects are supported. Native vendor editors and MIDI/instrument sequencing are outside this host's scope.");},
         }
@@ -157,127 +157,4 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
         }
     });
     promote
-}
-
-fn mixer(studio: &mut Studio, ui: &mut egui::Ui, advanced: bool, compact: bool) {
-    let Some(bank) = &studio.bank else {
-        return;
-    };
-    ui.small(format!(
-        "{} parts · scroll to view all parts and their controls",
-        bank.tracks.len()
-    ));
-    let custom_balance = studio
-        .mix
-        .tracks
-        .iter()
-        .filter(|track| track.balance != 0.)
-        .count();
-    if !advanced && custom_balance > 0 {
-        ui.colored_label(theme::BONE, format!("Custom balance active on {custom_balance} part(s). Advanced shows balance controls."));
-    }
-    if studio.mix.output_gain_db != 0.
-        || !studio.mix.protect_peaks
-        || studio.mix.ceiling_dbtp != -1.
-    {
-        ui.small(format!(
-            "Project mix output: {:+.1} dB · peak protection {} · {:.1} dBTP ceiling",
-            studio.mix.output_gain_db,
-            if studio.mix.protect_peaks {
-                "on"
-            } else {
-                "off"
-            },
-            studio.mix.ceiling_dbtp
-        ));
-    }
-    let available = !studio.busy();
-    let bank = studio.bank.as_ref().unwrap();
-    let stereo = bank.tracks[0].audio.channels == 2;
-    let duration = bank.tracks[0].audio.duration();
-    let waveforms = &studio.stem_waveforms;
-    let mut changed = false;
-    ui.add_enabled_ui(available, |ui| {
-        for track in &mut studio.mix.tracks {
-            // Keep keyboard focus when a pending notice changes preceding automatic IDs.
-            let track_id =
-                ui.make_persistent_id(egui::IdSalt::new(("studio-fader", track.kind.name())));
-            ui.scope_builder(egui::UiBuilder::new().scope_id(track_id), |ui| {
-                egui::Frame::group(ui.style())
-                    .inner_margin(if compact { 6 } else { 8 })
-                    .show(ui, |ui| {
-                        let name = bank.display_name(track.kind);
-                        let waveform = waveforms
-                            .iter()
-                            .find(|(kind, _)| *kind == track.kind)
-                            .map(|(_, waveform)| waveform);
-                        if ui.available_width() >= 560. {
-                            ui.columns(2, |columns| {
-                                columns[0]
-                                    .add(
-                                        egui::Label::new(
-                                            RichText::new(name.as_ref())
-                                                .strong()
-                                                .color(theme::AMETHYST),
-                                        )
-                                        .truncate(),
-                                    )
-                                    .on_hover_text(name.as_ref());
-                                if let Some(waveform) = waveform {
-                                    waveform.show_labeled(
-                                        &mut columns[0],
-                                        0.,
-                                        duration,
-                                        ("PART", ""),
-                                        if compact { 48. } else { 58. },
-                                    );
-                                }
-                                changed |= part_controls(track, &mut columns[1], advanced, stereo);
-                            });
-                        } else {
-                            ui.add(
-                                egui::Label::new(
-                                    RichText::new(name.as_ref()).strong().color(theme::AMETHYST),
-                                )
-                                .truncate(),
-                            )
-                            .on_hover_text(name.as_ref());
-                            if let Some(waveform) = waveform {
-                                waveform.show_labeled(ui, 0., duration, ("PART", ""), 48.);
-                            }
-                            changed |= part_controls(track, ui, advanced, stereo);
-                        }
-                    });
-            });
-        }
-    });
-    studio.mix_dirty |= changed;
-}
-
-fn part_controls(track: &mut StemControl, ui: &mut egui::Ui, advanced: bool, stereo: bool) -> bool {
-    ui.spacing_mut().slider_width = (ui.available_width() - 85.).clamp(70., 180.);
-    let mut changed = ui
-        .add(CrystalSlider::new(&mut track.gain_db, -60. ..=12.).suffix(" dB"))
-        .on_hover_text(
-            "Stem level: lower or raise this part, then Update mix preview to hear the change.",
-        )
-        .changed();
-    ui.horizontal_wrapped(|ui| {
-        changed |= ui
-            .checkbox(&mut track.mute, "Mute")
-            .on_hover_text("Exclude this part from the mix. Its bank audio is unchanged.")
-            .changed();
-        changed |= ui
-            .checkbox(&mut track.solo, "Solo")
-            .on_hover_text("Hear only soloed parts. A muted part remains muted.")
-            .changed();
-    });
-    if advanced && stereo {
-        ui.label("Stereo balance");
-        changed |= ui
-            .add(CrystalSlider::new(&mut track.balance, -1. ..=1.))
-            .on_hover_text("-1 keeps the left side, +1 keeps the right; 0 leaves both unchanged.")
-            .changed();
-    }
-    changed
 }

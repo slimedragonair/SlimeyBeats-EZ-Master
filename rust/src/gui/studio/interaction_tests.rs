@@ -16,11 +16,19 @@ use crate::{
 use eframe::egui;
 use std::sync::Arc;
 
-fn fixture(parts: u32) -> Studio {
+pub(super) fn fixture(parts: u32) -> Studio {
     let mut studio = Studio::new("F:/Exports/Long project folder/Studio mixes".into());
     studio.player = crate::gui::player::Player::for_processing_tests();
     studio.plugin_host = None;
+    studio.volume = 0.;
+    studio
+        .player
+        .controls
+        .volume
+        .store(0_f32.to_bits(), std::sync::atomic::Ordering::Relaxed);
     let audio = Arc::new(Audio::new(vec![0.02; 9600], 48000, 2).unwrap());
+    studio.waveform = crate::gui::plots::Waveform::new(&audio, Some(&audio));
+    studio.player.duration = audio.duration();
     studio.source = Some(LoadedSource {
         audio: audio.clone(),
         path: "Synthetic test mix.wav".into(),
@@ -69,7 +77,7 @@ fn fixture(parts: u32) -> Studio {
     studio
 }
 
-fn frame(
+pub(super) fn frame(
     ctx: &egui::Context,
     studio: &mut Studio,
     advanced: bool,
@@ -118,7 +126,10 @@ fn frame(
     (output, width)
 }
 
-fn text<'a>(output: &'a egui::FullOutput, needle: &str) -> Option<&'a egui::epaint::ClippedShape> {
+pub(super) fn text<'a>(
+    output: &'a egui::FullOutput,
+    needle: &str,
+) -> Option<&'a egui::epaint::ClippedShape> {
     output.shapes.iter().find(|shape| match &shape.shape {
         egui::Shape::Text(label) => {
             label.galley.text().contains(needle)
@@ -128,12 +139,17 @@ fn text<'a>(output: &'a egui::FullOutput, needle: &str) -> Option<&'a egui::epai
     })
 }
 
-fn click(
+pub(super) fn click(
     ctx: &egui::Context,
     studio: &mut Studio,
     output: &egui::FullOutput,
     needle: &str,
 ) -> egui::FullOutput {
+    let mut settled = None;
+    for _ in 0..5 {
+        settled = Some(frame(ctx, studio, false, egui::vec2(1480., 1800.), 332., vec![]).0);
+    }
+    let output = settled.as_ref().unwrap_or(output);
     let pos = text(output, needle)
         .unwrap_or_else(|| panic!("Missing visible control: {needle}"))
         .shape
@@ -459,7 +475,11 @@ fn scrolling_a_hundred_part_bank_reaches_the_last_part_and_keeps_export_visible(
         )
         .0;
         assert!(text(&output, "Export current preview").is_some());
-        if text(&output, "Part 100").is_some() {
+        if text(&output, "Part 100").is_some_and(|shape| {
+            shape
+                .clip_rect
+                .contains_rect(shape.shape.visual_bounding_rect())
+        }) {
             reached_last = true;
             break;
         }

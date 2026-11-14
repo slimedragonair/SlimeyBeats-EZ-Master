@@ -15,27 +15,38 @@ fn dock_layout(
         .frame(egui::Frame::NONE)
         .show(ui, |ui| {
             ui.separator();
-            if let Some(current) = &studio.current {
-                if let Some(seconds) = studio.waveform.show_labeled(
-                    ui,
-                    studio.player.seconds(),
-                    current.audio.duration(),
-                    (
-                        "BEFORE",
-                        if studio.mix_dirty {
-                            "PREVIOUS PREVIEW"
-                        } else {
-                            "PREVIEW"
-                        },
-                    ),
-                    if compact { 76. } else { 100. },
-                ) {
-                    studio.player.seek(seconds);
-                }
-                ui.separator();
+            if !compact {
+                comparison(studio, ui);
             }
-            show(studio, ui)
+            let controls = show(studio, ui);
+            if compact {
+                egui::CollapsingHeader::new("Comparison waveform")
+                    .id_salt("studio-comparison-details")
+                    .show(ui, |ui| comparison(studio, ui));
+            }
+            controls
         })
+}
+
+fn comparison(studio: &mut Studio, ui: &mut egui::Ui) {
+    if let Some(current) = &studio.current
+        && let Some(seconds) = studio.waveform.show_labeled(
+            ui,
+            studio.player.seconds(),
+            current.audio.duration(),
+            (
+                "BEFORE",
+                if studio.mix_dirty {
+                    "PREVIOUS PREVIEW"
+                } else {
+                    "PREVIEW"
+                },
+            ),
+            112.,
+        )
+    {
+        studio.player.seek(seconds);
+    }
 }
 
 fn show(studio: &mut Studio, ui: &mut egui::Ui) -> egui::Rect {

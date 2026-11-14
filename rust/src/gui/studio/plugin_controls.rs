@@ -3,7 +3,7 @@ use crate::gui::{crystal_button, crystal_slider::CrystalSlider, theme};
 use eframe::egui;
 
 pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
-    super::controls::target(studio, ui);
+    super::tool_inputs::target(studio, ui);
     ui.separator();
     theme::eyebrow(ui, "OPTIONAL VST3 EFFECT");
     ui.label("Optional: run a trusted VST3 audio effect in a separate local helper. This is not a security sandbox.");
@@ -62,27 +62,6 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
             });
         if old != studio.plugin_class {
             studio.reset_plugin_values();
-        }
-    }
-    let effect_selected = studio.plugin_probe.as_ref().is_some_and(|probe| {
-        probe
-            .plugins
-            .iter()
-            .any(|info| info.class.id == studio.plugin_class && info.error.is_none())
-    });
-    if effect_selected {
-        let reason = super::controls::edit_unavailable(studio);
-        if ui
-            .add_enabled(
-                reason.is_none(),
-                crystal_button::primary("Preview plugin effect"),
-            )
-            .clicked()
-        {
-            studio.render_plugin(ctx);
-        }
-        if let Some(reason) = reason {
-            ui.small(reason);
         }
     }
     if let Some(info) = studio
