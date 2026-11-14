@@ -291,6 +291,7 @@ impl Studio {
                             self.status = "Local stem engine is ready".into();
                         }
                         Ok(Change::PluginProbe(path, probe)) => {
+                            self.plugin_host = crate::studio_native::plugins::VstHost::find();
                             self.plugin_path = Some(path);
                             self.plugin_class = probe
                                 .plugins

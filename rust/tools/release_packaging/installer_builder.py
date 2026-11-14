@@ -4,11 +4,12 @@ import shutil
 import subprocess
 import tempfile
 from .installation_identity import for_version, for_channel, numeric_version
+from .artifact_labels import stem
 
 def escaped(text):
     return str(text).replace('$', '$$').replace('"', '$\\"')
 
-def build_installer(project, portable, output, compiler, version):
+def build_installer(project, portable, output, compiler, version, label=None):
     project, portable, output = map(lambda path: Path(path).resolve(), (project, portable, output))
     identity = for_version(version)
     staging = project / 'target/installer'
@@ -57,7 +58,7 @@ def build_installer(project, portable, output, compiler, version):
     uninstall_include = build / 'uninstall-files.nsh'
     install_include.write_text('\n'.join(install_lines) + '\n', encoding='utf-8')
     uninstall_include.write_text('\n'.join(remove_lines) + '\n', encoding='utf-8')
-    installer = output / f'SlimeyBeats-EZ-Master-{version}-Setup.exe'
+    installer = output / (stem(version, label) + '-Setup.exe')
     if installer.exists():
         raise FileExistsError(installer)
     other = for_channel('stable' if identity.channel == 'studio-preview' else 'studio-preview')

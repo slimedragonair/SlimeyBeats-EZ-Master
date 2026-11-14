@@ -16,6 +16,7 @@ pub(super) fn app(ctx: &egui::Context) -> MasterCraftApp {
         base: studio.cache.as_ref().unwrap().path().join("test-runtime"),
     };
     MasterCraftApp {
+        updates: super::update_state::UpdateState::for_tests(),
         experience,
         preferences: None,
         studio,

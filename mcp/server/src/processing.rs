@@ -2,7 +2,7 @@
 use crate::{
     audio_input,
     jobs::{Change, ContextData, Product},
-    options::{self, EqOptions, ExportFormat, MasterOptions},
+    options::{EqOptions, ExportFormat, MasterOptions},
     state::{Input, Master, Reference, analysis_summary},
 };
 use anyhow::{Context, Result};
@@ -32,7 +32,10 @@ pub fn load(ctx: ContextData, path: PathBuf, reference: bool) -> Result<Product>
     ctx.check()?;
     let source = SessionSource { path, identity };
     if reference {
-        let profile = options::profile(&ctx.snapshot.settings.profile)?;
+        let profile = ctx
+            .engine
+            .profiles
+            .resolve(&ctx.snapshot.settings.profile)?;
         ctx.progress(0.4, "Measuring the reference track");
         let measured = analysis::analyze(&audio, &profile)?;
         ctx.check()?;
@@ -63,7 +66,10 @@ pub fn load(ctx: ContextData, path: PathBuf, reference: bool) -> Result<Product>
 
 pub fn analyze(ctx: ContextData, source_id: String, suggest: bool) -> Result<Product> {
     let source = ctx.snapshot.source(&source_id)?;
-    let profile = options::profile(&ctx.snapshot.settings.profile)?;
+    let profile = ctx
+        .engine
+        .profiles
+        .resolve(&ctx.snapshot.settings.profile)?;
     ctx.progress(0.1, "Measuring the track");
     let measured = if suggest {
         ctx.snapshot
@@ -130,8 +136,12 @@ fn prepared(
 
 pub fn master(ctx: ContextData, source_id: String, options: MasterOptions) -> Result<Product> {
     let source = ctx.snapshot.source(&source_id)?;
-    let settings = options.apply(&ctx.snapshot.settings, ctx.snapshot.reference.is_some())?;
-    let profile = options::profile(&settings.profile)?;
+    let settings = options.apply_with_catalog(
+        &ctx.snapshot.settings,
+        ctx.snapshot.reference.is_some(),
+        &ctx.engine.profiles,
+    )?;
+    let profile = ctx.engine.profiles.resolve(&settings.profile)?;
     let prepared_audio = preview::master(
         &source.audio,
         &settings,
@@ -161,7 +171,7 @@ pub fn master(ctx: ContextData, source_id: String, options: MasterOptions) -> Re
 pub fn equalize(ctx: ContextData, preview_id: String, options: EqOptions) -> Result<Product> {
     let current = ctx.snapshot.master(&preview_id)?;
     let settings = options.apply(&current.settings)?;
-    let profile = options::profile(&settings.profile)?;
+    let profile = ctx.engine.profiles.resolve(&settings.profile)?;
     ctx.progress(0.1, "Rendering EQ from the original pre-EQ master");
     let (audio, parameters, report) = preview::resolve_eq(
         &current.preview.raw,

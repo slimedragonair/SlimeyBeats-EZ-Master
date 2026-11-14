@@ -9,8 +9,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     ui.label("Optional: run a trusted VST3 audio effect in a separate local helper. This is not a security sandbox.");
     ui.small("Mono/stereo float32 effects only. No vendor editor, MIDI or instruments.");
     if studio.plugin_host.is_none() {
-        ui.label("The optional plugin helper is missing. Install the full desktop Studio package to use effects.");
-        return;
+        ui.label("The app's helper will be downloaded and verified when you choose an effect. Your own VST3 plugin stays local.");
     }
     ui.horizontal_wrapped(|ui| {
         if ui

@@ -70,6 +70,15 @@ struct Stream {
 }
 
 pub fn external_command(name: &str) -> Command {
+    #[cfg(not(target_arch = "wasm32"))]
+    let resolved = if matches!(name, "ffmpeg" | "ffprobe" | "ffmpeg.exe" | "ffprobe.exe") {
+        crate::optional_tools::locate(name)
+    } else {
+        None
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    let cmd = Command::new(resolved.as_deref().unwrap_or_else(|| Path::new(name)));
+    #[cfg(target_arch = "wasm32")]
     let cmd = Command::new(name);
     #[cfg(windows)]
     let mut cmd = cmd;

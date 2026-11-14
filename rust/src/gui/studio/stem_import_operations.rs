@@ -42,6 +42,7 @@ impl Studio {
             ctx,
             "Importing aligned local stems",
             move |cancel, progress| {
+                crate::gui::tool_setup::for_stems(&files, cancel.clone(), progress)?;
                 session(
                     crate::studio_native::stem_files::import(&files, cancel.clone(), progress)?,
                     &cancel,
@@ -70,6 +71,11 @@ impl Studio {
             ctx,
             "Importing selected stem parts",
             move |cancel, progress| {
+                crate::gui::tool_setup::prepare(
+                    crate::gui::tool_setup::bundle_needs_codecs(&prepared, &selected, &preferred)?,
+                    cancel.clone(),
+                    progress,
+                )?;
                 session(
                     prepared.import(
                         &selected,

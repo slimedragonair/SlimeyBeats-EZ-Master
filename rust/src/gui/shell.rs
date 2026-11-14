@@ -19,6 +19,34 @@ impl eframe::App for MasterCraftApp {
 
 impl MasterCraftApp {
     pub(super) fn render_frame(&mut self, ui: &mut egui::Ui) {
+        self.updates.poll();
+        self.updates.startup(
+            ui.ctx(),
+            !self.busy && !self.studio.busy() && self.capture.is_none(),
+        );
+        if self.updates.close_after_launch {
+            self.persist_preferences(true, false);
+            self.experience.persist(true, false);
+            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+            return;
+        }
+        if self.updates.opening_setup {
+            // Installation is committed after the save reminder. Do not accept
+            // dropped files, shortcuts or controls that could create new work.
+            self.player.stop();
+            self.studio.player.stop();
+            ui.painter().rect_filled(ui.max_rect(), 0., theme::CANVAS);
+            ui.vertical_centered(|ui| {
+                ui.add_space(48.);
+                ui.spinner();
+                ui.strong("Verifying and opening Setup…");
+                ui.label(
+                    "Your saved work is kept. This app closes after Setup opens successfully.",
+                );
+            });
+            ui.ctx().request_repaint_after(Duration::from_millis(50));
+            return;
+        }
         self.enforce_playback_owner();
         self.poll();
         let ctx = ui.ctx().clone();
@@ -190,6 +218,13 @@ impl MasterCraftApp {
         let ready = !self.busy && !self.eq_dirty && !self.studio.busy();
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {
+                update_build_revision: crate::app_update::identity::BUILD_REVISION,
+                update_check_enabled: self.updates.preferences.automatic,
+                update_error: self
+                    .updates
+                    .error
+                    .clone()
+                    .or_else(|| self.updates.save_error.clone()),
                 pending_stem_parts: self
                     .studio
                     .bulk_import
@@ -233,6 +268,7 @@ impl MasterCraftApp {
             }
         }
         if self.busy
+            || self.updates.busy()
             || self.studio.busy()
             || self.player.controls.playing.load(Ordering::Relaxed)
             || self.studio.player.controls.playing.load(Ordering::Relaxed)
@@ -310,7 +346,11 @@ impl MasterCraftApp {
     fn sovereign_footer(&mut self, ui: &mut egui::Ui) -> Rect {
         let studio_active = self.tab == 3;
         let status_text = if studio_active && self.studio.mix_dirty {
-            "Mix changes pending · playback uses the previous preview".into()
+            if self.studio.monitoring_mix {
+                "Live stem mix · update preview before saving".into()
+            } else {
+                "Mix changes pending · update the saved preview".into()
+            }
         } else if studio_active {
             self.studio.status.clone()
         } else {

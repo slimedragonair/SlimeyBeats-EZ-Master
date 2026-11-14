@@ -47,4 +47,5 @@ jobs:
             dist/*-Setup.exe
             dist/*.zip
             dist/*-SHA256SUMS.txt
+            dist/UPDATE-MANIFEST-*.json
           if-no-files-found: error

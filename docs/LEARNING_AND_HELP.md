@@ -69,3 +69,7 @@ Steps, glossary and MCP copy share one source: [`rust/assets/learning-guide.json
 | Shared-copy web packaging | [`web/tools/build.py`](../web/tools/build.py) |
 
 Keep preference writes separate from audio operations, retain terminal tutorial choices across stale windows/tabs, and keep MCP setup explicit. The [UI validation record](UX_VALIDATION.md) preserves the reviewed candidates, scores and physical-device limits separately from release packaging checks.
+
+## Updates & tools
+
+Native Help includes the update checker/downloader, automatic-check preference and optional-codec setup. Progress and confirmation reveal once without taking focus on every progress tick. A new-build indicator opens this page and restores keyboard focus when Help closes. Update preferences live in `update-preferences.json` beside the other desktop preferences, with bounded reads, atomic saves and preservation of damaged files until an explicit save. [Lifecycle and implementation](UPDATES_AND_OPTIONAL_TOOLS.md).

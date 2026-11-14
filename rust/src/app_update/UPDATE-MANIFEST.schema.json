@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SlimeyBeats official immutable update manifest schema 1",
+  "description": "Append as UPDATE-MANIFEST-<build_revision>.json on the fixed official GitHub release; never replace earlier assets. The highest canonical positive decimal u64 filename revision wins and must equal the payload build_revision. Leading zeros and malformed versioned names are rejected. UPDATE-MANIFEST.json is a legacy fallback only when no versioned manifest exists; invalid or unavailable selected manifests never fall back to older catalogs. UTF-8 JSON is limited to 65536 bytes. Versions must parse as SemVer; revisions must increase even when the version stays the same. No URLs are accepted. Optional component bundles support missing-helper recovery; normal installers already include those helpers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "build_revision", "channel", "notes", "platforms"],
+  "properties": {
+    "schema": { "const": 1 },
+    "version": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 128,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$",
+      "description": "Strict SemVer, without a leading v; build metadata does not affect version precedence."
+    },
+    "build_revision": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "channel": { "const": "studio-preview" },
+    "notes": { "type": "string", "maxLength": 16384, "pattern": "^[^\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F]*$", "description": "At most 16384 UTF-8 bytes; control characters other than tab, CR and LF are rejected." },
+    "components": {
+      "type": "object",
+      "default": {},
+      "maxProperties": 16,
+      "description": "Recommended IDs: mcp_windows_x86_64 and vst3_windows_x86_64. Duplicate JSON keys are rejected. Component consumers must check their supported protocol and safely extract only the listed entries.",
+      "propertyNames": { "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9._+\\-]*$", "maxLength": 64 },
+      "additionalProperties": { "$ref": "#/$defs/component" }
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["windows_x86_64"],
+      "properties": {
+        "windows_x86_64": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["installer_asset", "installer_sha256", "installer_bytes", "executable_sha256"],
+          "properties": {
+            "installer_asset": {
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^(?!.*\\.\\.)SlimeyBeats-EZ-Master-[A-Za-z0-9][A-Za-z0-9._+\\-]*-Setup\\.exe$",
+              "description": "Must contain the exact manifest version, optionally followed by a hyphenated release label, and end in -Setup.exe. Double dots, slashes, escapes, percent encoding, spaces and non-ASCII characters are forbidden."
+            },
+            "installer_sha256": { "$ref": "#/$defs/sha256" },
+            "installer_bytes": { "type": "integer", "minimum": 1, "maximum": 1073741824 },
+            "executable_sha256": { "$ref": "#/$defs/sha256" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9A-Fa-f]{64}$" },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset", "sha256", "bytes", "files", "protocol"],
+      "properties": {
+        "asset": { "type": "string", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9._+\\-]*\\.zip$", "maxLength": 200, "description": "Exact release asset filename; no double dots, paths or percent escapes." },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 1073741824 },
+        "protocol": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "files": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 256,
+          "propertyNames": {
+            "maxLength": 240,
+            "pattern": "^(?!.*\\.\\.)[A-Za-z0-9](?:[A-Za-z0-9._+\\-]*[A-Za-z0-9_+\\-])?(?:/[A-Za-z0-9](?:[A-Za-z0-9._+\\-]*[A-Za-z0-9_+\\-])?)*$",
+            "not": { "pattern": "(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$)" }
+          },
+          "description": "Exact relative ZIP entries, at most 240 ASCII bytes. Slash separators only; dot segments, reserved Windows names, case collisions and file/directory conflicts are forbidden. Duplicate keys are rejected.",
+          "additionalProperties": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    }
+  }
+}

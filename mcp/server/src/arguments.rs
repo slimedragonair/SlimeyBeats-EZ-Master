@@ -22,6 +22,9 @@ pub struct Arguments {
     /// Trusted desktop executable used only by the explicit open_in_desktop tool.
     #[arg(long)]
     pub desktop_exe: Option<PathBuf>,
+    /// Owner-authorized custom profile folder, independent of the companion executable. Omit for bundled profiles only.
+    #[arg(long)]
+    pub profiles_root: Option<PathBuf>,
     /// Optional dedicated cache for the local stem engine. Default is shared per-user app data.
     #[arg(long)]
     pub studio_data: Option<PathBuf>,
@@ -61,6 +64,12 @@ impl Arguments {
         if let Some(path) = &self.studio_data {
             args.extend([
                 "--studio-data".into(),
+                std::path::absolute(path)?.to_string_lossy().into_owned(),
+            ]);
+        }
+        if let Some(path) = &self.profiles_root {
+            args.extend([
+                "--profiles-root".into(),
                 std::path::absolute(path)?.to_string_lossy().into_owned(),
             ]);
         }

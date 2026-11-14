@@ -17,6 +17,7 @@ pub(super) enum HelpPage {
     Assistant,
     Troubleshooting,
     About,
+    Updates,
 }
 
 pub(super) struct UserExperience {

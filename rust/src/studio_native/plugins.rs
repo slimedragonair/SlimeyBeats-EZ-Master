@@ -69,7 +69,8 @@ impl VstHost {
                 }
             }
         }
-        None
+        crate::component_tools::locate(crate::component_tools::ToolKind::PluginHost)
+            .map(|executable| Self { executable })
     }
     pub fn probe(&self, module: &Path, cancel: Arc<AtomicBool>) -> Result<Probe> {
         let module = resolve_binary(module)?;

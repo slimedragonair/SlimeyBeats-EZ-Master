@@ -11,6 +11,9 @@ use std::{
 #[derive(Parser)]
 #[command(name=mastercraft::branding::APP_NAME,version, about = "SlimeyBeats-EZ-Master desktop mastering workstation")]
 struct Arguments {
+    /// Print the update identity without starting the GUI or opening any audio.
+    #[arg(long, hide = true, conflicts_with_all = ["files", "session", "studio_session", "auto_master", "capture_ui"])]
+    build_info: bool,
     /// Open a validated local session prepared by the MCP companion.
     #[arg(long, conflicts_with = "files")]
     session: Option<PathBuf>,
@@ -39,11 +42,19 @@ struct Arguments {
     capture_settings_scroll: Option<u32>,
     #[arg(long, hide = true, requires = "capture_ui")]
     capture_workspace_scroll: Option<u32>,
-    #[arg(long, hide = true, requires = "capture_ui", value_parser = ["welcome", "tour", "help", "terms", "mcp"])]
+    #[arg(long, hide = true, requires = "capture_ui", value_parser = ["welcome", "tour", "help", "terms", "mcp", "updates"])]
     capture_learning: Option<String>,
 }
 fn main() -> eframe::Result {
     let args = Arguments::parse();
+    if args.build_info {
+        println!(
+            "{}",
+            serde_json::to_string(&mastercraft::app_update::current())
+                .expect("valid build identity")
+        );
+        return Ok(());
+    }
     let document = if let Some(path) = &args.session {
         match mastercraft::session_document::SessionDocument::load(path) {
             Ok(document) => Some(document),

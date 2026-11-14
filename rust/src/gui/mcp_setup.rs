@@ -13,6 +13,10 @@ use std::{
 
 const CONFIG_LIMIT: usize = 256 * 1024;
 const CONFIG_TIMEOUT: Duration = Duration::from_secs(5);
+enum ConfigEvent {
+    Progress(String),
+    Done(Result<String, String>),
+}
 
 #[derive(Default)]
 pub(super) struct McpSetup {
@@ -21,7 +25,8 @@ pub(super) struct McpSetup {
     pub config: Option<String>,
     pub error: Option<String>,
     pub copied: bool,
-    receiver: Option<mpsc::Receiver<Result<String, String>>>,
+    pub status: String,
+    receiver: Option<mpsc::Receiver<ConfigEvent>>,
     cancel: Option<Arc<AtomicBool>>,
 }
 
@@ -35,6 +40,7 @@ pub(super) fn companion(root: &Path) -> Option<PathBuf> {
             PathBuf::from("mcp/server/target/debug").join(name),
         ],
     )
+    .or_else(|| crate::component_tools::locate(crate::component_tools::ToolKind::McpBridge))
 }
 
 fn config_command(binary: &Path, desktop: &Path, input: &Path, output: &Path) -> Result<Command> {
@@ -59,6 +65,8 @@ fn config_command(binary: &Path, desktop: &Path, input: &Path, output: &Path) ->
         .arg(std::path::absolute(output)?)
         .arg("--desktop-exe")
         .arg(desktop)
+        .arg("--profiles-root")
+        .arg(crate::paths::app_root().join("profiles"))
         .arg("--print-config");
     Ok(command)
 }
@@ -73,21 +81,27 @@ impl McpSetup {
         self.config = None;
         self.error = None;
         self.copied = false;
+        self.status.clear();
     }
 
     pub fn generate(&mut self, binary: &Path, ctx: &egui::Context) {
+        self.generate_or_prepare(Some(binary.to_path_buf()), ctx);
+    }
+    pub fn generate_or_prepare(&mut self, binary: Option<PathBuf>, ctx: &egui::Context) {
         self.invalidate();
         let request = (|| {
             let desktop = std::env::current_exe()?;
-            config_command(
-                binary,
-                &desktop,
-                self.input.as_deref().context("Choose an audio folder")?,
-                self.output.as_deref().context("Choose an output folder")?,
-            )
+            let input = self.input.clone().context("Choose an audio folder")?;
+            let output = self.output.clone().context("Choose an output folder")?;
+            ensure!(input.is_dir(), "Choose an existing audio folder first");
+            ensure!(
+                !output.as_os_str().is_empty(),
+                "Choose an output folder first"
+            );
+            anyhow::Ok((desktop, input, output))
         })();
-        let command = match request {
-            Ok(command) => command,
+        let (desktop, input, output) = match request {
+            Ok(value) => value,
             Err(error) => {
                 self.error = Some(format!("{error:#}"));
                 return;
@@ -97,9 +111,22 @@ impl McpSetup {
         let cancel = Arc::new(AtomicBool::new(false));
         self.cancel = Some(cancel.clone());
         self.receiver = Some(receiver);
+        self.status = "Preparing your connection example…".into();
         let ctx = ctx.clone();
         std::thread::spawn(move || {
             let result = (|| -> Result<String> {
+                let binary = match binary {
+                    Some(binary) => binary,
+                    None => crate::component_tools::ensure(
+                        crate::component_tools::ToolKind::McpBridge,
+                        cancel.clone(),
+                        &|_, message| {
+                            let _ = sender.send(ConfigEvent::Progress(message.into()));
+                            ctx.request_repaint();
+                        },
+                    )?,
+                };
+                let command = config_command(&binary, &desktop, &input, &output)?;
                 let mut bytes = vec![];
                 crate::native_process::read_stdout(
                     command,
@@ -121,37 +148,49 @@ impl McpSetup {
                 Ok(serde_json::to_string_pretty(&value)?)
             })()
             .map_err(|error| format!("{error:#}"));
-            let _ = sender.send(result);
+            let _ = sender.send(ConfigEvent::Done(result));
             ctx.request_repaint();
         });
     }
 
     pub fn poll(&mut self) {
-        let Some(receiver) = &self.receiver else {
-            return;
-        };
-        match receiver.try_recv() {
-            Ok(result) => {
-                self.receiver = None;
-                self.cancel = None;
-                match result {
-                    Ok(config) => self.config = Some(config),
-                    Err(error) => self.error = Some(error),
+        loop {
+            let Some(receiver) = &self.receiver else {
+                return;
+            };
+            match receiver.try_recv() {
+                Ok(ConfigEvent::Progress(message)) => self.status = message,
+                Ok(ConfigEvent::Done(result)) => {
+                    self.receiver = None;
+                    self.cancel = None;
+                    match result {
+                        Ok(config) => {
+                            self.config = Some(config);
+                            self.status = "Connection example ready.".into();
+                        }
+                        Err(error) => {
+                            self.error = Some(error);
+                            self.status.clear();
+                        }
+                    }
+                    return;
                 }
-            }
-            Err(mpsc::TryRecvError::Disconnected) => {
-                self.receiver = None;
-                self.cancel = None;
-                self.error = Some(
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    self.receiver = None;
+                    self.cancel = None;
+                    self.error = Some(
                     "The setup helper stopped before returning a connection example. Try again."
                         .into(),
                 );
+                    return;
+                }
+                Err(mpsc::TryRecvError::Empty) => return,
             }
-            Err(mpsc::TryRecvError::Empty) => {}
         }
     }
 
     pub fn cancel(&mut self) {
+        self.status = "Companion setup cancelled. Your audio is unchanged.".into();
         if let Some(cancel) = self.cancel.take() {
             cancel.store(true, Ordering::Relaxed);
         }

@@ -7,9 +7,9 @@ import time
 
 
 class Client:
-    def __init__(self, command):
+    def __init__(self, command, *, env=None):
         self.process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE, text=True, encoding="utf-8")
+                                        stderr=subprocess.PIPE, text=True, encoding="utf-8", env=env)
         self.responses = queue.Queue()
         self.stderr = []
         self.sequence = 0

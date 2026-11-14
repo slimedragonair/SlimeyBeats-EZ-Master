@@ -11,10 +11,19 @@ use crate::{
 use anyhow::{Context, Result, ensure};
 use eframe::egui;
 use std::{
-    path::PathBuf,
-    sync::{Arc, atomic::Ordering},
+    path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
+
+#[path = "auto_setup.rs"]
+mod auto_setup;
+#[cfg(test)]
+#[path = "auto_setup_tests.rs"]
+mod auto_setup_tests;
 
 fn revision(
     before: Arc<Audio>,
@@ -99,14 +108,21 @@ impl Studio {
         );
     }
     pub fn probe_plugin(&mut self, path: PathBuf, ctx: &egui::Context) {
-        let Some(host) = self.plugin_host.clone() else {
-            self.error = Some("Install the optional plugin host helper first".into());
-            return;
-        };
+        let host = self.plugin_host.clone();
         self.begin(
             ctx,
             "Reading VST3 controls in an isolated helper",
-            move |cancel, _| {
+            move |cancel, progress| {
+                let host = match host {
+                    Some(host) => host,
+                    None => crate::studio_native::plugins::VstHost {
+                        executable: crate::component_tools::ensure(
+                            crate::component_tools::ToolKind::PluginHost,
+                            cancel.clone(),
+                            progress,
+                        )?,
+                    },
+                };
                 let probe = host.probe(&path, cancel)?;
                 Ok(Change::PluginProbe(path, probe))
             },
@@ -156,16 +172,21 @@ impl Studio {
         );
     }
     pub fn load(&mut self, path: PathBuf, ctx: &egui::Context) {
-        self.begin(ctx, "Loading a local Studio source", move |cancel, _| {
-            let (audio, _) =
-                audio_import::load(&path, 512 * 1024 * 1024, Duration::from_secs(300), cancel)?;
-            let loudness = crate::meters::integrated(&audio)?;
-            Ok(Change::Source(LoadedSource {
-                audio: Arc::new(audio),
-                path,
-                loudness,
-            }))
-        });
+        self.begin(
+            ctx,
+            "Loading a local Studio source",
+            move |cancel, progress| {
+                crate::gui::tool_setup::for_inputs([&path], cancel.clone(), progress)?;
+                let (audio, _) =
+                    audio_import::load(&path, 512 * 1024 * 1024, Duration::from_secs(300), cancel)?;
+                let loudness = crate::meters::integrated(&audio)?;
+                Ok(Change::Source(LoadedSource {
+                    audio: Arc::new(audio),
+                    path,
+                    loudness,
+                }))
+            },
+        );
     }
     pub fn install_engine(&mut self, repair: bool, ctx: &egui::Context) {
         let runtime = self.runtime.clone();
@@ -179,27 +200,86 @@ impl Studio {
         );
     }
     pub fn separate(&mut self, ctx: &egui::Context) {
+        let paths = self.runtime.clone();
+        let runtime = StemRuntime::from(&paths);
+        self.separate_with(
+            ctx,
+            move |progress, cancel| {
+                paths.install_with_repair(false, progress, cancel)?;
+                Ok(())
+            },
+            move |input, mode, cache, progress, cancel| {
+                Ok(runtime
+                    .separate(input, mode, cache, progress, cancel)?
+                    .stems)
+            },
+        );
+    }
+    fn separate_with(
+        &mut self,
+        ctx: &egui::Context,
+        install: impl FnOnce(&dyn Fn(f32, &str), Arc<AtomicBool>) -> Result<()> + Send + 'static,
+        separate: impl FnOnce(
+            &Audio,
+            SeparationMode,
+            &Path,
+            &dyn Fn(f32, &str),
+            Arc<AtomicBool>,
+        ) -> Result<stem_mix::StemSet>
+        + Send
+        + 'static,
+    ) {
+        if self.busy() {
+            return;
+        }
         let Some(source) = &self.source else {
             self.error = Some("Load a music source first".into());
             return;
         };
         let Some(cache) = self.cache.clone() else {
+            self.error =
+                Some("Private Studio cache is unavailable; reopen Studio and retry".into());
             return;
         };
-        if !self.runtime.is_ready() {
-            self.error=Some("Install the optional stem engine first. Voice cleanup and spectral repair work without it.".into());
-            return;
-        }
         let input = source.audio.clone();
-        let runtime = StemRuntime::from(&self.runtime);
-        let two = self.two_stems;
-        self.begin(ctx,"Separating the source locally",move|cancel,progress| {
-            let separated=runtime.separate(&input,if two {SeparationMode::VocalInstrumental}else{SeparationMode::FourStems},cache.path(),progress,cancel.clone())?;
-            let bank=Arc::new(separated.stems);let mix=bank.defaults();
-            let audio=stem_mix::render(&bank,&mix,&||cancel.load(Ordering::Relaxed))?;
-            let preview=revision(input,audio,"Neutral stem mix",vec!["Stem separation is an estimate; listen for bleed/artifacts. The neutral mix retains the original through reconstruction residual in instrumental/other.".into()],Some(bank.clone()),mix)?;
-            Ok(Change::Stems(bank,preview))
-        });
+        let needs_setup = !self.runtime.is_ready();
+        let mode = if self.two_stems {
+            SeparationMode::VocalInstrumental
+        } else {
+            SeparationMode::FourStems
+        };
+        self.begin(
+            ctx,
+            if needs_setup {
+                "Setting up the stem engine, then separating this source automatically"
+            } else {
+                "Separating the source locally"
+            },
+            move |cancel, progress| {
+                let stems = auto_setup::run(
+                    needs_setup,
+                    cancel.clone(),
+                    progress,
+                    install,
+                    |progress, cancel| separate(&input, mode, cache.path(), progress, cancel),
+                )?;
+                progress(0.95, "Preparing the separated stem mix");
+                let bank = Arc::new(stems);
+                let mix = bank.defaults();
+                let audio = stem_mix::render(&bank, &mix, &|| cancel.load(Ordering::Relaxed))?;
+                progress(0.97, "Measuring the stem mix preview");
+                let preview = revision(
+                    input,
+                    audio,
+                    "Neutral stem mix",
+                    vec!["Stem separation is an estimate; listen for bleed/artifacts. The neutral mix retains the original through reconstruction residual in instrumental/other.".into()],
+                    Some(bank.clone()),
+                    mix,
+                )?;
+                ensure!(!cancel.load(Ordering::Relaxed), "Cancelled");
+                Ok(Change::Stems(bank, preview))
+            },
+        );
     }
     pub fn render_mix(&mut self, ctx: &egui::Context) {
         let Some(bank) = self.bank.clone() else {
@@ -308,7 +388,8 @@ impl Studio {
             suffix: "_studio".into(),
             ..Default::default()
         };
-        self.begin(ctx,"Saving the selected Studio preview",move|cancel,_| {
+        self.begin(ctx,"Saving the selected Studio preview",move|cancel,progress| {
+            crate::gui::tool_setup::for_export(&settings,preview.audio.sample_rate,cancel.clone(),progress)?;
             let results=crate::export::export(&preview.audio,&input,&settings,&||cancel.load(Ordering::Relaxed))?;
             let report=serde_json::json!({"kind":"studio_audio","label":preview.label,"notes":preview.notes,"exports":results});
             let warning=results.first().and_then(|r|r["path"].as_str()).and_then(|path|crate::export::write_json(&PathBuf::from(path).with_extension("studio-report.json"),&report).err()).map(|error|format!("Audio saved, but the report could not be written: {error:#}"));

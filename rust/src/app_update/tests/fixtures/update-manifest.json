@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "version": "0.5.0-beta.3",
+  "build_revision": 2026111403,
+  "channel": "studio-preview",
+  "notes": "Fixture only: same-version hotfix; the installer contains the three bytes abc.",
+  "platforms": {
+    "windows_x86_64": {
+      "installer_asset": "SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Setup.exe",
+      "installer_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      "installer_bytes": 3,
+      "executable_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  }
+}
