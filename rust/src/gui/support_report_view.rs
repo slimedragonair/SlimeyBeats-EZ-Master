@@ -54,13 +54,6 @@ pub(super) fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, _ctx: &egui::Con
     if changed {
         state.invalidate();
     }
-    if ui
-        .add(crystal_button::primary("Generate local report preview"))
-        .clicked()
-    {
-        let context = super::support_report_state::context(app);
-        app.support_report.build(context);
-    }
     let state = &mut app.support_report;
     if let Some(report) = &state.preview {
         ui.separator();
@@ -86,6 +79,7 @@ pub(super) fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, _ctx: &egui::Con
 
 #[derive(Default)]
 struct Actions {
+    generate: bool,
     copy: bool,
     save: bool,
 }
@@ -110,6 +104,10 @@ fn footer(
                 )
                 .clicked();
         });
+    } else {
+        actions.generate = ui
+            .add(crystal_button::primary("Generate local report preview"))
+            .clicked();
     }
     if !message.is_empty() {
         ui.label(message);
@@ -176,5 +174,9 @@ pub(super) fn show_footer(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egu
             .save_file()
     {
         state.save(&path);
+    }
+    if actions.generate {
+        let context = super::support_report_state::context(app);
+        app.support_report.build(context);
     }
 }

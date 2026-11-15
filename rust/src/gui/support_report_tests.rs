@@ -105,6 +105,9 @@ fn recovery_and_reporting_help_actions_are_visible_at_supported_sizes() {
             let ctx = egui::Context::default();
             theme::apply(&ctx);
             let mut app = test_fixture::app(&ctx);
+            if page == HelpPage::ReportProblem {
+                app.support_report.details = "A deliberately long draft description.\n".repeat(80);
+            }
             app.experience.open_help(page, &ctx);
             let output = settled(&ctx, &mut app, size);
             assert!(
@@ -113,6 +116,12 @@ fn recovery_and_reporting_help_actions_are_visible_at_supported_sizes() {
             );
             assert!(text_rect(&output, "Recovery").is_some());
             assert!(text_rect(&output, "Report a problem").is_some());
+            if page == HelpPage::ReportProblem {
+                assert!(
+                    text_rect(&output, "Generate local report preview").is_some(),
+                    "Generate must stay pinned even with a long draft at {size:?}"
+                );
+            }
         }
     }
 }
