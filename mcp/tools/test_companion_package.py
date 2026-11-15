@@ -95,7 +95,7 @@ class CompanionPackageTests(unittest.TestCase):
         readme = (Path(result["folder"]) / "README.txt").read_text(encoding="utf-8")
         for text in ["42 tools", "get_optional_tool_status", "prepare_optional_tool", "allow_download=true", "automatically prepare", "private user cache", "private recovery cache", "No AI model is bundled", "Package label: Hotfix2"]:
             self.assertIn(text, readme)
-        for text in ["prepare_support_report", "save_support_report", "owner_review_confirmed=true", "model provider", "No report is uploaded or posted"]:
+        for text in ["prepare_support_report", "save_support_report", "owner_review_confirmed=true", "model provider", "before review or saving", "cannot retract client input", "This companion does not upload files or post issues"]:
             self.assertIn(text, readme)
         self.assertNotIn("require separately installed ffmpeg", readme)
 

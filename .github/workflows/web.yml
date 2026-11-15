@@ -42,6 +42,11 @@ jobs:
           echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
           python3 -m pip install playwright==1.57.0
           python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Verify recovery and private reporting in three engines
+        run: |
+          python3 web/tools/verify_recovery_browser.py --site web/dist --browser chromium --out '${{ runner.temp }}/browser-checks/recovery-chromium'
+          python3 web/tools/verify_recovery_browser.py --site web/dist --browser firefox --out '${{ runner.temp }}/browser-checks/recovery-firefox'
+          python3 web/tools/verify_recovery_browser.py --site web/dist --browser webkit --out '${{ runner.temp }}/browser-checks/recovery-webkit'
       - name: Verify MP3 timing against independent decoded PCM
         run: |
           python3 web/tools/verify_gapless.py --out '${{ runner.temp }}/browser-checks/gapless-chromium'
@@ -77,11 +82,6 @@ jobs:
           python3 web/tools/verify_learning_browser.py --out '${{ runner.temp }}/browser-checks/learning-chromium'
           python3 web/tools/verify_learning_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/learning-firefox'
           python3 web/tools/verify_learning_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/learning-webkit'
-      - name: Verify recovery and private reporting in three engines
-        run: |
-          python3 web/tools/verify_recovery_browser.py --site web/dist --browser chromium --out '${{ runner.temp }}/browser-checks/recovery-chromium'
-          python3 web/tools/verify_recovery_browser.py --site web/dist --browser firefox --out '${{ runner.temp }}/browser-checks/recovery-firefox'
-          python3 web/tools/verify_recovery_browser.py --site web/dist --browser webkit --out '${{ runner.temp }}/browser-checks/recovery-webkit'
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -111,14 +111,18 @@ def chromium_crash(browser, base, ready, open_recovery, save_point, *, proof=Non
         lock_name = 'slimeybeats-recovery:' + owner
         page.wait_for_function('(name) => navigator.locks.query().then(s => s.held.some(lock => lock.name === name))', arg=lock_name)
         evidence['lock_held_before_crash'] = True
-        # A navigation error containing chrome://crash does not prove that a
-        # renderer actually crashed. Observe its lifecycle event before closing.
+        # The internal chrome://crash navigation can be aborted without a crash
+        # in headless CI. Force this owned renderer through its testing protocol.
+        crash_session = context.new_cdp_session(page)
         with page.expect_event('crash', timeout=30000):
-            try: page.goto('chrome://crash', timeout=10000)
+            # Closing after the observed event also completes the pending CDP
+            # command, whose renderer can no longer reply after it has crashed.
+            page.once('crash', lambda _: page.close())
+            try: crash_session.send('Page.crash')
             except Exception as error:
                 assert 'crash' in str(error).lower() or 'closed' in str(error).lower(), str(error)
         evidence['renderer_crash_observed'] = True
-        page.close()
+        if not page.is_closed(): page.close()
         fresh = context.new_page(); fresh.goto(base, wait_until='networkidle'); ready(fresh)
         # Closing the crashed target and releasing its browser-owned Web Lock
         # are asynchronous. Await real release; never expire or steal a lease.
