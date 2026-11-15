@@ -36,7 +36,9 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 
 
-**Next desktop editor milestone (development source):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP adds `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). These changes are on `feature/stem-editor-workspace`; the current download above remains Hotfix3.
+**Active testing branch: [`current-work`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/current-work).** Work is pushed there in small checkpoints so it can be reviewed from mobile; native/browser CI runs on each push. Check the commit's validation status before treating it as qualified. The hosted app still deploys from `main`; selecting a source branch does not update that website.
+
+**Next desktop editor milestone (development source):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP adds `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). These changes are on `current-work`; the current download above remains Hotfix3.
 
 ![Development desktop stem timeline with four synthetic parts and a selected-stem inspector](docs/images/stem-editor-timeline.png)
 
@@ -157,7 +159,7 @@ The server reported **Dummy Output**, with no headphones or speakers connected, 
 
 The **desktop app is the flagship workstation**. The browser remains a private, accessible companion, with web/mobile feature coverage expanding as device limits allow. Advanced tools will target desktop first.
 
-**Browser parity work (development source):** local **320 kbps MP3 export**, desktop-compatible **EQ preset JSON**, and **session ZIP downloads** for mastering and Studio. ZIPs combine the current rendered audio, available imported stems and versioned analysis/settings; full source/reference tracks and undo history are not automatically added. Live EQ now spreads filter preparation across processing blocks and coalesces slider bursts. [Workflow, limits and architecture](docs/WEB_EXPORTS.md) · [Tester-requested roadmap, easiest to hardest](docs/BROWSER_PARITY_ROADMAP.md). These additions are on `feature/stem-editor-workspace`; the hosted preview and published installer remain separate releases.
+**Browser parity work (development source):** local **320 kbps MP3 export**, desktop-compatible **EQ preset JSON**, and **session ZIP downloads** for mastering and Studio. ZIPs combine the current rendered audio, available imported stems and versioned analysis/settings; full source/reference tracks and undo history are not automatically added. Live EQ now spreads filter preparation across processing blocks and coalesces slider bursts. [Workflow, limits and architecture](docs/WEB_EXPORTS.md) · [Tester-requested roadmap, easiest to hardest](docs/BROWSER_PARITY_ROADMAP.md). These additions are on `current-work`; the hosted preview and published installer remain separate releases.
 
 ![Development browser report with MP3 export, EQ preset and session ZIP downloads](docs/images/web-session-downloads.png)
 

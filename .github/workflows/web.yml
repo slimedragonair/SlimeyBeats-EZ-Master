@@ -1,7 +1,7 @@
 name: Browser preview
 on:
   push:
-    branches: [main]
+    branches: [main, current-work]
   pull_request:
   workflow_dispatch:
 permissions:
