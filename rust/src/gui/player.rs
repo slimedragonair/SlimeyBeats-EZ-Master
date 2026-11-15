@@ -75,6 +75,10 @@ impl Player {
             ..Self::default()
         }
     }
+    #[cfg(test)]
+    pub(super) fn restored_mix_mailbox(&self) -> Option<MixMailbox> {
+        self.mix_sender.clone()
+    }
     pub fn unload(&mut self) {
         self.controls.playing.store(false, Ordering::Relaxed);
         if let Some(sink) = self.sink.take() {

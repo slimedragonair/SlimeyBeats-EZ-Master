@@ -93,7 +93,9 @@ class CompanionPackageTests(unittest.TestCase):
     def test_readme_describes_current_tool_count_consent_and_private_cache_setup(self):
         result = self.package("Hotfix2")
         readme = (Path(result["folder"]) / "README.txt").read_text(encoding="utf-8")
-        for text in ["40 tools", "get_optional_tool_status", "prepare_optional_tool", "allow_download=true", "automatically prepare", "private user cache", "private recovery cache", "No AI model is bundled", "Package label: Hotfix2"]:
+        for text in ["42 tools", "get_optional_tool_status", "prepare_optional_tool", "allow_download=true", "automatically prepare", "private user cache", "private recovery cache", "No AI model is bundled", "Package label: Hotfix2"]:
+            self.assertIn(text, readme)
+        for text in ["prepare_support_report", "save_support_report", "owner_review_confirmed=true", "model provider", "No report is uploaded or posted"]:
             self.assertIn(text, readme)
         self.assertNotIn("require separately installed ffmpeg", readme)
 

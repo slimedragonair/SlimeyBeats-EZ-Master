@@ -20,7 +20,7 @@ get_studio_session analyze_studio_audio separate_stems import_stems inspect_stem
 import_stem_bundle mix_stems clean_voice repair_audio undo_studio_edit redo_studio_edit
 apply_preview_to_stem export_studio_audio export_stems save_studio_project open_studio_in_desktop
 use_studio_for_mastering list_plugins probe_plugin render_plugin get_optional_tool_status
-prepare_optional_tool""".split())
+prepare_optional_tool prepare_support_report save_support_report""".split())
 
 
 def verify(server):

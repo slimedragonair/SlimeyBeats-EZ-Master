@@ -127,6 +127,8 @@ export function wireLearning(preferences) {
             if (!dialog.open) return;
             frame("Guidance unavailable", error.message, "Help & learning");
             actions.append(action("Try again", "learning-retry", openHelp, true));
+            for (const [label, event] of [["Local recovery", "open-recovery"], ["Report a problem", "open-support-report"]])
+                actions.append(action(label, `fallback-${event}`, () => { dialog.close(); document.dispatchEvent(new Event(event)); }));
         }
     }
     $("open-learning").onclick = openHelp;

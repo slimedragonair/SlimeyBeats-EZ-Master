@@ -7,6 +7,7 @@ mod operations;
 mod pending_mix_tests;
 mod plugin_controls;
 mod projects;
+mod recovery;
 mod spectral_view;
 pub mod state;
 mod stem_bulk_import;

@@ -1,6 +1,8 @@
 # AI assistant connection — desktop MCP preview
 
-SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **40 tools in Hotfix 2** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
+SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **42 tools in the current Hotfix3 source** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
+
+**Hotfix3 adds two private support-report tools, for 42 tools; the previously published Hotfix 2 companion has 40.** This source change does not by itself update earlier binaries. Reports use a preview/review/save flow; [privacy and review requirements](#private-support-reports) apply even though saving is local.
 
 The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) includes the matching desktop, companion and VST3 worker. Follow [Windows installation](INSTALLATION.md) or [build from main or the release tag](BUILDING.md#get-the-source); Linux currently requires a source build. **The stable v0.4.2 fallback does not include MCP or session handoff.** Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
@@ -21,7 +23,7 @@ Browser **AI / MCP setup** is desktop-only guidance. The browser has no upload o
 
 Use an AI client that supports launching a **local stdio MCP server**. It launches the companion; you do not need to start a network service. No account or model subscription is required by SlimeyBeats itself; the AI client has its own requirements.
 
-For the standalone Windows bundle, [download the Hotfix 2 companion ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-MCP-0.2.0-beta.3-Hotfix2-preview-Windows-x64.zip) and extract the complete folder to a writable location. Open **Connect AI Assistant.bat**, select an audio library folder and an export folder, and save the generated JSON example. The helper does not edit any client settings. Add its `command` and `args` using your client's MCP configuration UI or file, then reconnect. This example uses the common `mcpServers` format; clients with another format need the same executable and arguments in their own schema.
+For the standalone Windows bundle, [download the Hotfix3 companion ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-MCP-0.2.0-beta.3-Hotfix3-preview-Windows-x64.zip) and extract the complete folder to a writable location. Open **Connect AI Assistant.bat**, select an audio library folder and an export folder, and save the generated JSON example. The helper does not edit any client settings. Add its `command` and `args` using your client's MCP configuration UI or file, then reconnect. This example uses the common `mcpServers` format; clients with another format need the same executable and arguments in their own schema.
 
 Choose a dedicated input folder containing tracks you want the assistant to access. The assistant can list/read supported audio within that folder, including a subfolder when its path is known. More than one library can be authorized with repeated `--input-root` arguments. The output folder holds new exports, reports, session documents and temporary previews.
 
@@ -64,13 +66,15 @@ The Studio Preview installer also includes the companion and VST3 worker. Open *
 
 ## Tools
 
-The Hotfix 2 companion exposes **40 tools**, including read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+The current source and Hotfix3 companion expose **42 tools**; published Hotfix 2 has **40**. The table includes the new report tools alongside read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
 
 | Tool | Purpose |
 |---|---|
 | `get_capabilities` | Bundled profile names/IDs, defaults, formats, library indexes and configured limits |
 | `get_optional_tool_status` | Read-only codec readiness/host detection; distinguishes private executable hash verification from bundled-helper detection and leaves unobserved versions unknown |
 | `prepare_optional_tool` | Owner-consented codec or official VST host preparation; requires `allow_download: true`, returns a cancellable job, never downloads arbitrary plugins |
+| `prepare_support_report` | Return a complete allowlisted Markdown preview and connection-local review ID; no collection of raw logs/errors, private names, paths, audio or environment |
+| `save_support_report` | After explicit owner review, save exactly the latest preview to a fresh `.md` filename under the authorized output root; no overwrite, upload or issue posting |
 | `get_help` | Self-contained quick start, examples, mastering/EQ units, export, troubleshooting and privacy |
 | `list_audio_files` | A bounded, non-recursive page of supported files in one library folder; ZIPs are marked `stem_archive: true` |
 | `load_audio` | Import one source; replace the session only after successful decode |
@@ -102,6 +106,44 @@ The Hotfix 2 companion exposes **40 tools**, including read-only ZIP inspection 
 Long operations return a job ID promptly. Poll `get_job_status` with a short delay between polls until `completed`, `failed` or `cancelled`. Only one audio job runs at once. Cancellation waits for DSP checkpoints; it is not an immediate interruption of every calculation. Decoder subprocesses have a timeout and are killed when cancellation is requested. If audio was already durably saved when cancellation arrives, the job reports its saved output. History retains the latest 64 jobs, not their PCM buffers.
 
 Use the current `source_id` for analysis/mastering and current `preview_id` for EQ/export. Stale IDs are rejected. EQ patches retain omitted settings; a provided band list must contain exactly seven bands. Re-mastering retains manual EQ. Changing a reference invalidates the preview and requires re-mastering. Built-in profile IDs and weighted blends are accepted. With an owner-configured `--profiles-root`, the catalog also exposes exact `custom:<filename stem>` IDs. Tool-supplied file paths and custom-profile blends remain rejected.
+
+## Private support reports
+
+This is a development-source addition. Call `get_help` with `topic: "support_reports"` for a self-contained guide inside the connection. Report tools are synchronous and do not reserve or cancel an audio job. They keep one immutable preview of at most **64 KiB** in memory per connection; preparing another valid preview invalidates the previous review ID. Invalid preparation and failed saving preserve the last usable report and all source, reference, master, Studio/project and settings state.
+
+**The entire report returned through MCP reaches the AI client and may reach its model provider.** Local generation/saving does not guarantee private AI-client handling. Do not automatically paste raw logs, errors, file paths, project/track/stem/plugin/profile names or credentials into the title or description. Obtain the owner's agreement before including sensitive text. Automatic diagnostics contain only the compiled companion version, its **linked engine build**, OS/architecture enums, a built-in workflow, and connection counts and yes/no/unknown states. The **installed desktop version remains unknown (`null`)**, even if a desktop executable was configured; the companion does not query or launch it. No tool readiness probe or private desktop recovery-cache read occurs. All four tool-readiness fields remain **unknown (`null`)**. They use optional booleans: `true` means an already-known ready observation and `false` means an already-known not-ready observation; neither value is inferred from an absent check. No automatic probe is performed to fill them.
+
+First prepare a preview with deliberately user-entered text, or omit that text to use empty fields:
+
+```json
+{
+  "category": "audio_playback",
+  "title": "Playback stops",
+  "details": "1. Import a track\n2. Press Play\n3. Playback stops"
+}
+```
+
+Pass those arguments to `prepare_support_report`. Generic categories are `crash`, `freeze_or_slow`, `audio_playback`, `import_or_export`, `mastering_or_eq`, `stems`, `optional_tool_setup`, `updates`, `recovery`, `accessibility` and `other` (default). The title is limited to **512 UTF-8 bytes**, and description/reproduction steps to **16,384 UTF-8 bytes**. Both request schemas reject unknown fields. Obvious absolute paths, email addresses and credential-like text are filtered best-effort. Names in ordinary prose, relative filenames and unknown secret formats may survive. Show the **entire `preview_markdown`** and privacy notices to the owner; allow revision through a new prepare call, then obtain explicit approval to save that exact preview.
+
+Only after that review and save approval, call `save_support_report`:
+
+```json
+{
+  "review_id": "<latest review_id returned by this connection>",
+  "filename": "support-report.md",
+  "owner_review_confirmed": true
+}
+```
+
+`owner_review_confirmed` defaults to false. It records the caller's assertion and cannot prove a human actually reviewed the report; an agent must never invent consent. `filename` is a fresh `.md` filename, at most **180 UTF-8 bytes**, directly under the owner-configured output root. Directories, traversal, absolute paths, reserved device names, stale/foreign review IDs and existing targets are refused. A collision does not suffix or overwrite: use another filename with the still-current reviewed ID. Saved bytes exactly match the immutable preview even if session settings changed after preparation. There is no upload endpoint, issue-posting action or browser launch. For security-sensitive reports, the separate private advisory route is [GitHub private security reporting](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/security/advisories/new); account/login and repository availability are outside this local tool's control.
+
+`get_help(topic: "recovery")` offers desktop recovery guidance only. It grants no new filesystem access. The MCP does not enumerate, restore or delete the GUI's private recovery cache; review and restore those entries in the desktop interface. A desktop restoration and this MCP audio session are independent.
+
+Development validation on **November 14, 2026** passed **34 Windows MCP tests**, **17 linked support-report backend tests**, strict Clippy/formatting and **four companion packaging tests**. The real **debug** stdio companion passed 42-tool discovery, full report review/save/consent/collision/stale-ID/privacy checks, the optional-tool consent/readiness regression, and the existing WAV mastering/EQ/export regression. These checks used synthetic audio in private test folders and preserved source/preview hashes and session settings. They do not qualify an installer, physical playback, a third-party AI client's privacy, or a new published release. Rerun the report smoke against the actual release binary before packaging:
+
+```powershell
+python mcp/tools/verify_support_reports.py --server "path/to/release/slimeybeats-mcp.exe"
+```
 
 ## Optional codecs and the VST host
 

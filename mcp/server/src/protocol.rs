@@ -20,6 +20,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct Companion {
     pub(crate) engine: Arc<Engine>,
+    pub(crate) support_reports: Arc<std::sync::Mutex<crate::support_reports::ReviewStore>>,
     tool_router: ToolRouter<Self>,
 }
 
@@ -99,6 +100,7 @@ impl Companion {
     pub fn new(engine: Arc<Engine>) -> Self {
         Self {
             engine,
+            support_reports: Arc::default(),
             tool_router: Self::tool_router()
                 + Self::studio_router()
                 + Self::plugin_router()
@@ -106,7 +108,8 @@ impl Companion {
                 + Self::stem_bundle_router()
                 + Self::studio_handoff_router()
                 + Self::studio_promote_router()
-                + Self::optional_tool_router(),
+                + Self::optional_tool_router()
+                + Self::support_report_router(),
         }
     }
 
@@ -119,7 +122,7 @@ impl Companion {
     }
 
     #[tool(
-        description = "Self-contained guide for an assistant with no project history. Defaults to quick_start with complete tool-call examples, IDs and job polling. Other topics explain mastering/EQ units, export, optional_tools consent/download limits, privacy and error recovery.",
+        description = "Self-contained guide for an assistant with no project history. Defaults to quick_start with complete tool-call examples, IDs and job polling. Other topics explain mastering/EQ units, export, optional_tools consent/download limits, privacy, support_reports owner review and desktop recovery guidance.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
     fn get_help(&self, Parameters(a): Parameters<HelpRequest>) -> Json<Value> {

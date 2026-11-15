@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const BUILD_REVISION: u64 = 2026111402;
+pub const BUILD_REVISION: u64 = 2026111403;
 pub const CHANNEL: &str = "studio-preview";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

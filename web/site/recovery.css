@@ -1,0 +1,18 @@
+.private-dialog { width: min(680px, calc(100% - 24px)); padding: 20px; border-radius: 12px; }
+.private-dialog h2 { font-size: 1.7rem; margin: 8px 0 16px; }
+.private-dialog p, .private-dialog li { line-height: 1.55; }
+.private-dialog textarea, .private-dialog select { display: block; width: 100%; margin: 8px 0 16px; background: #15111c; color: var(--ink); border: 1px solid #9876a7; border-radius: 6px; padding: 10px; font: inherit; }
+.private-dialog textarea { min-height: 100px; resize: vertical; }
+.private-dialog pre { font-size: .875rem; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; background: #15111c; border: 1px solid var(--line); max-height: 42dvh; overflow: auto; user-select: text; }
+.private-dialog .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.private-dialog button, .private-dialog select { min-height: 44px; }
+.private-dialog label { display: block; }
+#recovery-points { padding: 0; list-style: none; }
+#recovery-points li { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
+#recovery-points button { flex-shrink: 0; }
+#recovery-offer { margin: 12px; padding: 12px; border: 1px solid var(--teal); border-radius: 8px; background: #21172b; }
+#recovery-offer p { margin-top: 0; }
+#engine-report { margin: 0 12px; }
+.help-dock #recovery-paused { min-width: 82px; padding: 8px; font-size: .8125rem; color: #ffe2ad; border-color: #d49f56; }
+.recovery-paused .help-dock-note { display: none; }
+@media(max-width: 480px) { .private-dialog { padding: 14px; } #recovery-points li { align-items: stretch; flex-direction: column; } .private-dialog .actions button { flex: 1 1 140px; } }

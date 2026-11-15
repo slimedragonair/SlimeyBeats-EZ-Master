@@ -39,9 +39,12 @@ export class DspClient {
             this.worker.postMessage({ id, action, ...data }, transfer);
         });
     }
-    cancel() {
+    stop() {
         this.worker.terminate();
         this.fail(new DOMException("Processing cancelled", "AbortError"));
+    }
+    cancel() {
+        this.stop();
         this.start();
     }
 }

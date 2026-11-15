@@ -26,6 +26,8 @@ pub mod preview;
 #[cfg(not(target_arch = "wasm32"))]
 mod process_group;
 pub mod profiles;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod recovery_store;
 pub mod report;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod session_document;
@@ -34,5 +36,7 @@ pub mod source_identity;
 pub mod studio;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod studio_native;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod support_report;
 
 pub mod wav_encoding;

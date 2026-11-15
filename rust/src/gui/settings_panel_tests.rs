@@ -34,6 +34,7 @@ fn load_preview(app: &mut MasterCraftApp) {
     app.tracks.push(Track {
         path: "test_song.wav".into(),
         status: "Preview ready".into(),
+        recovered_source: None,
         result: Some(Arc::new(TrackResult {
             before: audio.clone(),
             raw: None,

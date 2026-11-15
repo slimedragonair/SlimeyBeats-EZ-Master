@@ -190,6 +190,27 @@ pub(super) fn help_button(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egu
         response.request_focus();
         app.experience.open_help(HelpPage::Start, ctx);
     }
+    let attention = app.recovery.error.is_some() || app.recovery.preference_error.is_some();
+    if attention
+        || app.recovery.preferences.enabled
+            && !app.experience.tour_paused
+            && app.updates.available.is_none()
+    {
+        let label = if attention {
+            "Recovery needs attention"
+        } else if app.recovery.busy() {
+            "Saving recovery…"
+        } else if app.recovery.last_saved.is_some() {
+            "Recovery saved"
+        } else {
+            "Recovery on"
+        };
+        let recovery=ui.add(crystal_button::secondary(label)).on_hover_text("Inspect local recovery copies, save now, or change autosave choices. Recovery is separate from Export.");
+        if recovery.clicked() {
+            recovery.request_focus();
+            app.experience.open_help(HelpPage::Recovery, ctx);
+        }
+    }
     if app.updates.available.is_some() {
         let label = if app.updates.downloaded.is_some() {
             "Update ready"

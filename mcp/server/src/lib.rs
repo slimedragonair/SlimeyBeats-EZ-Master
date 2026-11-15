@@ -25,3 +25,5 @@ pub mod studio_promote;
 pub mod studio_protocol;
 mod studio_provenance;
 pub mod studio_state;
+pub mod support_report_protocol;
+pub mod support_reports;

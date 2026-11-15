@@ -15,7 +15,9 @@ use crate::{
 use std::sync::{Arc, atomic::Ordering};
 
 const RATE: u32 = 48000;
-fn fixture(channels: usize) -> (ABSource, MixMailbox, Arc<StemSet>, stem_mix::MixSettings) {
+pub(super) fn fixture(
+    channels: usize,
+) -> (ABSource, MixMailbox, Arc<StemSet>, stem_mix::MixSettings) {
     let tone = |frequency: f64, amplitude: f64| {
         Arc::new(
             Audio::new(
@@ -88,7 +90,7 @@ fn settle(source: &mut ABSource) {
         assert!(source.next().unwrap().is_finite());
     }
 }
-fn matches_render(source: &mut ABSource, bank: &StemSet, mix: &stem_mix::MixSettings) {
+pub(super) fn matches_render(source: &mut ABSource, bank: &StemSet, mix: &stem_mix::MixSettings) {
     settle(source);
     let expected = stem_mix::render(bank, mix, &|| false).unwrap();
     let start = source.controls.position.load(Ordering::Relaxed) as usize * source.channels;

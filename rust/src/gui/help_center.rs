@@ -23,6 +23,8 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
                     (HelpPage::Troubleshooting, "Troubleshooting"),
                     (HelpPage::About, "About"),
                     (HelpPage::Updates, "Updates & tools"),
+                    (HelpPage::ReportProblem, "Report a problem"),
+                    (HelpPage::Recovery, "Recovery"),
                 ] {
                     let response = ui.add(crystal_button::secondary(label).selected(page == value));
                     if app.experience.request_dialog_focus && value == page {
@@ -34,10 +36,15 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
                 }
             });
             ui.separator();
+            let footer_reserve = if page == HelpPage::ReportProblem {
+                super::support_report_view::footer_height(app, ui)
+            } else {
+                0.
+            };
             egui::ScrollArea::vertical()
                 .id_salt(("help-content", page))
                 .auto_shrink([false, false])
-                .max_height((ctx.content_rect().height() - 270.).clamp(180., 540.))
+                .max_height((ctx.content_rect().height() - 270. - footer_reserve).clamp(120., 540.))
                 .show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     match page {
@@ -48,6 +55,8 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
                         HelpPage::Troubleshooting => troubleshooting(ui),
                         HelpPage::About => about(ui),
                         HelpPage::Updates => super::update_view::show(app, ui, ctx),
+                        HelpPage::ReportProblem => super::support_report_view::show(app, ui, ctx),
+                        HelpPage::Recovery => super::recovery_view::show(app, ui, ctx),
                     }
                     if let Some(error) = app.experience.save_error.clone() {
                         ui.separator();
@@ -63,6 +72,10 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
                     }
                 });
             ui.separator();
+            if page == HelpPage::ReportProblem {
+                super::support_report_view::show_footer(app, ui, ctx);
+                ui.separator();
+            }
             if ui.add(crystal_button::secondary("Close help")).clicked() {
                 close = true;
             }
@@ -96,7 +109,7 @@ fn quick_start(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
     ui.strong("Keyboard shortcuts");
     ui.label("F1 opens Help. Space plays or pauses outside focused controls. Ctrl+O adds audio to the mastering queue. Escape closes a help or tutorial dialog.");
     ui.separator();
-    ui.label("Export folders and preferences are remembered. Use Save project to keep a desktop Studio working session; loaded audio and the mastering queue are not automatically recovered.");
+    ui.label("Export folders and preferences are remembered. When enabled, autosave keeps completed local recovery points for loaded mixes, Studio previews and pending controls; unloaded queue items and linked reference tracks still need their original files. Use Save project for a lasting Studio working session.");
 }
 
 fn terms(app: &mut MasterCraftApp, ui: &mut egui::Ui) {

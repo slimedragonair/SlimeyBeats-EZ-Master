@@ -1,6 +1,7 @@
 export const TOPICS = [
     ["quickstart", "Quick start"], ["glossary", "Glossary"],
     ["troubleshooting", "Fix a problem"], ["mcp", "AI / MCP setup"],
+    ["recovery", "Local recovery"], ["support", "Report a problem"],
 ];
 export function textElement(tag, text, className) {
     const node = document.createElement(tag);
@@ -17,7 +18,16 @@ export function action(label, id, run, primary = false) {
 
 export function renderTopic(host, guide, topic, replay) {
     host.replaceChildren();
-    if (topic === "quickstart") {
+    if (topic === "recovery" || topic === "support") {
+        const recovery = topic === "recovery";
+        host.append(textElement("p", recovery
+            ? "Recovery audio storage is off by default. Enable it only if you want audio and settings saved locally on this device, or download a recovery file yourself. No uploads."
+            : "Preview a small report before deciding whether to share it. Audio and raw logs are never attached automatically."));
+        host.append(action(recovery ? "Open local recovery" : "Create a private report", `help-open-${topic}`, () => {
+            document.getElementById("learning-dialog").close();
+            document.dispatchEvent(new Event(recovery ? "open-recovery" : "open-support-report"));
+        }, true));
+    } else if (topic === "quickstart") {
         host.append(action("Replay guided tutorial", "replay-tutorial", replay, true));
         const list = document.createElement("ol");
         list.className = "learning-quickstart";
@@ -58,7 +68,7 @@ export function renderTopic(host, guide, topic, replay) {
             ["I cannot hear playback", "Choose Play, check listening Volume and your device output, then compare A / B. B needs a prepared preview. Browsers may require a tap or click before audio can start."],
             ["Export is unavailable", "Master first. If you change the mastering direction, Master again to prepare a current preview. In Studio, render pending fader changes with Update mix preview before further edits or exporting."],
             ["My file will not load", "Check the format and the displayed import limits. Browser decoder support varies. Try a WAV or the example track. Large files also need sufficient device memory; use the desktop app for larger sessions."],
-            ["The page was reloaded", "Browser audio sessions live in this tab's memory. Reloading discards the session; add the original again. Export a version you want to keep before leaving. Only small interface choices are remembered."],
+            ["The page was reloaded", "By default, browser audio lives only in tab memory and reloading discards it. Help → Local recovery offers optional device storage or a manual recovery download. If you opted in and a completed point remains, choose it explicitly; recovery never starts playback. Keep exported audio as your lasting copy."],
             ["Guidance choices are not remembered", "Private browsing or browser settings may block storage. If choices cannot be saved, automatic guidance stays off and Help still works for this tab. Enable site storage to remember later choices."],
         ];
         for (const [title, body] of issues) {

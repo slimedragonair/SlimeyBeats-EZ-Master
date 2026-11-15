@@ -1,4 +1,4 @@
-// Only interface choices belong here. Audio and processing settings stay in memory.
+// Only interface choices belong here. Optional audio recovery uses its own IndexedDB store.
 export const UI_PREFERENCES_KEY = "slimeybeats.interface-preferences";
 export const UI_TERMINAL_KEY = `${UI_PREFERENCES_KEY}.tutorial-dismissed`;
 const STATUSES = new Set(["unseen", "started", "completed", "declined"]);

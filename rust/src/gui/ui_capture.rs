@@ -55,6 +55,12 @@ impl CaptureReadiness {
 
 #[derive(serde::Serialize)]
 pub(super) struct CaptureState {
+    pub recovery_saved: bool,
+    pub recovery_enabled: bool,
+    pub recovery_error: Option<String>,
+    pub recovery_points: usize,
+    pub recovery_restored: bool,
+    pub support_preview_ready: bool,
     pub update_build_revision: u64,
     pub update_check_enabled: bool,
     pub update_error: Option<String>,

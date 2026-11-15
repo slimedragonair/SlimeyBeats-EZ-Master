@@ -3,6 +3,8 @@ import init, {
     BrowserStemArchive,
     plan_stem_files,
 } from "./pkg/dsp.js";
+import { StudioRecoveryRecipe, applyStudioEdit } from "./studio-recovery-worker.js";
+const recovery = new StudioRecoveryRecipe(BrowserStudio);
 const ready = init();
 function liveStems(candidate, previous, wasm) {
     const previousKinds = new Set(previous ? JSON.parse(previous.info()).stems : []);
@@ -32,11 +34,12 @@ self.onmessage = async ({ data: m }) => {
             "repair",
             "replace",
             "history",
+            "recover",
         ].includes(m.action);
         if (mutating && proposal)
             throw new Error("Finish the previous Studio revision first");
         if (mutating)
-            candidate = ["load", "stems"].includes(m.action)
+            candidate = ["load", "stems", "recover"].includes(m.action)
                 ? new BrowserStudio()
                 : studio.fork();
         switch (m.action) {
@@ -74,6 +77,20 @@ self.onmessage = async ({ data: m }) => {
                     defaults: JSON.parse(BrowserStudio.parameter_defaults()),
                 };
                 break;
+            case "recovery-snapshot":
+                result = recovery.snapshot(wasm);
+                break;
+            case "recovery-validate-mix": {
+                const probe = (proposal?.value || studio).fork();
+                try { probe.mix(JSON.stringify(m.settings)); result = true; }
+                finally { probe.free(); }
+                break;
+            }
+            case "recover":
+                candidate.free();
+                candidate = await recovery.restore(m.recipe);
+                audio = true;
+                break;
             case "load": {
                 candidate.load(m.samples, m.rate, m.channels);
                 audio = true;
@@ -95,23 +112,11 @@ self.onmessage = async ({ data: m }) => {
                 break;
             }
             case "mix":
-                candidate.mix(JSON.stringify(m.settings));
-                audio = true;
-                break;
             case "voice":
-                candidate.voice(m.target, JSON.stringify(m.settings));
-                audio = true;
-                break;
             case "repair":
-                candidate.repair(m.target, JSON.stringify(m.selection));
-                audio = true;
-                break;
             case "replace":
-                candidate.replace_stem(m.kind);
-                audio = true;
-                break;
             case "history":
-                candidate.history(m.redo);
+                applyStudioEdit(candidate, m.action, m);
                 audio = true;
                 break;
             case "spectrogram":
@@ -143,6 +148,7 @@ self.onmessage = async ({ data: m }) => {
                 break;
             }
             case "clear":
+                recovery.clear();
                 proposal?.value.free();
                 proposal = null;
                 studio?.free();
@@ -154,6 +160,7 @@ self.onmessage = async ({ data: m }) => {
                     throw new Error("Studio proposal is stale");
                 studio?.free();
                 studio = proposal.value;
+                recovery.commit(proposal.action, proposal.values, studio);
                 proposal = null;
                 result = true;
                 break;
@@ -183,7 +190,7 @@ self.onmessage = async ({ data: m }) => {
                 ).slice(),
             };
         if (mutating) {
-            proposal = { id: m.id, value: candidate };
+            proposal = { id: m.id, value: candidate, action: m.action, values: m };
             candidate = null;
             result.proposal = m.id;
         }

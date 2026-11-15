@@ -2,6 +2,15 @@
 
 ## 0.5.0-beta.3 — 2026-11-14
 
+### Hotfix3 — local recovery and private reporting
+
+- Add local native autosave and three transactional restore points per session, with an 8 GiB shared budget, exact audio/metadata checks, active-window locks and explicit inspection/restore/deletion. Keep original inputs, projects and exports separate.
+- Preserve loaded queue sources, prepared masters, pending EQ and Studio controls; re-master recovered sources after the original moves. Back up replaced work as a separate session, keep live mute/solo active, and protect close during save/restore/clear. Do not resume playback or running jobs.
+- Add opt-in browser audio recovery, atomic bounded IndexedDB storage and explicit private recovery files. Preserve editable Studio banks, reject stale imports/restore races, and keep recovery/storage limits separate from editing limits.
+- Add locally generated support previews with typed minimal diagnostics, best-effort manual-text filtering and reviewed exact Copy/Save. No automatic audio/log/path collection, uploads or issue posting. Keep public issues and private security reporting distinct.
+- Add MCP report preparation and reviewed saving, for 42 tools. Report compiled companion/linked-engine identity accurately without inferring installed GUI state or accessing private desktop recovery storage.
+- Preserve exact floating-point editing values and checksum the stored metadata bytes before parsing. Document privacy choices, storage boundaries, matching-build constraints and remaining device/clipboard qualification.
+
 ### Hotfix2 — easier updates and optional setup
 
 - Add **Help → Updates & tools**, once-daily optional checks, verified background downloads and an explicit saved-work/Setup flow. Build revision distinguishes same-version hotfixes; immutable per-revision catalogs preserve previous releases. Portable/Linux manual routes stay explicit.

@@ -29,8 +29,27 @@ mod playback_owner;
 mod playback_tap;
 mod player;
 mod plots;
+mod recovery_capture;
+mod recovery_control;
+#[cfg(test)]
+mod recovery_controller_tests;
+mod recovery_dialog;
+mod recovery_document;
+mod recovery_eq;
+mod recovery_key;
+mod recovery_preferences;
+mod recovery_restore;
+#[cfg(test)]
+mod recovery_snapshot_tests;
+mod recovery_state;
+mod recovery_view;
+mod recovery_worker;
 mod settings_panel;
 pub mod studio;
+mod support_report_state;
+#[cfg(test)]
+mod support_report_tests;
+mod support_report_view;
 #[cfg(test)]
 mod test_fixture;
 mod theme;

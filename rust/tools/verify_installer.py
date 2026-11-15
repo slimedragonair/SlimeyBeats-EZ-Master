@@ -41,7 +41,7 @@ def installation_snapshot(identity):
         for name in ['SlimeyBeats-EZ-Master.exe', 'SlimeyBeats-EZ-Master-CLI.exe',
                      'user_data/rust-settings.json', 'user_data/desktop-preferences.json',
                      'user_data/interface-preferences.json', 'user_data/tutorial-dismissed.marker',
-                     'user_data/update-preferences.json']:
+                     'user_data/update-preferences.json', 'user_data/recovery-preferences.json']:
             path = Path(folder) / name
             if path.is_file(): files[name] = digest(path)
     shortcuts = Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs'/identity.start_folder
@@ -153,6 +153,8 @@ def main():
                                       'studio_volume':0, 'two_stems':False}, indent=2))
         update_preferences = settings.with_name('update-preferences.json')
         update_preferences.write_text(json.dumps({'automatic':False,'last_check':123},indent=2))
+        recovery_preferences = settings.with_name('recovery-preferences.json')
+        recovery_preferences.write_text(json.dumps({'enabled':False,'offer_on_startup':False},indent=2))
         interface = settings.with_name('interface-preferences.json')
         interface.write_text(json.dumps({'advanced':True, 'tutorial_status':'completed',
                                         'tutorial_step':7}, indent=2))
@@ -167,7 +169,7 @@ def main():
         with example.open('ab') as stream: stream.write(b'QA preserved user edit')
         project_files = [path for path in studio_document.parent.iterdir() if path.is_file()]
         preserved = {str(path):digest(path) for path in
-                     [settings, desktop, interface, update_preferences, tutorial_marker, custom, wave, example, *project_files]}
+                     [settings, desktop, interface, update_preferences, recovery_preferences, tutorial_marker, custom, wave, example, *project_files]}
         upgraded = command(f'"{installer}" /S')
         assert upgraded.returncode == 0
         assert Path(registry_value(uninstall_key,'InstallLocation')).resolve() == root
@@ -192,6 +194,8 @@ def main():
             assert tutorial_marker.is_file()
             status = json.loads(captures['preferences'].with_suffix('.state.json').read_text())
             assert status['error'] is None, status
+            assert not status['recovery_enabled'] and status['recovery_error'] is None, status
+            record['installed_gui_restored_recovery_choice_after_upgrade'] = True
             if 'update_check_enabled' in status:
                 assert not status['update_check_enabled'] and status['update_error'] is None, status
                 record['installed_gui_restored_update_preferences_after_upgrade'] = True

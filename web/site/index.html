@@ -25,6 +25,7 @@
         <link rel="stylesheet" href="accessibility.css" />
         <link rel="stylesheet" href="workspace-layout.css" />
         <link rel="stylesheet" href="playback-layout.css" />
+        <link rel="stylesheet" href="recovery.css" />
     </head>
     <body class="basic-controls">
         <div class="app-shell">
@@ -68,6 +69,12 @@
                 </div>
             </header>
             <a class="skip-link" href="#workspace-controls">Skip to studio controls</a>
+            <section id="recovery-offer" aria-label="Saved recovery available" hidden>
+                <p>A local recovery point is available. Review saved points to choose whether to restore. Nothing was restored automatically.</p>
+                <button id="recovery-offer-open">Review recovery points</button>
+                <button id="recovery-offer-dismiss">Not now</button>
+            </section>
+            <button id="engine-report" hidden>Report an engine problem</button>
             <main class="workspace">
                 <aside class="library panel" aria-label="Your track">
                     <div class="eyebrow">✦ Your session</div>
@@ -539,6 +546,7 @@
         </div>
         <div class="help-dock">
             <span class="help-dock-note">Help &amp; learning</span>
+            <button id="recovery-paused" aria-label="Audio recovery is paused. Open local recovery" hidden>Save paused</button>
             <button id="playback-details-toggle" aria-controls="playback-details" aria-expanded="false" hidden>Details</button>
             <button id="open-learning" aria-haspopup="dialog">? Help</button>
         </div>
@@ -564,10 +572,56 @@
             </div>
             <footer id="learning-actions" class="learning-actions"></footer>
         </dialog>
+        <dialog id="recovery-dialog" class="private-dialog" aria-labelledby="recovery-title">
+            <h2 id="recovery-title" tabindex="-1">Local recovery</h2>
+            <p id="recovery-enabled">Off by default</p>
+            <p>Opt in to store audio, EQ, settings and editable Studio imports in this browser’s IndexedDB on this device. No uploads. Someone with access to this browser profile may be able to access saved audio. Clearing site data, private browsing, or browser storage cleanup can remove it.</p>
+            <details><summary>Storage limits and recovery details</summary>
+                <p>Up to three completed points per tab session, within 128 MiB per project and 256 MiB / 12 points total. These are recovery budgets, not editing limits. A crash can lose edits since the last completed save.</p>
+                <p>Pending file-picker/ZIP selections and transport position are not recovered. Studio rebuilds up to 128 committed edits and retains its normal bounded undo history, uncommitted stem faders and tool controls.</p>
+            </details>
+            <div class="actions">
+                <button id="recovery-enable">Enable local audio recovery</button>
+                <button id="recovery-disable">Disable future autosaves</button>
+                <button id="recovery-delete">Delete saved recovery data…</button>
+            </div>
+            <div id="recovery-delete-confirm" hidden>
+                <p>Delete all recovery points for this site and disable autosaves in all tabs? Current tab audio and downloaded files stay intact.</p>
+                <div class="actions"><button id="recovery-keep">Keep saved points</button><button id="recovery-delete-now">Delete points and disable</button></div>
+            </div>
+            <p id="recovery-status" role="status"></p>
+            <p id="recovery-action-status" role="status"></p>
+            <div class="actions">
+                <button id="recovery-save">Save point now</button>
+                <button id="recovery-download">Download recovery copy</button>
+                <button id="recovery-import">Open recovery file…</button>
+                <input id="recovery-file" type="file" accept=".sbrecovery" hidden />
+            </div>
+            <p>Restore starts stopped and requires an empty workspace. Open a new tab to preserve current work. Each tab saves its own session. Where browser locks are available, active sessions must be closed before restoration; no lock is stolen. Without locks, restoration copies a point into this tab and leaves its source untouched.</p>
+            <button id="recovery-refresh">Refresh saved points</button>
+            <ul id="recovery-points"></ul>
+            <div class="actions"><button id="recovery-close">Close recovery</button></div>
+        </dialog>
+        <dialog id="support-dialog" class="private-dialog" aria-labelledby="support-title">
+            <h2 id="support-title" tabindex="-1">Report a problem</h2>
+            <p>Create a small text report, review it, then choose whether to copy or download it. No audio, raw logs, filenames, song names, custom profiles or paths are collected as technical context. Nothing is sent automatically.</p>
+            <label for="support-area">Which area?</label>
+            <select id="support-area"><option value="general">General</option><option value="import">Import</option><option value="playback">Playback</option><option value="mastering">Mastering / EQ</option><option value="studio">Studio</option><option value="recovery">Recovery</option><option value="startup">App startup</option></select>
+            <label for="support-description">What happened? What did you expect? (optional, up to 1,500 characters)</label>
+            <textarea id="support-description" maxlength="1500" placeholder="Describe the steps using generic names, such as ‘a WAV file’. Avoid personal information."></textarea>
+            <p>Some obvious paths, links, email addresses and IP addresses are filtered from your description. Other personal details can remain. Review every line before sharing.</p>
+            <button id="support-build" class="primary">Preview report</button>
+            <pre id="support-preview" tabindex="0" aria-label="Exact report preview"></pre>
+            <p id="support-status" role="status"></p>
+            <div class="actions"><button id="support-copy" disabled>Copy reviewed report</button><button id="support-download" disabled>Download reviewed report</button></div>
+            <p>After review, you can manually <a href="https://github.com/slimedragonair/SlimeyBeats-EZ-Master/issues/new/choose" target="_blank" rel="noopener noreferrer">open a GitHub issue</a>. Public issues are visible to others. For a possible security problem, use the <a href="https://github.com/slimedragonair/SlimeyBeats-EZ-Master/security/policy" target="_blank" rel="noopener noreferrer">security reporting instructions</a> instead. No report text is attached to these links.</p>
+            <div class="actions"><button id="support-close">Close report</button></div>
+        </dialog>
         <noscript
             >This app needs JavaScript and WebAssembly to process audio
             locally.</noscript
         >
+        <script type="module" src="support.js"></script>
         <script type="module" src="app.js"></script>
     </body>
 </html>

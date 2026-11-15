@@ -61,9 +61,11 @@ fn malformed_json_unknown_fields_and_wrong_schema_are_rejected() {
     let mut manifest = manifest_fixture();
     manifest["platforms"]["linux_x86_64"] = json!({});
     assert!(parse(manifest).is_err());
-    let overflow = serde_json::to_string(&manifest_fixture())
+    let fixture = manifest_fixture();
+    let revision = fixture["build_revision"].as_u64().unwrap().to_string();
+    let overflow = serde_json::to_string(&fixture)
         .unwrap()
-        .replace("2026111403", "18446744073709551616");
+        .replace(revision.as_str(), "18446744073709551616");
     assert!(UpdateManifest::parse(overflow.as_bytes()).is_err());
 }
 
