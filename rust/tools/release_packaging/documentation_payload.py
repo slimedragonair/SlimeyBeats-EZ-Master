@@ -41,4 +41,6 @@ def copy_project_notices(repository, destination):
     (destination / 'OUTPUT_OWNERSHIP.md').write_text(policy, encoding='utf-8')
     text = (repository / 'THIRD_PARTY_NOTICES.md').read_text(encoding='utf-8')
     text = text.replace('examples/audio/', 'Examples/').replace('rust/assets/ASSETS.md', 'docs/ASSETS.md').replace('rust/tests/fixtures/README.md', 'docs/fixture-credits.md')
+    text = text.replace('[`web/site/audio/encoders`](web/site/audio/encoders/README.md)',
+                        '`web/site/audio/encoders` in the separate source/browser package')
     (destination / 'THIRD_PARTY_NOTICES.md').write_text(text, encoding='utf-8')

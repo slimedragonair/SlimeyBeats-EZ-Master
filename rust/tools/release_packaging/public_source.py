@@ -6,7 +6,30 @@ ROOT_FILES = ('README.md', 'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICE
               'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', '.gitignore', '.gitattributes', '.editorconfig',
               'run-slimeybeats.bat', 'run-rust.bat', 'cli-rust.bat',
               'run.bat', 'cli.bat', 'setup.bat', 'requirements.txt')
-GUIDES = ('INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html', 'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'MCP.md', 'MCP_ARCHITECTURE.md', 'MCP_VALIDATION.md', 'STUDIO.md', 'STEM_LIVE_MONITORING.md', 'UPDATES_AND_OPTIONAL_TOOLS.md', 'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md', 'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md')
+GUIDES = (
+    'INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html',
+    'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'WEB_EXPORTS.md', 'WEB_EXPORT_VALIDATION.md',
+    'BROWSER_PARITY_ROADMAP.md', 'MOBILE_PREVIEW.md', 'MCP.md', 'MCP_ARCHITECTURE.md',
+    'MCP_VALIDATION.md', 'STUDIO.md', 'STEM_LIVE_MONITORING.md', 'STEM_EDITOR.md',
+    'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'UPDATES_AND_OPTIONAL_TOOLS.md',
+    'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md',
+    'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
+    'HOTFIX4.md',
+)
+# Keep screenshots explicit: only reviewed public captures belong in the source
+# package, never an arbitrary image or private report added to the checkout.
+DOCUMENTATION_IMAGES = (
+    'welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
+    'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png',
+    'web-preview.png', 'web-phone-eq.png', 'studio-stems.png', 'studio-repair.png',
+    'studio-plugins.png', 'studio-web-phone.png', 'studio-large-import.png',
+    'ux-first-run.png', 'ux-manual-eq.png', 'ux-web-help.png', 'updates-and-tools.png',
+    'recovery-desktop.png', 'private-report-desktop.png', 'recovery-web.png',
+    'private-report-web-phone.png', 'web-basic-overview.png', 'web-phone-master.png',
+    'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',
+    'web-stem-editor-phone.png', 'web-stem-editor-tools.png', 'doctor-desktop.png',
+    'doctor-web-findings.png', 'doctor-web-repair.png', 'web-session-downloads.png',
+)
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')
 
@@ -26,12 +49,7 @@ def copy_public_source(repository, destination):
         copy(Path(name))
     for name in GUIDES:
         copy(Path('docs') / name)
-    for name in ('welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
-                 'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png', 'web-preview.png', 'web-phone-eq.png',
-                 'studio-stems.png', 'studio-repair.png', 'studio-plugins.png', 'studio-web-phone.png', 'studio-large-import.png',
-                 'ux-first-run.png', 'ux-manual-eq.png', 'ux-web-help.png', 'updates-and-tools.png',
-                 'recovery-desktop.png', 'private-report-desktop.png', 'recovery-web.png', 'private-report-web-phone.png',
-                 'web-basic-overview.png', 'web-phone-master.png'):
+    for name in DOCUMENTATION_IMAGES:
         copy(Path('docs/images') / name)
     for name in ('python-guide.md', 'python-third-party-notices.md', 'python-changelog.md'):
         copy(Path('docs/legacy') / name)

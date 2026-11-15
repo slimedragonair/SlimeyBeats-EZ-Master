@@ -1,5 +1,10 @@
 # First master, then refine
 
+This guide describes desktop **0.5.0-beta.3 Hotfix4**, build revision
+**2026111501**, and its matching **45-tool MCP companion 0.2.0-beta.3**.
+See [Hotfix4 scope and external QA report](HOTFIX4.md) for release-specific
+results; earlier installed builds retain their original features.
+
 1. **Add your audio.** Drop a mono/stereo file onto the window or use Add audio files. WAV works without extra codecs.
 2. **Analyze.** The top-right button measures the source. A measurement or tonal deviation is information, not proof that a musical choice is wrong.
 3. **Choose a direction.** Neutral is a processing preset, not bypass. Genre profiles are starting points; custom blends and an optional finished reference can guide the balance.
@@ -19,11 +24,11 @@ Studio Preview adds a separate editing workspace for stems, voice cleanup, spect
 
 Use desktop **0.5.0-beta.3** from the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3); [installation](INSTALLATION.md) includes the stable v0.4.2 fallback, which does not include Studio. In beta.3, **Choose stem files…** or **Choose Suno / stem ZIP…** imports aligned parts without a model or a fixed part-count cap. Review the names, selected parts and encoding, then **Import selected stems**. All distinct parts start selected; matching WAV/MP3 versions count as one part. Supply at least two parts with identical sample rate, channel count and frame count. Imports do not automatically align or resample your stems. Model separation still offers only vocal/instrumental or four stems.
 
-Desktop defaults to **512 MiB decoded PCM per input** and a separate **4 GiB aggregate decoded-bank budget**. Browser Studio retains **128 MiB combined decoded input** and **15 minutes per track**. More parts share those budgets; mixes, processing, undo and export need additional RAM. Archive/metadata limits also apply. The optional [MCP companion](MCP.md) exposes 38 tools for the same local workflows; an AI client connection is not needed to use Studio directly.
+Desktop defaults to **512 MiB decoded PCM per input** and a separate **4 GiB aggregate decoded-bank budget**. Browser Studio retains **128 MiB combined decoded input** and **15 minutes per track**. More parts share those budgets; mixes, processing, undo and export need additional RAM. Archive/metadata limits also apply. The optional Hotfix4 [MCP companion](MCP.md) exposes **45 tools** for the same local workflows; historical Hotfix3 has 42 and the original beta.3 companion had 38. An AI client connection is not needed to use Studio directly.
 
 With the [same-version live monitoring hotfix](STEM_LIVE_MONITORING.md), Studio gain, mute, solo and stereo balance changes are audible immediately during native and browser playback. Changing a stem control automatically selects **B · Preview / Live mix**; settled B plays only that mix, with no hidden Before layer. Choose **A · Before** to hear the revision's input separately. Native workspace switching also pauses and silences the outgoing mastering/Studio player, including ZIP-drop and tutorial navigation.
 
-Use **Update mix preview** to render and measure the live balance before exporting the preview, saving a desktop project, sending it to mastering or applying further voice/repair/plugin processing. Native **Level match** is disabled for the unmeasured live mix until that update completes. The Studio comparison waveform remains the **saved preview**; live fader changes are not plotted. Voice/repair/plugin settings still need an explicit **Preview** action. The hotfix keeps the app versions unchanged; the release link above does not establish that a hotfix installer has been published.
+Use **Update mix preview** to render and measure the live balance before exporting the preview, saving a desktop project, sending it to mastering or applying further voice/repair/plugin processing. Native **Level match** is disabled for the unmeasured live mix until that update completes. The Studio comparison waveform remains the **saved preview**; live fader changes are not plotted. Voice/repair/plugin settings still need an explicit **Preview** action. Same-version hotfixes use a distinct build revision; [Hotfix4 qualification](HOTFIX4.md) is recorded separately from the earlier live-monitoring source milestone.
 
 | Control | Meaning |
 |---|---|
@@ -55,11 +60,20 @@ The interface separately stores Basic/Advanced and tutorial choices in `interfac
 
 Preference files still contain no audio. Hotfix3 adds separate local recovery copies for loaded audio, previews, the queue and pending controls; open **Help → Recovery** to inspect them or change autosave. **Save project** and `session.studio.json` remain explicit lasting Studio copies; exporting remains separate. Browser audio recovery is opt-in and bounded; without a completed point the tab session disappears on reload/close. MCP keeps its explicit session/project workflow and does not gain access to desktop recovery storage. **Help → Report a problem** previews a minimal report before sharing. [Recovery and report details](RECOVERY_AND_REPORTING.md).
 
-## Desktop stem timeline (development branch)
+## Desktop stem timeline (Hotfix4)
 
-The next editor milestone adds **Timeline / Mixer** views in Studio. Choose a stem, drag its waveform or enter a start/end time, then audition with **Loop selection**. **Silence**, **Fade in/out**, and the optional gain/reverse actions prepare undoable edits without shifting other parts. Faders stay live; commit pending controls with **Update mix preview** before a time edit. **Save project** retains edited bank audio, and Export stays separate. See [the editor guide](STEM_EDITOR.md) for current source/release scope and limitations.
+Hotfix4 includes **Timeline / Mixer** views in Studio. Choose a stem, drag its waveform or enter a start/end time, then audition with **Loop selection** for ranges of at least 50 ms. **Silence**, **Fade in/out**, and the optional gain/reverse actions prepare undoable edits without shifting other parts. Faders stay live; commit pending controls with **Update mix preview** before a time edit. **Save project** retains edited bank audio, and Export stays separate. See [the editor guide](STEM_EDITOR.md) for history, navigation and release scope. The [main browser editor](WEB_STEM_EDITOR.md) includes time edits with its own limits; loop auditioning remains desktop-only.
+
+## Stem Doctor (Hotfix4 and browser)
+
+Open **Studio → Stem Doctor** (**Doctor** in compact desktop navigation), choose a saved target and scan. Findings identify possible clipping, quiet gaps, endings and low-mid buildup; they are inspection prompts. Scanning changes no audio. Explicitly preview a supported repair, compare and undo before accepting it. A separate stem repair preview needs **Apply edit to selected stem** to change the bank. Export remains explicit. See [Doctor workflow, limits and evidence](STEM_DOCTOR.md).
 
 ## Suggested EQ and the graph
+
+Hotfix4 includes the shared native/browser live-EQ preparation improvements:
+current playback continues while filter history is prepared in bounded work,
+then the existing crossfade introduces the new settings. This is a processing
+change; hardware listening qualification is recorded separately.
 
 **Suggest EQ** creates a separate editable proposal. When it is ready, **Apply curve** copies it into the seven-band editor. Identical decoded samples, profile and build/platform yield repeatable proposals. The suggestion is a limited rule-based starting point, not a learned mastering model.
 

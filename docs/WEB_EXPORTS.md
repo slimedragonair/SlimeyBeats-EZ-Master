@@ -1,6 +1,6 @@
 # Browser exports and live preview
 
-These exports are available in the [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/), alongside the stem timeline and Stem Doctor. The isolated [`current-work` development preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for testing. The Windows installer remains Hotfix3; this web publication does not change the app version or release a new installer. See [preview publication, separate storage and validation](MOBILE_PREVIEW.md).
+These exports are available in the [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/), alongside the stem timeline and Stem Doctor. The isolated [`current-work` development preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for testing. **Hotfix4 desktop**, build revision **2026111501**, includes the shared EQ preparation improvements, timeline/time edits, desktop loops and Doctor; see [release scope and external QA report](HOTFIX4.md). Browser MP3/session ZIP tools and their qualification remain separate from the Windows installer. See [preview publication, separate storage and validation](MOBILE_PREVIEW.md).
 
 ## Save what you are hearing
 
@@ -37,7 +37,7 @@ The pinned MP3 encoder currently does not write Xing/LAME gapless metadata. File
 
 Live EQ now prepares new filter history over bounded work units instead of replaying up to 1.5 seconds inside one processing call. It retains current audio while preparing, then uses the existing crossfade; preparation can add up to 100 ms. Multiple settings arriving between worklet blocks coalesce to the newest complete revision. This addresses a measured source of work bursts; it does not establish the cause of the tester's unprovided recording/device problem or qualify physical mobile playback.
 
-Desktop remains the flagship: browser neural separation, native VST3 hosting, free clip arrangement and the new desktop timeline/time-edit UI are not added here. See the [easiest-to-hardest roadmap](BROWSER_PARITY_ROADMAP.md) for issue markers, activity views and practical next parity work.
+Browser Studio already includes its own [timeline and five time-edit tools](WEB_STEM_EDITOR.md) and [Stem Doctor](STEM_DOCTOR.md). Desktop retains loop auditioning, neural separation, native VST3 hosting and larger-project support. Free clip arrangement remains future work. See the [easiest-to-hardest roadmap](BROWSER_PARITY_ROADMAP.md) for remaining parity work.
 
 ## Files and data flow
 
@@ -47,7 +47,7 @@ Desktop remains the flagship: browser neural separation, native VST3 hosting, fr
 
 `bootstrap.js` owns the outer module-load boundary and a 30-second startup deadline, so a missing required module produces an actionable error with independent support reporting instead of a permanent Loading label. It never copies an exception's private paths or URLs into the startup message.
 
-`rust/src/dsp/realtime_eq.rs` remains the shared native/browser processor. `audio/eq-processor.js` coalesces revisions at block boundaries. Signal processing stays in Rust; browser export packaging does not add a desktop MCP tool. The current source companion has 45 tools, including time edits and Stem Doctor; the published Hotfix3 companion has 42.
+`rust/src/dsp/realtime_eq.rs` remains the shared native/browser processor; Hotfix4 includes its bounded filter-history preparation in desktop. `audio/eq-processor.js` coalesces browser revisions at block boundaries. Signal processing stays in Rust; browser export packaging does not add a desktop MCP tool. The matching Hotfix4/source companion has **45 tools**, including time edits and Stem Doctor; historical Hotfix3 binaries retain **42**. New release-binary discovery is tracked separately in [Hotfix4 validation](HOTFIX4.md).
 
 The encoder's original LGPL notices, wrapper MIT notice, corresponding source archive, build inputs, exact commits and 17 provenance hashes are retained in [`web/site/audio/encoders`](../web/site/audio/encoders/README.md). They are copied into the static build alongside the replaceable WASM asset. App-owned code remains MIT; third-party terms and output ownership remain separate.
 

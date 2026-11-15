@@ -28,7 +28,7 @@ def write(output, identity, installer, executable, components):
     path=output/name
     if path.exists(): raise FileExistsError(path)
     digest=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
-    value={'schema':1,**identity,'notes':'Local autosave/crash recovery and reviewed support reports; includes application updates and optional-tool setup.',
+    value={'schema':1,**identity,'notes':'Stem timeline and time edits, Stem Doctor, smoother live EQ and no empty scratch folders from read-only MCP connections; includes the 45-tool companion, autosave and reviewed support reports.',
            'platforms':{'windows_x86_64':{'installer_asset':installer.name,'installer_sha256':digest(installer),
               'installer_bytes':installer.stat().st_size,'executable_sha256':digest(executable)}},'components':components}
     data=(json.dumps(value,indent=2)+'\n').encode('utf-8')

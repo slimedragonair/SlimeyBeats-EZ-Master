@@ -1,6 +1,6 @@
-# Desktop stem editor development
+# Desktop stem editor
 
-The desktop editing milestone began on `feature/stem-editor-workspace` and is now available in repository source builds. The published **0.5.0-beta.3 Hotfix3 installer** retains its released interface. The [main web editor](WEB_STEM_EDITOR.md) includes the timeline, selection and five time-edit tools, with its own validation scope. Desktop remains the first target for larger editing features.
+The desktop stem timeline and time edits are included in **0.5.0-beta.3 Hotfix4**, build revision **2026111501**, and current source builds. The milestone began on `feature/stem-editor-workspace`; earlier Hotfix3 installers retain their earlier interface. See [Hotfix4 release scope and external QA report](HOTFIX4.md) for installer qualification. The [main web editor](WEB_STEM_EDITOR.md) includes the timeline, selection and five time-edit tools, with its own validation scope; loop auditioning remains desktop-only.
 
 ## Timeline and selection
 
@@ -41,7 +41,7 @@ Time edits render explicitly. If live faders are pending, use **Update mix previ
 
 ## AI assistant support
 
-The matching development companion adds **`edit_stem_region`**. Discover the current bank and stable kinds with `get_studio_session`, supply the selection and operation, then poll the job. The result is a temporary mix preview and new IDs; export remains explicit. Read [MCP setup and discovery](MCP.md) for current schemas and self-contained help. Looping is desktop auditioning, not an exported repetition.
+The matching Hotfix4 companion includes **`edit_stem_region`** among its **45 tools**. Discover the current bank and stable kinds with `get_studio_session`, supply the selection and operation, then poll the job. The result is a temporary mix preview and new IDs; export remains explicit. Read [MCP setup and discovery](MCP.md) for current schemas and self-contained help. Looping is desktop auditioning, not an exported repetition.
 
 ## Implementation map
 
@@ -65,7 +65,9 @@ Workflow research used the official [Audacity timeline](https://manual.audacityt
 
 ## Validation
 
-The unmodified baseline passed **352 Windows native tests**, with two existing ignored checks. Qualification on November 15, 2026:
+Hotfix4 package qualification is recorded separately in the release's [HOTFIX4-VALIDATION.json](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json). The following historical source-milestone checks retain their original scope and do not establish a passing Hotfix4 installer or archive.
+
+The unmodified editor baseline passed **352 Windows native tests**, with two existing ignored checks. Source-milestone qualification on November 15, 2026:
 
 | Check | Result and scope |
 | --- | --- |

@@ -9,7 +9,7 @@ pub fn preview(engine: &Engine, audio: &Audio) -> Result<Arc<TempPath>> {
     let mut file = tempfile::Builder::new()
         .prefix("studio-")
         .suffix(".wav")
-        .tempfile_in(engine.cache.path())?;
+        .tempfile_in(engine.cache.path()?)?;
     mastercraft::wav_encoding::write_wav(audio, file.as_file_mut(), "wav32f", false)?;
     file.flush()?;
     file.as_file().sync_all()?;

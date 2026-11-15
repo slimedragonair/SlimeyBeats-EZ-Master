@@ -20,6 +20,7 @@ pub mod region_edit_operations;
 pub mod region_edit_protocol;
 #[cfg(test)]
 mod region_edit_test_support;
+pub mod session_cache;
 pub mod state;
 pub mod stem_bundle_protocol;
 pub mod stem_protocol;

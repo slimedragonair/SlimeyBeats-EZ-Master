@@ -1,6 +1,6 @@
 # Issue Detector and Stem Doctor
 
-Stem Doctor is available in the [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) and current desktop/MCP source builds. Desktop and browser Studio share the same Rust measurements and conservative repair code. The published Windows installer remains Hotfix3. The isolated [current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available after its checks; check its displayed build ID.
+Stem Doctor is included in the [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/), current desktop/MCP source builds and **0.5.0-beta.3 Hotfix4**, build revision **2026111501**. Desktop and browser Studio share the same Rust measurements and conservative repair code. See [Hotfix4 release scope and external QA report](HOTFIX4.md) for installer qualification; earlier Hotfix3 binaries retain their earlier scope. The isolated [current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available after its checks; check its displayed build ID.
 
 ## Inspect before changing sound
 
@@ -83,7 +83,7 @@ Browser **Download issue report JSON** explicitly saves a metadata snapshot of
 the scanned target/revision. It contains no audio and is separate from session
 ZIPs and optional recovery. Existing browser audio/history/memory limits remain.
 
-The development companion exposes **45 tools**. Start with `get_capabilities`
+The matching Hotfix4/source companion exposes **45 tools**. Start with `get_capabilities`
 and `get_help(topic="doctor")`; no source checkout or chat history is needed.
 
 ```json
@@ -122,10 +122,15 @@ bounded source-preserving implementation and tests, then matching UI/MCP help.
 
 ## Validation status — November 15, 2026
 
+The source-feature and browser results below retain their recorded build scope.
+The release's [HOTFIX4-VALIDATION.json](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json)
+separately records rebuilt binaries, 45-tool release workflows and installer QA;
+this guide makes no pass claim for those artifacts.
+
 Before edits, native library checks passed **346 tests with 2 ignored**, browser
 binding checks passed **20**, and MCP library checks passed **36**.
 
-Current local checks passed:
+The recorded source-feature checks passed:
 
 - **31 shared Doctor tests**, covering clean bass/full-scale sine counterexamples,
   clipped runs, silent/right-only channels, local low-mid spans, quiet/tonal splits,
@@ -190,6 +195,8 @@ An independent post-deployment fetch verified five critical stable files and fou
 preview files against the publication manifest. This distinguishes the complete
 artifact comparison from the smaller set fetched from the public server.
 
-Later documentation-only updates refresh this guide and its screenshots; they
-do not expand the implementation or physical-device qualification above. Main
-and the Hotfix3 installer were not promoted or replaced by this development work.
+This historical qualification covered the implementation and isolated preview;
+it did not itself promote main or replace the Hotfix3 installer. The features are
+now included in the main web app and Hotfix4 desktop scope. Later
+documentation and reused synthetic captures do not extend the physical-device
+qualification or establish a passing Hotfix4 installer.

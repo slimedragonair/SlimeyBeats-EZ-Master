@@ -99,7 +99,7 @@ pub fn separate(ctx: ContextData, source_id: String, mode: SeparationMode) -> Re
     let separated = runtime.separate(
         &source.audio,
         mode,
-        ctx.engine.cache.path(),
+        ctx.engine.cache.path()?,
         &|fraction, message| ctx.progress(fraction * 0.9, message),
         ctx.cancel.clone(),
     )?;
