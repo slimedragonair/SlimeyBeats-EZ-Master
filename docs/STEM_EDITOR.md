@@ -1,6 +1,6 @@
 # Desktop stem editor development
 
-The desktop editing milestone began on `feature/stem-editor-workspace` and is now integrated on `current-work`. The published **0.5.0-beta.3 Hotfix3 installer** and main browser site retain their released interface. The separate [current-work web editor](WEB_STEM_EDITOR.md) now brings the timeline, selection and five time-edit tools to the browser, with its own validation scope. Desktop remains the first target for larger editing features.
+The desktop editing milestone began on `feature/stem-editor-workspace` and is now available in repository source builds. The published **0.5.0-beta.3 Hotfix3 installer** retains its released interface. The [main web editor](WEB_STEM_EDITOR.md) includes the timeline, selection and five time-edit tools, with its own validation scope. Desktop remains the first target for larger editing features.
 
 ## Timeline and selection
 

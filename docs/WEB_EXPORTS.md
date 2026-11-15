@@ -1,6 +1,6 @@
-# Browser export and preview development
+# Browser exports and live preview
 
-This work is available in the [`current-work` live development preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), following the desktop timeline milestone. The main website and Hotfix3 installer retain their released versions. No app version bump or installer release is part of this change. See [preview publication, separate storage and validation](MOBILE_PREVIEW.md).
+These exports are available in the [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/), alongside the stem timeline and Stem Doctor. The isolated [`current-work` development preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for testing. The Windows installer remains Hotfix3; this web publication does not change the app version or release a new installer. See [preview publication, separate storage and validation](MOBILE_PREVIEW.md).
 
 ## Save what you are hearing
 
@@ -47,7 +47,7 @@ Desktop remains the flagship: browser neural separation, native VST3 hosting, fr
 
 `bootstrap.js` owns the outer module-load boundary and a 30-second startup deadline, so a missing required module produces an actionable error with independent support reporting instead of a permanent Loading label. It never copies an exception's private paths or URLs into the startup message.
 
-`rust/src/dsp/realtime_eq.rs` remains the shared native/browser processor. `audio/eq-processor.js` coalesces revisions at block boundaries. Signal processing stays in Rust; browser export packaging does not add a desktop MCP tool or change its 43-tool development contract.
+`rust/src/dsp/realtime_eq.rs` remains the shared native/browser processor. `audio/eq-processor.js` coalesces revisions at block boundaries. Signal processing stays in Rust; browser export packaging does not add a desktop MCP tool. The current source companion has 45 tools, including time edits and Stem Doctor; the published Hotfix3 companion has 42.
 
 The encoder's original LGPL notices, wrapper MIT notice, corresponding source archive, build inputs, exact commits and 17 provenance hashes are retained in [`web/site/audio/encoders`](../web/site/audio/encoders/README.md). They are copied into the static build alongside the replaceable WASM asset. App-owned code remains MIT; third-party terms and output ownership remain separate.
 

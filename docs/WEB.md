@@ -1,13 +1,13 @@
 # Private browser preview
 
-The `current-work` development Studio adds **Stem Doctor**: read-only timestamped issue scans, explained waveform markers, explicit conservative repair previews and metadata-only issue-report JSON. It shares the native/MCP Rust core; [workflow, limits and validation status](STEM_DOCTOR.md) distinguish development checks from released builds and physical-device acceptance.
+The main browser Studio includes **Stem Doctor**: read-only timestamped issue scans, explained waveform markers, explicit conservative repair previews and metadata-only issue-report JSON. It shares the native/MCP Rust core; [workflow, limits and validation status](STEM_DOCTOR.md) distinguish source/browser checks from installer releases and physical-device acceptance.
 
-**Browser editor development:** the [stem timeline and time-edit milestone](WEB_STEM_EDITOR.md)
+**Browser editor:** the [stem timeline and time-edit milestone](WEB_STEM_EDITOR.md)
 shares the desktop Rust processor for silence, fades, gain and reverse, while
 keeping aligned-stem limits, live faders, recovery and separate exports. Its guide
 records current validation and features still reserved for desktop.
 
-**Development preview:** [`current-work` is live for phone testing](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), including local 320 kbps MP3 export, portable EQ presets, mastering/Studio session ZIPs and bounded live EQ preparation. It shows its build ID and keeps separate local preferences/recovery. The main URL and installer retain their released versions. See [preview publication and validation](MOBILE_PREVIEW.md), [export workflows and limits](WEB_EXPORTS.md), and the [browser parity roadmap](BROWSER_PARITY_ROADMAP.md). Historical measurements below remain labeled separately.
+**Updated web app:** [open the main browser app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) for local 320 kbps MP3 export, portable EQ presets, mastering/Studio session ZIPs, bounded live EQ preparation, stem time edits and Stem Doctor. The separate [`current-work` preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for phone testing; it shows its build ID and keeps isolated preferences/recovery. The published Windows installer remains Hotfix3. See [preview publication and validation](MOBILE_PREVIEW.md), [export workflows and limits](WEB_EXPORTS.md), and the [browser parity roadmap](BROWSER_PARITY_ROADMAP.md). Historical measurements below remain labeled separately.
 
 [Open SlimeyBeats in your browser](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/)
 
@@ -20,7 +20,7 @@ The browser preview uses the project's Rust mastering engine, compiled to WebAss
 3. **Master track** creates a preview. This does not download anything. **Play**, then compare **A · Original** and **B · Master** with **Level match** enabled.
 4. Open **Manual EQ**. The purple EQ response and teal live spectrum share one plot, with separate dB and dBFS axes. Seven bands affect playback immediately while B is playing. **Suggest EQ** applies modest, deterministic moves; the tonal profile has a light influence. Suggestions are editable and do not imply that every mix needs correction.
 5. On desktop, each band's frequency button expands its frequency, Q and filter type. On narrow screens, choose a numbered band to edit it. **?** buttons explain controls, including on touchscreens. Playback remains accessible while you edit.
-6. **Export WAV** resolves the latest EQ, measures the encoded file after decoding it, and downloads it. Use **Report → Save JSON** for the corresponding report. Your browser controls the download folder and any save prompt.
+6. Choose WAV or **MP3 · 320 kbps** under **Export quality**, then **Export WAV / Export MP3**. Export resolves the latest EQ, measures the actual encoded file after decoding it, and downloads it. Use **Report → Save JSON** for the corresponding report. Your browser controls the download folder and any save prompt.
 
 The hosted site follows the protected `main` branch after its browser workflow passes. A source merge and a completed Pages deployment are separate events. See the [merge validation and availability record](MERGE_VALIDATION.md).
 
@@ -40,7 +40,7 @@ Decoded parts must have identical sample rate, channel count and frame count. Th
 | Typical inputs | WAV, MP3, AAC/M4A, FLAC and Ogg support varies by browser |
 | Preview limit | 15 minutes per mix/reference, 384 MiB of decoded PCM, and 384 MiB source-file size; all three limits apply |
 | Sample rate | A 48 kHz audio context; browser decoding resamples the source to that rate |
-| Export | WAV 16-bit PCM, 24-bit PCM, or 32-bit float; optional deterministic dither for integer formats |
+| Export | WAV 16-bit PCM, 24-bit PCM, or 32-bit float; MP3 320 kbps; optional deterministic dither for integer WAV |
 | Live EQ | Rust streaming processor in AudioWorklet, with smoothed parameter changes and peak protection |
 | Requirements | WebAssembly, module workers, Web Audio and AudioWorklet; HTTPS or localhost |
 | Session storage | Memory by default; opt-in local recovery in IndexedDB with separate budgets and explicit deletion |

@@ -1,10 +1,6 @@
 # Issue Detector and Stem Doctor
 
-This development feature is implemented on `current-work`. Desktop and browser Studio
-share the same Rust measurements and conservative repair code. The released main
-site and Hotfix3 installer retain their separate release scope. The development
-preview publishes from [current-work](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/)
-after its checks; check its displayed build ID.
+Stem Doctor is available in the [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) and current desktop/MCP source builds. Desktop and browser Studio share the same Rust measurements and conservative repair code. The published Windows installer remains Hotfix3. The isolated [current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available after its checks; check its displayed build ID.
 
 ## Inspect before changing sound
 
