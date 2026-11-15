@@ -36,7 +36,7 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 
 
-**Active testing branch: [`current-work`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/current-work).** Work is pushed there in small checkpoints so it can be reviewed from mobile; native/browser CI runs on each push. Check the commit's validation status before treating it as qualified. The hosted app still deploys from `main`; selecting a source branch does not update that website.
+**Active testing branch: [`current-work`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/current-work).** Work is pushed there in small checkpoints. [Open its live mobile preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), check the displayed build ID, and expand Build details for the workflow. The preview has separate local recovery/preferences; the released app remains at the main URL. Native/browser CI runs separately on each push. [Preview workflow, privacy and qualification limits](docs/MOBILE_PREVIEW.md).
 
 **Next desktop editor milestone (development source):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP adds `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). These changes are on `current-work`; the current download above remains Hotfix3.
 

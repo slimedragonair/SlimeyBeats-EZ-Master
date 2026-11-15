@@ -192,12 +192,24 @@ async function routing() {
     };
     const capture = async (wanted, unwanted, expected) => {
         const after = context.currentTime + 0.16;
-        await wait(430);
-        const selected = blocks.filter((block) => block.time >= after && block.time < context.currentTime);
+        const requiredFrames = Math.ceil(rate * 0.2), started = performance.now(), timeoutMs = 10000;
+        let selected, capturedFrames;
+        // A timer does not prove that a busy runner delivered AudioWorklet PCM.
+        // Exclude queued pre-settle blocks and wait for actual received frames.
+        do {
+            selected = blocks.filter((block) => block.time >= after && block.time < context.currentTime);
+            capturedFrames = selected.reduce((count, block) => count + block.channels[0].length, 0);
+            if (capturedFrames >= requiredFrames) break;
+            assert(performance.now() - started < timeoutMs,
+                `Settled live PCM timed out: ${capturedFrames}/${requiredFrames} frames after ${after}`);
+            await wait(20);
+        } while (true);
         const present = magnitude(selected, wanted), absent = magnitude(selected, unwanted);
         assert(Math.abs(present - expected) < 0.002, `Wanted ${wanted} Hz amplitude ${present}, expected ${expected}`);
         assert(absent < 0.001, `Unselected ${unwanted} Hz leaked: ${absent}`);
-        return { wanted_hz: wanted, amplitude: present, unwanted_hz: unwanted, unwanted_amplitude: absent };
+        return { wanted_hz: wanted, amplitude: present, unwanted_hz: unwanted, unwanted_amplitude: absent,
+            settled_after_seconds: after, captured_frames: capturedFrames, required_frames: requiredFrames,
+            acquisition_ms: performance.now() - started };
     };
     try {
         await player.play();

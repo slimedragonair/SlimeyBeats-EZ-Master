@@ -12,9 +12,13 @@ uses GitHub while mobile and wants ongoing work available there promptly.
   checkpoints clearly and distinguish passed, running, unrun and device checks.
 - Continue broader validation after publishing a checkpoint and promptly push
   resulting fixes. Keep the README's current development status accurate.
-- A push to `current-work` is not approval to merge into `main`, publish an
-  installer, or change the production website. Obtain that authorization from
-  the task/session. The production browser workflow deploys only from `main`.
+- The owner authorized automatic live preview publication from `current-work`
+  at `/current-work/`. Preserve the published main files and isolated preview
+  storage; see `docs/MOBILE_PREVIEW.md`. Keep preview checks and broader CI
+  qualification distinct.
+- Preview pushes are not approval to merge app changes into `main` or publish
+  an installer. Obtain that authorization from the task/session. The released
+  browser app is still built from `main`.
 
 Git branch names cannot contain spaces; `current-work` is the branch requested
 as "current work". Native and browser checks run for pushes to this branch.
