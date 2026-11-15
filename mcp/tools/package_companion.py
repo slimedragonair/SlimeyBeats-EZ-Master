@@ -56,7 +56,7 @@ def package(destination, server, desktop, label=None):
         "Included: local stdio MCP server, desktop build with session handoff, CC0 example,\n"
         "setup helper and dependency notices. The published v0.4.2 installer is unchanged.\n"
         "This preview includes desktop Studio, self-contained project handoff and\n"
-        "the optional VST3 worker. The MCP companion exposes 42 tools; start with\n"
+        "the optional VST3 worker. The MCP companion exposes 43 tools; start with\n"
         "get_capabilities and get_help. See the component --version commands.\n\n"
         "WAV works without codecs. Compressed imports, FLAC/MP3 exports and resampling\n"
         "need FFmpeg/ffprobe. In MCP, inspect get_optional_tool_status; only after owner\n"

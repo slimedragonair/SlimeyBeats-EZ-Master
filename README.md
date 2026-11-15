@@ -36,6 +36,12 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 
 
+**Next desktop editor milestone (development source):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP adds `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). These changes are on `feature/stem-editor-workspace`; the current download above remains Hotfix3.
+
+![Development desktop stem timeline with four synthetic parts and a selected-stem inspector](docs/images/stem-editor-timeline.png)
+
+[Full-size development timeline](docs/images/stem-editor-timeline.png) · [Compact layout](docs/images/stem-editor-compact.png) · [Time-edit controls](docs/images/stem-editor-selection.jpg). These actual native captures use generated test tones.
+
 ## Start simple, go deeper
 
 The desktop preview starts with **Basic controls**, an optional **eight-step tour**, and **bottom-right Help** with plain-language terms, troubleshooting and desktop MCP setup. **Advanced** reveals detailed controls; changing views preserves your exact audio settings. Finishing or declining the tour is remembered across restarts; Help can replay it whenever you want.

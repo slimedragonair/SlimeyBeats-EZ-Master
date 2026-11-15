@@ -1,6 +1,7 @@
 use super::{
     audio_source::{ABSource, LivePath},
     live_stem_path::{LiveStemPath, MixMailbox},
+    playback_loop::{FrameRange, LoopControl},
     playback_tap::PlaybackTap,
 };
 use crate::{
@@ -31,6 +32,7 @@ pub struct Controls {
     pub match_a: AtomicU32,
     pub match_b: AtomicU32,
     pub failure: AtomicBool,
+    pub(super) audition_loop: LoopControl,
 }
 impl Default for Controls {
     fn default() -> Self {
@@ -45,6 +47,7 @@ impl Default for Controls {
             match_a: AtomicU32::new(1_f32.to_bits()),
             match_b: AtomicU32::new(1_f32.to_bits()),
             failure: AtomicBool::new(false),
+            audition_loop: LoopControl::default(),
         }
     }
 }
@@ -55,6 +58,7 @@ pub struct Player {
     pub controls: Arc<Controls>,
     pub duration: f64,
     pub rate: u32,
+    frames: usize,
     pub tap: Arc<PlaybackTap>,
     live_sender: Option<Sender<EqParameters>>,
     mix_sender: Option<MixMailbox>,
@@ -81,6 +85,7 @@ impl Player {
     }
     pub fn unload(&mut self) {
         self.controls.playing.store(false, Ordering::Relaxed);
+        self.controls.audition_loop.set(None);
         if let Some(sink) = self.sink.take() {
             sink.stop();
         }
@@ -92,6 +97,7 @@ impl Player {
         }
         self.duration = 0.;
         self.rate = 0;
+        self.frames = 0;
         self.controls.position.store(0, Ordering::Relaxed);
         self.tap.clear();
     }
@@ -143,6 +149,7 @@ impl Player {
         live_input: Option<RealtimeInput>,
     ) -> Result<()> {
         self.controls.playing.store(false, Ordering::Relaxed);
+        self.controls.audition_loop.set(None);
         self.controls.position.store(0, Ordering::Relaxed);
         self.controls.seek.store(u64::MAX, Ordering::Relaxed);
         #[cfg(test)]
@@ -151,6 +158,7 @@ impl Player {
             // They must not open a real native device or claim audible playback.
             self.duration = before.duration();
             self.rate = before.sample_rate;
+            self.frames = before.frames();
             self.live_sender = None;
             self.mix_sender = None;
             self.test_live_receiver = None;
@@ -173,6 +181,7 @@ impl Player {
         }
         self.duration = before.duration();
         self.rate = before.sample_rate;
+        self.frames = before.frames();
         let sink = Sink::connect_new(self.stream.as_ref().unwrap().mixer());
         self.controls.failure.store(false, Ordering::Relaxed);
         self.tap.clear();
@@ -224,6 +233,8 @@ impl Player {
             cached_frame: None,
             frame_a: [0.; 2],
             frame_b: [0.; 2],
+            loop_range: None,
+            control_frames: 0,
         };
         source.prime(0);
         sink.append(source);
@@ -255,6 +266,25 @@ impl Player {
     }
     pub fn has_live_mix(&self) -> bool {
         self.mix_sender.is_some()
+    }
+    /// Set an end-exclusive audition loop, rounding seconds to the nearest frame.
+    /// Invalid or sub-frame-empty ranges leave the existing loop unchanged.
+    /// Toggling never changes position, a pending seek, or playing state. While
+    /// playing, a position/seek outside the range enters at its start on the next
+    /// complete frame boundary; while paused it stays put until playback resumes.
+    pub fn set_loop(&self, range: Option<(f64, f64)>) -> Result<()> {
+        let frames = range
+            .map(|(start, end)| FrameRange::from_seconds(start, end, self.rate, self.frames))
+            .transpose()?;
+        self.controls.audition_loop.set(frames);
+        Ok(())
+    }
+    /// Effective, frame-quantized loop endpoints in seconds, with an exclusive end.
+    pub fn loop_range(&self) -> Option<(f64, f64)> {
+        self.controls.audition_loop.range().map(|range| {
+            let rate = self.rate.max(1) as f64;
+            (range.start as f64 / rate, range.end as f64 / rate)
+        })
     }
     pub fn toggle(&self) {
         let now = self.controls.playing.load(Ordering::Relaxed);
@@ -355,6 +385,8 @@ mod tests {
             cached_frame: None,
             frame_a: [0.; 2],
             frame_b: [0.; 2],
+            loop_range: None,
+            control_frames: 0,
         }
     }
     #[test]

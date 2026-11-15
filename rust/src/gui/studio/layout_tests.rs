@@ -85,6 +85,7 @@ fn compact_four_part_controls_fit_without_sacrificing_names_or_adding_audio_chan
     let ctx = egui::Context::default();
     theme::apply(&ctx);
     let mut studio = fixture(4);
+    studio.editor.timeline = false;
     studio.mix.tracks[0].gain_db = -3.12506789;
     let before = serde_json::to_value(&studio.mix).unwrap();
     let size = egui::vec2(1100., 720.);
@@ -180,6 +181,7 @@ fn native_stem_sliders_and_numeric_editors_name_the_actual_part_gain_and_units()
     theme::apply(&ctx);
     ctx.enable_accesskit();
     let mut studio = fixture(4);
+    studio.editor.timeline = false;
     let names: Vec<_> = studio
         .bank
         .as_ref()
@@ -307,6 +309,7 @@ fn compact_comparison_and_part_plots_are_explicit_and_do_not_hide_playback_or_ch
     theme::apply(&ctx);
     ctx.all_styles_mut(|style| style.animation_time = 0.);
     let mut studio = fixture(4);
+    studio.editor.timeline = false;
     let before = serde_json::to_value(&studio.mix).unwrap();
     let mut output = frame(
         &ctx,

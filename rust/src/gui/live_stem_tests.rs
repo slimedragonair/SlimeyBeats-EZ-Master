@@ -81,6 +81,8 @@ pub(super) fn fixture(
         cached_frame: None,
         frame_a: [0.; 2],
         frame_b: [0.; 2],
+        loop_range: None,
+        control_frames: 0,
     };
     source.prime(0);
     (source, mailbox, bank, mix)

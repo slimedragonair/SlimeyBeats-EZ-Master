@@ -10,10 +10,11 @@ pub fn show(
     ui: &mut egui::Ui,
     selected: Option<PathBuf>,
     ctx: &egui::Context,
-    _advanced: bool,
+    advanced: bool,
 ) {
     super::preview_actions::dock(studio, ui, ctx);
     ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().button_padding.x = 5.;
         if ui.add_enabled(!studio.busy(),crystal_button::secondary("Open project…")).clicked() && let Some(path)=rfd::FileDialog::new().add_filter("Studio project",&["json"]).pick_file(){studio.load_project(path,ctx);}
         if ui.add_enabled(preview_unavailable(studio).is_none(),crystal_button::secondary("Save project…")).on_hover_text("Save self-contained source/stem/preview working copies, settings and hashes in a new folder. No model download is needed to reopen it.").clicked() && let Some(folder)=rfd::FileDialog::new().pick_folder(){studio.save_project(folder,ctx);}
     });
@@ -23,15 +24,28 @@ pub fn show(
         // The scroll content rounds its origin separately from the pane at fractional
         // DPI. Leave one physical pixel so full-width separators cannot grow the pane.
         ui.set_max_width((ui.available_width() - 1. / ui.pixels_per_point()).max(1.));
-        if matches!(studio.page, Page::Voice | Page::Repair) || studio.source.is_none() {
+        let stem_editor = studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none();
+        if stem_editor {
+            // The loaded bank is the editor's source. Keep source replacement
+            // with import actions so it cannot push the selected fader below the fold.
+        } else if matches!(studio.page, Page::Voice | Page::Repair) || studio.source.is_none() {
             super::tool_inputs::source(studio, ui, selected.clone(), ctx);
         } else {
             section_header(ui, "Studio source").show(ui, |ui| super::tool_inputs::source(studio, ui, selected.clone(), ctx));
         }
-        ui.separator();
+        if !stem_editor { ui.separator(); }
         let available = !studio.busy();
         ui.add_enabled_ui(available, |ui| match studio.page {
-            Page::Stems => stems(studio, ui, ctx),
+            Page::Stems => {
+                if studio.bank.is_some() && studio.bulk_import.is_none() {
+                    super::editor_controls::show(studio, ui, ctx, advanced);
+                    ui.separator();
+                    section_header(ui, "Import & separation").show(ui, |ui| {
+                        section_header(ui, "Studio source").show(ui, |ui| super::tool_inputs::source(studio, ui, selected.clone(), ctx));
+                        stems(studio, ui, ctx);
+                    });
+                } else { stems(studio, ui, ctx); }
+            },
             Page::Plugins => { ui.small("Choose an effect and adjust its controls in the workspace. Preview prepares audio; Export saves it."); },
             Page::Voice => { ui.small("Edit voice cleanup in the workspace. Preview prepares audio; Export saves it."); },
             Page::Repair => { ui.small("Set the time and frequency region in the workspace, then Preview spectral repair."); },

@@ -56,6 +56,8 @@ pub struct Revision {
 }
 
 pub struct Studio {
+    pub(super) editor: super::editor_state::EditorState,
+    pub(super) editor_waveforms: super::editor_timeline::Waveforms,
     pub stem_import: super::stem_import::StemImport,
     pub bulk_import: Option<super::stem_bulk_import::Review>,
     pub plugin_host: Option<crate::studio_native::plugins::VstHost>,
@@ -108,6 +110,8 @@ impl Studio {
             .err()
             .map(|e| format!("Cannot create a private Studio cache: {e}"));
         Self {
+            editor: Default::default(),
+            editor_waveforms: Default::default(),
             stem_import: Default::default(),
             bulk_import: None,
             plugin_host: crate::studio_native::plugins::VstHost::find(),
@@ -225,6 +229,8 @@ impl Studio {
                             self.status = "Review stem selection · audio unchanged.".into();
                         }
                         Ok(Change::Source(source)) => {
+                            self.editor = Default::default();
+                            self.editor_waveforms = Default::default();
                             self.bank = None;
                             self.mix = MixSettings::default();
                             self.stem_waveforms.clear();
@@ -280,6 +286,7 @@ impl Studio {
                             }
                         }
                         Ok(Change::Stems(bank, revision)) => {
+                            self.editor = Default::default();
                             self.bank = Some(bank.clone());
                             self.mix = bank.defaults();
                             self.target = Target::Stem(StemKind::Vocals);
@@ -423,6 +430,7 @@ impl Studio {
                 ));
             } else {
                 self.player.seek(seconds.min(self.player.duration));
+                self.update_editor_loop();
                 if playing {
                     self.player.toggle();
                 }

@@ -112,7 +112,7 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, advanced: bool, compa
     }
 }
 
-fn gain(track: &mut StemControl, ui: &mut egui::Ui, name: &str, max_width: f32) -> bool {
+pub(super) fn gain(track: &mut StemControl, ui: &mut egui::Ui, name: &str, max_width: f32) -> bool {
     // A slider is a rail plus a numeric editor. egui propagates this accessible
     // name to the other half even when the numeric editor takes keyboard focus.
     ui.scope(|ui| {
@@ -126,7 +126,7 @@ fn gain(track: &mut StemControl, ui: &mut egui::Ui, name: &str, max_width: f32) 
     .inner
 }
 
-fn switches(track: &mut StemControl, ui: &mut egui::Ui, name: &str) -> bool {
+pub(super) fn switches(track: &mut StemControl, ui: &mut egui::Ui, name: &str) -> bool {
     let mute = ui
         .checkbox(&mut track.mute, "Mute")
         .on_hover_text(format!("Mute {name}. The bank audio stays intact."))
@@ -138,7 +138,7 @@ fn switches(track: &mut StemControl, ui: &mut egui::Ui, name: &str) -> bool {
     mute || solo
 }
 
-fn balance(track: &mut StemControl, ui: &mut egui::Ui, name: &str) -> bool {
+pub(super) fn balance(track: &mut StemControl, ui: &mut egui::Ui, name: &str) -> bool {
     ui.horizontal_wrapped(|ui| {
         ui.label("Stereo balance");
         ui.scope(|ui| {

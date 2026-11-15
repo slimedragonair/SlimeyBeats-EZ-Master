@@ -49,7 +49,7 @@ def verify(server, fixture, codecs):
                 prepared = client.run("prepare_optional_tool", {"tool": "audio_codecs", "allow_download": True})
                 assert prepared["verification"] == "encode_probe_decode_checked"
             tools = client.request("tools/list", {})["result"]["tools"]
-            assert len(tools) == 42, len(tools)
+            assert len(tools) == 43, len(tools)
             assert all("inputSchema" in tool and "annotations" in tool for tool in tools)
             caps = client.call("get_capabilities")
             assert caps["concurrent_audio_jobs"] == 1

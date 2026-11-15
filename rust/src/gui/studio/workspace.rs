@@ -85,12 +85,18 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             ui.horizontal_wrapped(|ui| {
                 tabs(studio, ui);
                 promote = history(studio, ui);
+                if studio.page == Page::Stems {
+                    super::editor_toolbar::view_selector(studio, ui);
+                }
             });
         });
     } else {
         ui.horizontal_wrapped(|ui| tabs(studio, ui));
         ui.horizontal_wrapped(|ui| {
             promote = history(studio, ui);
+            if studio.page == Page::Stems {
+                super::editor_toolbar::view_selector(studio, ui);
+            }
         });
     }
     if let Some(error) = studio.error.clone() {
@@ -114,6 +120,13 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             "Selected input · {:.1} LUFS · {:.2} dBTP · {} Hz",
             analysis.metrics.integrated_lufs, analysis.metrics.true_peak_dbtp, analysis.sample_rate
         ));
+    }
+    if studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none() {
+        super::editor_toolbar::show(studio, ui);
+        if studio.editor.timeline {
+            super::editor_timeline::show(studio, ui, compact);
+            return promote;
+        }
     }
     let workspace_height = ui.available_height().max(0.);
     egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page)).max_height(workspace_height).show(ui,|ui| {

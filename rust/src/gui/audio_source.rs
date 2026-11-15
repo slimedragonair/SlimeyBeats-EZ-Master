@@ -1,4 +1,7 @@
-use super::{live_stem_path::LiveStemPath, playback_tap::PlaybackTap, player::Controls};
+use super::{
+    live_stem_path::LiveStemPath, playback_loop::FrameRange, playback_tap::PlaybackTap,
+    player::Controls,
+};
 use crate::{
     audio::Audio,
     dsp::{
@@ -33,6 +36,8 @@ pub(super) struct ABSource {
     pub cached_frame: Option<usize>,
     pub frame_a: Frame,
     pub frame_b: Frame,
+    pub loop_range: Option<FrameRange>,
+    pub control_frames: usize,
 }
 fn frame(audio: &Audio, index: usize) -> Frame {
     if index >= audio.frames() {
@@ -48,7 +53,17 @@ fn frame(audio: &Audio, index: usize) -> Frame {
     ]
 }
 impl ABSource {
+    fn latency_frames(&self) -> usize {
+        self.live
+            .as_ref()
+            .map(|live| live.processor.delay())
+            .or_else(|| self.stems.as_ref().map(|stems| stems.processor.delay()))
+            .unwrap_or(0)
+    }
     pub fn prime(&mut self, position: usize) {
+        self.prime_frame(position, true);
+    }
+    fn prime_frame(&mut self, position: usize, read_updates: bool) {
         self.tap.clear();
         self.cached_frame = None;
         if let Some(live) = &mut self.live {
@@ -61,7 +76,7 @@ impl ABSource {
             }
             self.cursor = end * self.channels;
         } else if let Some(stems) = &mut self.stems {
-            if let Some(targets) = stems.updates.take() {
+            if read_updates && let Some(targets) = stems.updates.take() {
                 stems.processor.set_targets(targets);
                 stems.active = true;
             }
@@ -84,9 +99,13 @@ impl ABSource {
         if self.cached_frame == Some(index) {
             return;
         }
+        // Count emitted frames, not source indices: even a one-frame loop must
+        // receive live edits without polling the stem mailbox on every wrap.
+        let poll_controls = self.control_frames.is_multiple_of(64);
+        self.control_frames = self.control_frames.wrapping_add(1);
         let delay = if let Some(live) = &mut self.live {
             let mut latest = None;
-            if index.is_multiple_of(64) {
+            if poll_controls {
                 while let Ok(parameters) = live.updates.try_recv() {
                     latest = Some(parameters);
                 }
@@ -97,9 +116,7 @@ impl ABSource {
             self.frame_b = live.processor.process(frame(&live.raw, index));
             live.processor.delay()
         } else if let Some(stems) = &mut self.stems {
-            if index.is_multiple_of(64)
-                && let Some(targets) = stems.updates.take()
-            {
+            if poll_controls && let Some(targets) = stems.updates.take() {
                 if !stems.active {
                     stems.processor.reset();
                     for frame in index.saturating_sub(stems.processor.delay())..index {
@@ -149,15 +166,23 @@ impl Iterator for ABSource {
                 self.prime((seek as usize).min(self.before.frames()));
                 self.gain = 0.;
             }
+            if let Some(range) = self.controls.audition_loop.try_range() {
+                self.loop_range = range;
+            }
+            if self.controls.playing.load(Ordering::Relaxed)
+                && let Some(range) = self.loop_range
+            {
+                let position = (self.cursor / self.channels).saturating_sub(self.latency_frames());
+                if position < range.start || position >= range.end {
+                    // Both A and B (including live DSP history/delay) move at
+                    // once. Retain listening gain and the A/B crossfade state.
+                    self.prime_frame(range.start, false);
+                }
+            }
         }
         let index = self.cursor / self.channels;
         let channel = self.cursor % self.channels;
-        let delay = self
-            .live
-            .as_ref()
-            .map(|l| l.processor.delay())
-            .or_else(|| self.stems.as_ref().map(|s| s.processor.delay()))
-            .unwrap_or(0);
+        let delay = self.latency_frames();
         let end = index >= self.before.frames() + delay;
         if end {
             self.controls.playing.store(false, Ordering::Relaxed);
@@ -273,6 +298,8 @@ mod tests {
             cached_frame: None,
             frame_a: [0.; 2],
             frame_b: [0.; 2],
+            loop_range: None,
+            control_frames: 0,
         };
         source.prime(0);
         (source, tx)

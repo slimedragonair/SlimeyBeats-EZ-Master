@@ -1,4 +1,10 @@
 pub mod controls;
+mod editor_audio;
+mod editor_controls;
+mod editor_envelope;
+mod editor_state;
+mod editor_timeline;
+mod editor_toolbar;
 #[cfg(test)]
 mod interaction_tests;
 mod jobs;
@@ -27,3 +33,6 @@ mod voice_controls;
 
 #[cfg(test)]
 mod layout_tests;
+
+#[cfg(test)]
+mod editor_tests;

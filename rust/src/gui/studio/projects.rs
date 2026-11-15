@@ -90,6 +90,8 @@ impl Studio {
             loudness: source_lufs,
         });
         self.bank = bank.clone();
+        self.editor = Default::default();
+        self.editor_waveforms = Default::default();
         self.bulk_import = None;
         self.undo.clear();
         self.redo.clear();

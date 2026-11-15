@@ -11,6 +11,8 @@ impl Studio {
         self.player.stop();
         self.source = data.source;
         self.bank = data.bank;
+        self.editor = Default::default();
+        self.editor_waveforms = Default::default();
         self.current = data.current;
         self.bulk_import = None;
         self.undo.clear();

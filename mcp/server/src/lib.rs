@@ -13,6 +13,10 @@ pub mod plugin_protocol;
 pub mod processing;
 pub mod profile_catalog;
 pub mod protocol;
+pub mod region_edit_operations;
+pub mod region_edit_protocol;
+#[cfg(test)]
+mod region_edit_test_support;
 pub mod state;
 pub mod stem_bundle_protocol;
 pub mod stem_protocol;

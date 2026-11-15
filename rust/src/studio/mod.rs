@@ -1,5 +1,6 @@
 //! Shared audio editing primitives; no model runtimes, filesystem or GUI dependencies.
 pub mod realtime_mix;
+pub mod region_edit;
 pub mod spectral_repair;
 pub mod spectrogram;
 pub mod stem_archive;
