@@ -171,9 +171,11 @@ def main():
     parser.add_argument("--executable")
     parser.add_argument("--boundary", action="store_true", help="Also encode/decode an exact 15-minute 48 kHz stereo file")
     parser.add_argument("--integration", action="store_true", help="Test real verified MP3 safety retries; --site must contain built Rust WASM")
-    parser.add_argument("--site", type=Path, default=ROOT / "web/site")
+    parser.add_argument("--site", type=Path, default=ROOT / "web/dist")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
+    if args.integration and not (args.site / "pkg/dsp_bg.wasm").is_file():
+        parser.error("--integration requires a built site with pkg/dsp_bg.wasm; run web/tools/build.py or pass --site")
     out = args.out.resolve(); out.mkdir(parents=True, exist_ok=True)
     fixture_folder = out / "fixtures"; fixture_folder.mkdir(exist_ok=True)
     references = make_fixtures(fixture_folder)

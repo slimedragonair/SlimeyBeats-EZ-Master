@@ -44,3 +44,11 @@ Chromium 143, Firefox 144 and Linux WebKit 26 each passed eight checks against t
 All 372 stable files retained their original hashes in the composed artifact. Public verification checked five critical stable files and four preview files after deployment. Nine storage/identity groups verified independent root/preview policies, terminal markers, exact saved recovery data, cross-tab events and locks. The publishing/cache/hash helpers passed 24 tests, including expired-baseline fallback and rejection of stale or unrelated snapshots. Actual long-idle snapshot expiry remains an operational condition covered by fixtures rather than waiting 90 days.
 
 Two earlier broad-CI failures were investigated separately: the live EQ probe now waits for enough actual post-settle PCM rather than assuming a timer delivered it; the native compact time-edit inspector needed to keep its fields and actions together with Linux font metrics. These fixes do not turn preview smoke checks into full native/browser qualification. Read each commit's separate CI results.
+
+The next CI run exposed two further harness mismatches: MP3 integration defaulted
+to the unbuilt source directory instead of `web/dist`, and optional-tool discovery
+still expected the older 42-tool catalog after `edit_stem_region` was added.
+The verifier now defaults to the built site, reports missing WASM before creating
+fixtures, and checks the exact current 43-tool set. These are test-harness fixes;
+they do not change app behavior or qualify a phone. Read the subsequent run's
+results rather than interpreting preview publication as full-suite success.
