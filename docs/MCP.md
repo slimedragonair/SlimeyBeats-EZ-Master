@@ -1,8 +1,8 @@
 # AI assistant connection — desktop MCP preview
 
-SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **43 tools in the current development source** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
+SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **45 tools in the current development source** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
-**The stem-editor development source adds `edit_stem_region`, for 43 tools. Hotfix3 introduced two private support-report tools, for 42; the previously published Hotfix 2 companion has 40.** Source changes do not by themselves update earlier binaries. Reports use a preview/review/save flow; [privacy and review requirements](#private-support-reports) apply even though saving is local.
+**The current development source adds `scan_audio_issues` and `preview_stem_doctor`, for 45 tools. The earlier stem-editor checkpoint had 43; Hotfix3 has 42; Hotfix 2 has 40.** Source changes do not by themselves update earlier binaries. Reports use a preview/review/save flow; [privacy and review requirements](#private-support-reports) apply even though saving is local.
 
 The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) includes the matching desktop, companion and VST3 worker. Follow [Windows installation](INSTALLATION.md) or [build from main or the release tag](BUILDING.md#get-the-source); Linux currently requires a source build. **The stable v0.4.2 fallback does not include MCP or session handoff.** Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
 
@@ -66,7 +66,7 @@ The Studio Preview installer also includes the companion and VST3 worker. Open *
 
 ## Tools
 
-The current stem-editor source exposes **43 tools**, including `edit_stem_region`; Hotfix3 has **42** and published Hotfix 2 has **40**. The table includes the report tools alongside read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+The current development source exposes **45 tools**, including `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`; Hotfix3 has **42** and published Hotfix 2 has **40**. The table includes the report tools alongside read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
 
 | Tool | Purpose |
 |---|---|
@@ -96,6 +96,8 @@ The current stem-editor source exposes **43 tools**, including `edit_stem_region
 | `import_stem_bundle` | Import all inspected ZIP parts by default, or an explicit subset, as a job; prefer WAV or MP3 with available-format fallback; decoded-bank and inspection budgets apply |
 | `mix_stems` | Patch gain, mute/solo, stereo balance and output/peak settings; prepare a mix preview |
 | `edit_stem_region` | Render silence, linear fade in/out, gain or reverse into one current stem's time selection; replace its immutable bank and prepare an undoable whole-mix preview using current controls |
+| `scan_audio_issues` | Read-only timestamped clipping, quiet-gap, possible-ending and low-mid indicators on a current audio ID; poll for evidence and thresholds |
+| `preview_stem_doctor` | Explicit, selected conservative declip/low-mid repair as an undoable temporary Studio preview; direct stem application and export remain separate |
 | `clean_voice`, `repair_audio` | Voice cleanup or a precise time/frequency repair on a current source/stem/Studio preview |
 | `undo_studio_edit`, `redo_studio_edit` | Restore a retained editing revision and its bank/controls |
 | `apply_preview_to_stem` | Apply a direct current-stem edit back to that stem and rebuild the mix |
@@ -107,6 +109,10 @@ The current stem-editor source exposes **43 tools**, including `edit_stem_region
 Long operations return a job ID promptly. Poll `get_job_status` with a short delay between polls until `completed`, `failed` or `cancelled`. Only one audio job runs at once. Cancellation waits for DSP checkpoints; it is not an immediate interruption of every calculation. Decoder subprocesses have a timeout and are killed when cancellation is requested. If audio was already durably saved when cancellation arrives, the job reports its saved output. History retains the latest 64 jobs, not their PCM buffers.
 
 Use the current `source_id` for analysis/mastering and current `preview_id` for EQ/export. Stale IDs are rejected. EQ patches retain omitted settings; a provided band list must contain exactly seven bands. Re-mastering retains manual EQ. Changing a reference invalidates the preview and requires re-mastering. Built-in profile IDs and weighted blends are accepted. With an owner-configured `--profiles-root`, the catalog also exposes exact `custom:<filename stem>` IDs. Tool-supplied file paths and custom-profile blends remain rejected.
+
+## Issue Detector and Stem Doctor
+
+Use `get_help` with `topic: "doctor"` for complete examples, numeric units, repair limits and current-ID handling. `scan_audio_issues` is read-only. `preview_stem_doctor` prepares only an explicitly requested repair; no silence is cut, no models downloaded and no final audio exported. The same Rust core runs in desktop and browser Studio. See [workflow and current validation](STEM_DOCTOR.md). Published binaries retain their earlier tool counts until separately released.
 
 ## Private support reports
 
@@ -240,7 +246,7 @@ The focused real-stdio regression is:
 python mcp/tools/verify_stem_region_edits.py --server "path/to/release/slimeybeats-mcp.exe"
 ```
 
-It uses synthetic local WAVs to check 43-tool discovery, shared schemas, all five operations, PCM/control preservation, invalid/stale selection state, undo/redo and saved project assets. Native project reopening is separately covered by the MCP Rust suite. Neither establishes physical playback or timeline UI acceptance. Earlier validation counts below remain historical. General protocol, report and package fixtures now expect 43 tools; the updated general/report real-stdio checks and four package tests passed.
+It uses synthetic local WAVs to check 43-tool discovery, shared schemas, all five operations, PCM/control preservation, invalid/stale selection state, undo/redo and saved project assets. Native project reopening is separately covered by the MCP Rust suite. Neither establishes physical playback or timeline UI acceptance. Earlier validation counts below remain historical. At that checkpoint, general protocol, report and package fixtures expected 43 tools; its updated general/report real-stdio checks and four package tests passed. Current fixtures expect 45 and are qualified separately in the Stem Doctor guide.
 
 On **November 15, 2026**, the Windows MCP release baseline passed **34 tests**. The updated locked/offline release suite passed **42 tests (36 unit + 6 integration)**, including the pending-control-job guard and native project reopening. Strict release Clippy across MCP targets and formatting passed. The rebuilt release executable passed actual stdio `initialize`/`tools/list` discovery of **43 tools**, job submission/polling for all five region operations, exact untouched/raw-other-stem PCM, independent mix/control checks, undo/redo and saved project assets; **20 invalid/stale requests** left Studio unchanged. Inputs remained unchanged and no final audio export or OS launch occurred. These results cover synthetic fixtures and MCP/project behavior, not physical listening, the desktop timeline, browser UI or packaging.
 

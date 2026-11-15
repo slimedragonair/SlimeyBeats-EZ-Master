@@ -56,6 +56,7 @@ pub struct Revision {
 }
 
 pub struct Studio {
+    pub(super) doctor: super::doctor_state::Doctor,
     pub(super) editor: super::editor_state::EditorState,
     pub(super) editor_waveforms: super::editor_timeline::Waveforms,
     pub stem_import: super::stem_import::StemImport,
@@ -110,6 +111,7 @@ impl Studio {
             .err()
             .map(|e| format!("Cannot create a private Studio cache: {e}"));
         Self {
+            doctor: Default::default(),
             editor: Default::default(),
             editor_waveforms: Default::default(),
             stem_import: Default::default(),
@@ -209,6 +211,7 @@ impl Studio {
         self.audio_target()
     }
     pub fn poll(&mut self, ctx: &egui::Context) {
+        self.sync_doctor_input();
         while let Ok(event) = self.jobs.receiver.try_recv() {
             match event {
                 Event::Progress(id, fraction, message) if self.jobs.active == Some(id) => {
@@ -218,6 +221,7 @@ impl Studio {
                 Event::Done(id, result) if self.jobs.active == Some(id) => {
                     self.jobs.active = None;
                     match result {
+                        Ok(Change::Doctor(result)) => self.accept_doctor_result(*result),
                         Err(error) => {
                             self.reveal_spectrogram = false;
                             self.error = Some(error);
@@ -229,6 +233,7 @@ impl Studio {
                             self.status = "Review stem selection · audio unchanged.".into();
                         }
                         Ok(Change::Source(source)) => {
+                            self.doctor.invalidate();
                             self.editor = Default::default();
                             self.editor_waveforms = Default::default();
                             self.bank = None;
@@ -347,8 +352,10 @@ impl Studio {
                 _ => {}
             }
         }
+        super::doctor_capture::tick(self, ctx);
     }
     pub fn accept(&mut self, revision: Revision, remember: bool) {
+        self.doctor.invalidate();
         if remember && let Some(previous) = self.current.take() {
             self.undo.push(previous);
             while self.undo.len() > 4 {
@@ -370,6 +377,7 @@ impl Studio {
             self.undo.pop()
         };
         if let Some(next) = next {
+            self.doctor.invalidate();
             if let Some(previous) = self.current.replace(next.clone()) {
                 if redo {
                     self.undo.push(previous);

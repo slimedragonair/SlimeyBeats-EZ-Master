@@ -17,6 +17,7 @@ import { time } from "./view.js";
 import { wireStudioFeedback } from "./studio-feedback.js";
 import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
 import { createStudioTimeline } from "./studio-timeline.js";
+import { wireStudioDoctor } from "./studio-doctor.js";
 import { changedRecovery } from "./recovery-bridge.js";
 import { captureStudioRecovery, prepareStudioRecovery, studioRecoverySize, restoreStudioFields } from "./studio-recovery.js";
 
@@ -66,6 +67,9 @@ export function createStudio({
         ),
         notice,
     });
+    const doctor = wireStudioDoctor({ client,
+        getState: () => ({ info, busy, pendingMix, filename }),
+        job, mutate, seek: seconds => playback.seek(seconds), draw, sync });
     function notice(text, error = false) {
         if (pendingMix && !error && text !== MIX_PENDING_NOTICE)
             text = `${text} ${MIX_PENDING_NOTICE}`;
@@ -103,7 +107,7 @@ export function createStudio({
         importer.sync(busy);
         $("use-main").disabled ||= !getMainAudio();
         $("close").disabled = busy;
-        $("cancel").disabled = !busy || committing || cancelled;
+        $("cancel").disabled = (!busy && !doctor.scanning) || committing || (busy && cancelled);
         $("undo").disabled = busy || pendingMix || !info.can_undo;
         $("redo").disabled = busy || pendingMix || !info.can_redo;
         $("spectrum").disabled = busy || !info.loaded;
@@ -128,6 +132,7 @@ export function createStudio({
             : "Settings changed. Run the tool to hear them. Export saves the existing preview.";
         previewStatus(pendingMix, playback.monitorMix);
         timeline.sync();
+        doctor.sync();
     }
     function requireUpdatedMix() {
         if (!pendingMix) return true;
@@ -135,15 +140,17 @@ export function createStudio({
         sync();
         return false;
     }
-    async function job(text, action, requiresMix = false) {
+    async function job(text, action, requiresMix = false, keepPlaying = false) {
         if (busy) return;
         feedback.begin();
         if (requiresMix && !requireUpdatedMix()) return;
         busy = true;
         changedRecovery();
         cancelled = false;
-        pauseMain();
-        playback.pause();
+        if (!keepPlaying) {
+            pauseMain();
+            playback.pause();
+        }
         notice(text);
         sync();
         onState();
@@ -193,6 +200,7 @@ export function createStudio({
         return true;
     }
     function publish(result, buffers, reset, label) {
+        doctor.invalidate();
         if (reset) stemView = "mixer";
         playback.setAudio(buffers, reset);
         info = result.info;
@@ -249,6 +257,7 @@ export function createStudio({
         changedRecovery();
     }
     function mixChanged() {
+        doctor.invalidate();
         pendingMix = true;
         pauseMain();
         playback.setMix(controls);
@@ -301,7 +310,7 @@ export function createStudio({
     for (const event of ["input", "change"])
         document.getElementById("studio-tools").addEventListener(event, (event) => {
             // Timeline navigation is transient; applied edits mark recovery in job().
-            if (!event.target.closest("#s-editor")) changedRecovery();
+            if (!event.target.closest("#s-editor, #s-doctor-page")) changedRecovery();
         });
     const importer = wireStemImport({
         client,
@@ -363,6 +372,7 @@ export function createStudio({
             },
         );
     $("target").onchange = () => {
+        doctor.invalidate("Target changed. Scan the selected saved source again.");
         image = null;
         draw();
         sync();
@@ -370,6 +380,7 @@ export function createStudio({
     const exportActions = wireStudioExports({ getState: () => ({ busy, cancelled, info }),
         client, playback, job, promote, notice });
     $("cancel").onclick = () => {
+        if (!busy && doctor.scanning) { doctor.cancel(); return; }
         exportActions.cancel();
         cancelled = true;
         notice(
@@ -378,6 +389,7 @@ export function createStudio({
         sync();
     };
     $("close").onclick = () => {
+        doctor.invalidate("Choose a source, then scan.");
         exportActions.cancel();
         cancelled = true;
         client.stop();
@@ -400,9 +412,9 @@ export function createStudio({
         leave();
         changedRecovery();
     };
-    for (const key of ["mix", "voice", "repair"])
+    for (const key of ["mix", "voice", "repair", "doctor"])
         $("tab-" + key).onclick = () => {
-            for (const name of ["mix", "voice", "repair"]) {
+            for (const name of ["mix", "voice", "repair", "doctor"]) {
                 $(name + "-page").hidden = name !== key;
                 $("tab-" + name).classList.toggle("selected", name === key);
             }

@@ -172,6 +172,9 @@ impl Studio {
         );
     }
     pub fn load(&mut self, path: PathBuf, ctx: &egui::Context) {
+        if !self.busy() {
+            self.doctor.invalidate();
+        }
         self.begin(
             ctx,
             "Loading a local Studio source",

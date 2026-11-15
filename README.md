@@ -42,6 +42,8 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Browser editor parity (`current-work`):** Studio includes a stem timeline, precise time selection and the same shared Rust silence, fade, gain and reverse tools, with explicit preview commits, undo/redo and local recovery. Open **Stem mix → Time edits**; **Mixer** returns to live faders. [Browser editor workflow, tested scope and remaining checks](docs/WEB_STEM_EDITOR.md). The aligned-bank limits and separate export workflow remain.
 
+**Issue Detector and Stem Doctor (`current-work`):** Studio now offers read-only, timestamped clipping/quiet-gap/possible-ending/low-mid checks, explained findings and explicitly requested repair previews. Scanning never trims or changes audio. Desktop, browser and the development MCP share the same Rust implementation; the MCP adds `scan_audio_issues` and `preview_stem_doctor` (**45 development tools**). [Workflow, limits and validation status](docs/STEM_DOCTOR.md). The installer above remains Hotfix3.
+
 **Browser recovery fix:** restored stems now replace older playback buffers, keeping audition and export on the same audio. Unchanged live stems still reuse their buffers. [Regression and recovery scope](docs/WEB_STEM_EDITOR.md#restored-playback-must-match-restored-audio).
 
 <img src="docs/images/web-stem-editor-phone.png" width="280" alt="Development browser Studio Time edits view with aligned stem waveforms and fit/zoom controls">

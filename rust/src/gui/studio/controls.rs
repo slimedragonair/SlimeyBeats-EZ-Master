@@ -48,6 +48,7 @@ pub fn show(
             },
             Page::Plugins => { ui.small("Choose an effect and adjust its controls in the workspace. Preview prepares audio; Export saves it."); },
             Page::Voice => { ui.small("Edit voice cleanup in the workspace. Preview prepares audio; Export saves it."); },
+            Page::Repair if super::doctor_controls::active(studio) => { super::doctor_controls::settings(studio, ui); },
             Page::Repair => { ui.small("Set the time and frequency region in the workspace, then Preview spectral repair."); },
         });
     });

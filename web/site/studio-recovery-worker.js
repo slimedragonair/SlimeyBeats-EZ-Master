@@ -4,6 +4,7 @@ export function applyStudioEdit(candidate, action, values) {
         case "mix": return candidate.mix(JSON.stringify(values.settings));
         case "voice": return candidate.voice(values.target, JSON.stringify(values.settings));
         case "repair": return candidate.repair(values.target, JSON.stringify(values.selection));
+        case "doctor": return candidate.doctor(values.target, JSON.stringify(values.repair));
         case "replace": return candidate.replace_stem(values.kind);
         case "region": return candidate.edit_region(values.kind, JSON.stringify(values.edit));
         case "history": return candidate.history(values.redo);
@@ -15,6 +16,7 @@ function edit(action, m) {
         case "mix": return { action, settings: m.settings };
         case "voice": return { action, target: m.target, settings: m.settings };
         case "repair": return { action, target: m.target, selection: m.selection };
+        case "doctor": return { action, target: m.target, repair: m.repair };
         case "replace": return { action, kind: m.kind };
         case "region": return { action, kind: m.kind, edit: m.edit };
         case "history": return { action, redo: m.redo };

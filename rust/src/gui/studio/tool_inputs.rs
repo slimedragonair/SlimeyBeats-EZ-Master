@@ -82,6 +82,7 @@ pub(super) fn target(studio: &mut Studio, ui: &mut egui::Ui) {
             .labelled_by(label.id);
     });
     if studio.target != previous {
+        studio.doctor.invalidate();
         studio.analysis = None;
         studio.status = "Input changed · Analyze to measure the selected source".into();
         studio.spectrogram = None;

@@ -1,4 +1,5 @@
 import { bulkImportTemplate } from "./studio-import-template.js";
+import { doctorTemplate, doctorWaveOverlay } from "./studio-doctor-template.js";
 export const studioTemplate = `
 <div class="edit-heading"><div><span class="eyebrow teal">Private audio editing</span><h2>Your Studio workspace</h2></div><button id="s-close">Close Studio</button></div>
 <div id="s-status" class="edit-notice" role="status" aria-live="polite">Choose audio.</div>
@@ -6,7 +7,7 @@ export const studioTemplate = `
 <p class="muted">Import aligned stems, rebalance, clean a voice, or repair a precise region. Neural extraction and VST3 hosting are desktop features. Browser Studio keeps one workspace, with a 128 MiB combined decoded-audio limit.</p>
 ${bulkImportTemplate}
 <details class="edit-import"><summary>Import your own aligned stems</summary><p class="small">Choose at least two files with matching rate, channels and length. Custom stem set starts with common instruments; add rows as needed and leave unused slots empty. Numbered parts can hold any instrument or song layer. The 128 MiB decoded-audio limit is shared by all stems.</p><label>Import layout<select id="s-mode"><option value="two">2 stems</option><option value="four">4 stems</option><option value="multi">Custom stems</option></select></label><div id="s-stem-files" class="edit-file-grid"></div><div class="edit-actions"><button id="s-add-part" hidden>Add another part</button><button id="s-import" class="primary">Import aligned stems</button></div></details>
-<nav class="edit-actions" aria-label="Editing tools"><button id="s-tab-mix" class="selected">Stem mix</button><button id="s-tab-voice">Voice cleanup</button><button id="s-tab-repair">Spectral repair</button></nav>
+<nav class="edit-actions" aria-label="Editing tools"><button id="s-tab-mix" class="selected">Stem mix</button><button id="s-tab-voice">Voice cleanup</button><button id="s-tab-repair">Spectral repair</button><button id="s-tab-doctor">Stem Doctor</button></nav>
 <div class="edit-actions"><button id="s-undo" disabled>Undo</button><button id="s-redo" disabled>Redo</button><label class="edit-target">Process this source<select id="s-target"><option value="source">Original source</option><option value="preview">Current preview</option></select></label></div>
 <div class="edit-grid">
  <div class="edit-visual">
@@ -27,6 +28,7 @@ ${bulkImportTemplate}
   <div id="s-repair-page" hidden><h3>Refine a precise moment</h3><button id="s-spectrum" disabled>Build spectrogram</button><p class="small">Drag a rectangle, or enter exact seconds and Hz. Bright energy is not automatically a defect.</p><p class="small">Time / seconds · Frequency / Hz · sampled mean-channel power, dBFS per bin. Dark: quiet · violet: detail · teal: stronger energy.</p><canvas id="s-spectrum-canvas" width="640" height="260" aria-label="Time-frequency spectrogram and selected repair region"></canvas><div class="edit-fields">
    <label>Start / s<input id="s-start" type="number" min="0" step="0.01" value="0"></label><label>End / s<input id="s-end" type="number" min="0" step="0.01" value="1"></label><label>Low / Hz<input id="s-low" type="number" min="0" step="10" value="2000"></label><label>High / Hz<input id="s-high" type="number" min="0" step="10" value="8000"></label><label title="Negative dB turns down the selection; 0 is an exact bypass.">Reduction / dB<input id="s-reduction" type="number" min="-60" max="0" value="-12"></label><label title="Heal estimates surrounding magnitudes; it cannot recreate missing words/instruments.">Repair mode<select id="s-repair-mode"><option value="attenuate">Attenuate</option><option value="heal">Heal from surroundings</option></select></label>
   </div><button id="s-repair" class="primary" disabled>Preview spectral repair</button></div>
+ ${doctorTemplate}
  </div>
  <aside class="edit-save"><h3 id="s-preview-heading">Current preview</h3><p id="s-info" class="small">No Studio audio loaded</p><p id="s-pending" class="edit-warning" hidden>Settings changed. Run the tool to hear them. Export saves the existing preview.</p><ul id="s-notes" class="small"></ul>
   <label>Export format<select id="s-format"><option value="wav24">24-bit WAV</option><option value="wav16">16-bit WAV</option><option value="wav32f">32-bit float WAV</option><option value="mp3">MP3 · 320 kbps</option></select></label>
@@ -37,7 +39,7 @@ ${bulkImportTemplate}
 <details id="s-playback-details" class="playback-details">
  <summary>Waveforms, volume &amp; seeking</summary>
  <div class="edit-wave-legend" aria-label="Waveform lanes"><span>Before · upper waveform</span><span>Saved preview · lower waveform</span></div>
- <canvas id="s-wave" width="640" height="100" aria-label="Before and preview waveform"></canvas>
+ ${doctorWaveOverlay}
  <div class="edit-detail-controls"><label>Volume<input id="s-volume" type="range" min="0" max="1" step="0.01" value="0.7"></label><time id="s-clock">0:00 / 0:00</time></div>
  <label class="edit-seek">Position<input id="s-seek" type="range" min="0" max="1" step="0.01" value="0" disabled aria-label="Studio playback position"></label>
 </details>

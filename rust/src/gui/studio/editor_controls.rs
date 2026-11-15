@@ -43,6 +43,9 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, 
     if studio.editor.selected != previous
         && let Some(kind) = studio.editor.selected
     {
+        if studio.target != Target::Stem(kind) {
+            studio.doctor.invalidate();
+        }
         studio.target = Target::Stem(kind);
     }
     let available = !studio.busy();

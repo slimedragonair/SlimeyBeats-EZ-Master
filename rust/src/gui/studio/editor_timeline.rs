@@ -48,6 +48,7 @@ impl Waveforms {
 }
 
 pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, compact: bool) {
+    let previous_target = studio.target;
     let Some(bank) = studio.bank.clone() else {
         return;
     };
@@ -140,6 +141,9 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, compact: bool) {
     }
     if loop_changed {
         studio.update_editor_loop();
+    }
+    if studio.target != previous_target {
+        studio.doctor.invalidate();
     }
 }
 

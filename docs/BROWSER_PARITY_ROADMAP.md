@@ -4,13 +4,12 @@ Desktop remains the main workstation. The browser should offer the same understa
 
 This roadmap ranks the November 15, 2026 suggestions by approximate implementation difficulty, rather than promising dates. Existing features need extension and testing, not duplicate implementations. Preview fidelity takes priority even though its difficulty depends on reproducing the problem.
 
-The first development pass implements portable EQ JSON, local MP3 and separate mastering/Studio session ZIP downloads, plus bounded live EQ preparation and clearer startup/export feedback. It does not ship the later issue detector, browser neural separation or restoration research. See [workflows](WEB_EXPORTS.md) and [validation](WEB_EXPORT_VALIDATION.md); published binaries and Pages deployment remain separate.
+The first development pass implements portable EQ JSON, local MP3 and separate mastering/Studio session ZIP downloads, plus bounded live EQ preparation and clearer startup/export feedback. That original pass did not ship the later issue detector. The current development source adds [Issue Detector and conservative Stem Doctor previews](STEM_DOCTOR.md); browser neural separation and generative restoration remain separate research. See [workflows](WEB_EXPORTS.md) and [validation](WEB_EXPORT_VALIDATION.md); published binaries and Pages deployment remain separate.
 
 The latest development checkpoint ports selected desktop stem-editor tools to the
 browser: a shared timeline, precise selection and undoable silence/fade/gain/reverse
 edits with recovery replay. See [the browser editor's scope and current checks](WEB_STEM_EDITOR.md).
-Issue overlays, activity classification, movable clips and optional models remain
-separate work; this checkpoint does not claim complete desktop parity.
+Issue overlays now have an initial Stem Doctor implementation under validation. Activity classification, movable clips and optional models remain separate work; this checkpoint does not claim complete desktop parity.
 
 | Order | Fix or addition | Work and acceptance boundary |
 | --- | --- | --- |
@@ -21,11 +20,11 @@ separate work; this checkpoint does not claim complete desktop parity.
 | 4 · Small–medium | Karaoke from supplied stems | Mute or attenuate identified vocal parts. Separate lead/backing controls require separate stems; this does not isolate vocals from a mixed recording. |
 | 5 · Small–medium | Stem activity overview | Plot measured energy over time, with visible thresholds. Energy does not prove an instrument is present or absent. |
 | 6 · Medium | Browser MP3 export | Encode locally in a worker, allow cancellation, decode and check the saved file, and keep listening volume out of it. Retain WAV. |
-| 7 · Medium | Clipping and silence regions | Add timestamped markers and a legend with measurable thresholds. Sample clipping and reconstructed true peak are different findings. Never trim automatically. |
-| 8 · Medium | Possible false endings | Flag a quiet gap followed by resumed music for review. Deliberate pauses and hidden sections are valid music. |
+| 7 · Medium | Clipping and silence regions | Current-work adds timestamped clipping/quiet-region findings, explained markers and reported thresholds. Sample clipping and reconstructed true peak are different findings. Never trim automatically. |
+| 8 · Medium | Possible false endings | Current-work flags a sustained quiet gap with active audio on both sides for review. Deliberate pauses and hidden sections are valid music. |
 | 9 · Medium | Session download ZIP | Include the current rendered mix, available imported stems, analysis, EQ/settings and a versioned manifest. A bundle cannot contain separated stems unless they exist. A download bundle is not automatically an editable native project. |
 | 10 · Medium–large | Browser editor parity | Initial timeline, selection, fades, gain, silence, reverse and undo are on `current-work`, with touch/keyboard checks and recovery. Loop auditioning, movable clips and larger arrangements remain separate work. |
-| 11 · Medium–large | Tonal issue overlays | Offer conservative, explainable mud/harshness/rumble hypotheses. High band energy alone is not distortion or an objective defect. |
+| 11 · Medium–large | Tonal issue overlays | Current-work starts with a conservative low-mid hypothesis and bounded optional EQ; other tonal hypotheses remain future work. High band energy alone is not distortion or an objective defect. |
 | 12 · Large | Larger browser projects | Incremental decoding, bounded rendering/export and storage-aware editing before raising duration/memory guards. Desktop stays the option for larger sessions. |
 | 13 · Large | Drum clarity assistance | Audition modest transient/tone changes on a drum stem. Missing cymbal definition cannot be diagnosed from a text description, and a treble boost cannot recreate missing detail. |
 | 14 · Large | Chord/key analysis | Estimate chords over time with confidence and abstention for ambiguous, percussive or dense sections. |

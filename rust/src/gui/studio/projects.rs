@@ -69,6 +69,9 @@ impl Studio {
         );
     }
     pub fn load_project(&mut self, path: PathBuf, ctx: &egui::Context) {
+        if !self.busy() {
+            self.doctor.invalidate();
+        }
         self.begin(
             ctx,
             "Verifying and loading Studio project assets",
@@ -84,6 +87,7 @@ impl Studio {
         let before_lufs = crate::meters::integrated(&snapshot.before)?;
         let after_lufs = crate::meters::integrated(&snapshot.preview)?;
         let source_lufs = crate::meters::integrated(&snapshot.source)?;
+        self.doctor.visible = false;
         self.source = Some(LoadedSource {
             audio: snapshot.source,
             path: PathBuf::from(snapshot.source_name),

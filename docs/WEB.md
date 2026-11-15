@@ -1,5 +1,7 @@
 # Private browser preview
 
+The `current-work` development Studio adds **Stem Doctor**: read-only timestamped issue scans, explained waveform markers, explicit conservative repair previews and metadata-only issue-report JSON. It shares the native/MCP Rust core; [workflow, limits and validation status](STEM_DOCTOR.md) distinguish development checks from released builds and physical-device acceptance.
+
 **Browser editor development:** the [stem timeline and time-edit milestone](WEB_STEM_EDITOR.md)
 shares the desktop Rust processor for silence, fades, gain and reverse, while
 keeping aligned-stem limits, live faders, recovery and separate exports. Its guide

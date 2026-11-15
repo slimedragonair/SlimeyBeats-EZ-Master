@@ -1,4 +1,14 @@
 pub mod controls;
+pub(super) mod doctor_capture;
+mod doctor_controls;
+#[cfg(test)]
+mod doctor_interaction_tests;
+mod doctor_jobs;
+mod doctor_state;
+#[cfg(test)]
+mod doctor_tests;
+mod doctor_time;
+mod doctor_waveform;
 mod editor_audio;
 mod editor_controls;
 mod editor_envelope;

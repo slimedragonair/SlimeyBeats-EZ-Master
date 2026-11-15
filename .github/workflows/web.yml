@@ -86,6 +86,12 @@ jobs:
           for browser in chromium firefox webkit; do
             python3 web/tools/verify_region_edit_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/stem-editor-$browser"
           done
+      - name: Verify shared Issue Detector and Stem Doctor in three engines
+        run: |
+          node --test web/tools/doctor_state_checks.js web/tools/doctor_controller_checks.js
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_doctor_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/doctor-$browser"
+          done
       - name: Verify Studio replacement and decoded input bounds
         run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
       - name: Verify audible live stems and exclusive playback in three engines

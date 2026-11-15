@@ -1,4 +1,6 @@
 //! Browser Studio uses the same DSP as desktop; model/plugin runtimes remain native.
+#[path = "studio_doctor.rs"]
+mod doctor;
 #[path = "studio_region_edit.rs"]
 mod region_edit;
 

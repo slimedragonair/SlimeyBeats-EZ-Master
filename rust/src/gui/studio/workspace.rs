@@ -7,6 +7,7 @@ use eframe::egui::{self, RichText};
 
 /// Returns true when the user explicitly sends the prepared mix to mastering.
 pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advanced: bool) -> bool {
+    studio.sync_doctor_input();
     if studio.spectrogram.is_none() {
         studio.reveal_spectrogram = false;
     }
@@ -40,11 +41,25 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             (Page::Plugins, "Plugins"),
         ] {
             if ui
-                .add(crystal_button::secondary(name).selected(studio.page == page))
+                .add(
+                    crystal_button::secondary(name)
+                        .selected(studio.page == page && !super::doctor_controls::active(studio)),
+                )
                 .clicked()
             {
                 studio.page = page;
+                studio.doctor.visible = false;
             }
+        }
+        if ui
+            .add(
+                crystal_button::secondary("Stem Doctor")
+                    .selected(super::doctor_controls::active(studio)),
+            )
+            .clicked()
+        {
+            studio.page = Page::Repair;
+            studio.doctor.visible = true;
         }
     };
     let history = |studio: &mut Studio, ui: &mut egui::Ui| -> bool {
@@ -129,7 +144,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
         }
     }
     let workspace_height = ui.available_height().max(0.);
-    egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page)).max_height(workspace_height).show(ui,|ui| {
+    egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page, super::doctor_controls::active(studio))).max_height(workspace_height).show(ui,|ui| {
         match studio.page {
             Page::Stems=>{
                 if studio.bulk_import.is_some() {
@@ -156,6 +171,9 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                     super::tool_inputs::target(studio, ui);
                     super::voice_controls::show(studio, ui, advanced);
                 });
+            },
+            Page::Repair if super::doctor_controls::active(studio) => {
+                super::doctor_controls::show(studio, ui);
             },
             Page::Repair=>{
                 let available = !studio.busy();

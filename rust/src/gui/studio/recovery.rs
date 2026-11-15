@@ -8,6 +8,7 @@ use std::sync::{Arc, atomic::Ordering};
 
 impl Studio {
     pub(in crate::gui) fn adopt_recovery(&mut self, data: PreparedStudio, saved: SavedStudio) {
+        self.doctor = Default::default();
         self.player.stop();
         self.source = data.source;
         self.bank = data.bank;
