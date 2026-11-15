@@ -19,6 +19,10 @@ scope as this connection only, says readiness is not probed, and adds an explici
 AI-client/model-provider caveat to the report itself. Desktop `current()` keeps
 its existing identity shape. Neither factory queries an executable or cache.
 
+Delivery wording follows the context: desktop previews stay local, while MCP
+arguments and returned text may already reach the AI provider before review.
+The shared data/redaction notice makes no unconditional on-device promise.
+
 ```rust,ignore
 use mastercraft::support_report::{self, IssueCategory, ReportContext, ReportDraft, Workflow};
 

@@ -71,8 +71,9 @@ def package(destination, server, desktop, label=None):
         "Audio is processed locally. Your AI client controls metadata sent to its provider.\n"
         "For support use prepare_support_report, show the full preview to the owner,\n"
         "then save_support_report only after explicit review/save approval with\n"
-        "owner_review_confirmed=true. Returned report text may reach the AI client's\n"
-        "model provider; filtering is best-effort. No report is uploaded or posted.\n"
+        "owner_review_confirmed=true. Tool arguments and report text may reach the AI client's\n"
+        "model provider before review or saving. Filtering cannot retract client input.\n"
+        "This companion does not upload files or post issues.\n"
         "One source and one heavy job at a time. Keep this folder while the client uses it.\n"
         "Your music remains yours. MIT software attribution applies to software copies.\n",
         encoding="utf-8")

@@ -9,7 +9,7 @@ use mastercraft::support_report::{self, Activity, Counts, Report, ReportContext,
 use serde_json::{Value, json};
 use std::sync::Mutex;
 
-pub const CLIENT_PRIVACY_NOTICE: &str = "The complete report returned by this tool goes to your AI client and may be sent to its model provider. Local processing is not a promise of private AI-client handling. Typed text may still contain sensitive information despite filtering. Ask the owner to review every line; never autofill raw errors, logs, paths or names. Saving is local only and never posts an issue or uploads a report.";
+pub const CLIENT_PRIVACY_NOTICE: &str = "Your AI client may send tool arguments and returned report text to its model provider before report review or saving. Filtering here cannot retract anything already sent to that client. Use only non-sensitive descriptions. Typed text may remain sensitive despite filtering. Ask the owner to review every line; never autofill raw errors, logs, paths or names. Saving is local only and never posts an issue or uploads a report.";
 
 #[derive(Default)]
 pub(crate) struct ReviewStore {

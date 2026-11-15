@@ -79,6 +79,8 @@ fn prepare_without_loaded_audio_does_not_create_files_or_jobs() {
     )));
     assert!(preview.contains("\"linked_engine_build\""));
     assert!(preview.contains("\"installed_desktop_version\": null"));
+    assert!(preview.contains("before you review or save it"));
+    assert!(!preview.contains("stays on your device"));
     let diagnostics = preview
         .rsplit_once("```json\n")
         .unwrap()

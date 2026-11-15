@@ -48,7 +48,7 @@ On desktop choose **Help → Report a problem**. In browser Help choose its repo
 4. Explicitly copy or download/save the reviewed text. Native saves do not overwrite an existing file. The displayed report and saved/copied report are the same content, with no hidden attachments.
 5. Choose where to share. Public GitHub issues are public. The private security-report link is a separate route for security-sensitive concerns. Opening a form does not attach or submit the report; paste only what you chose to share.
 
-No report is automatically uploaded or posted. MCP report text is returned to the AI client, which may send it to its model provider; this is stated in tool descriptions/help. Its report covers that connection and compiled engine, not an inferred installed-GUI version. Desktop recovery files are not exposed to the companion by adding these tools. See [MCP reporting](MCP.md).
+Desktop/browser report generation does not upload or post the report. In MCP, tool arguments and returned report text may reach the AI client's model provider **before** review or saving. Use non-sensitive descriptions from the start: the report filter cannot retract information already sent to that client. The MCP preview and help explain this delivery path. Its report covers that connection and compiled engine, not an inferred installed-GUI version. Desktop recovery files are not exposed to the companion by adding these tools. See [MCP reporting](MCP.md).
 
 ## Implementation and qualification
 

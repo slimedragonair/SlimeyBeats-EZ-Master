@@ -25,11 +25,16 @@ impl Report {
 pub fn build(context: &ReportContext, draft: &ReportDraft) -> Result<Report> {
     let mut markdown = String::with_capacity(4096 + draft.details().len());
     writeln!(markdown, "# SlimeyBeats support report\n")?;
-    writeln!(markdown, "{REVIEW_NOTICE}\n")?;
+    let delivery_notice = if context.is_mcp() {
+        "This report is returned to your AI client and may reach its model provider before you review or save it. What you type into that client may already have reached its provider before filtering. Use only non-sensitive descriptions; the companion does not post issues or upload files."
+    } else {
+        "This report stays on your device until you choose to share it."
+    };
+    writeln!(markdown, "{REVIEW_NOTICE} {delivery_notice}\n")?;
     if context.is_mcp() {
         writeln!(
             markdown,
-            "This report was prepared through the MCP companion. Returned text reaches the AI client and may reach its model provider. Diagnostics cover this connection only: linked_engine_build is the compiled library, not an installed desktop version. The installed desktop version is unknown. Tool readiness is not probed by report generation; unchecked values are unknown (null). Desktop recovery files are not inspected or exposed.\n"
+            "This report was prepared through the MCP companion. Diagnostics cover this connection only: linked_engine_build is the compiled library, not an installed desktop version. The installed desktop version is unknown. Tool readiness is not probed by report generation; unchecked values are unknown (null). Desktop recovery files are not inspected or exposed.\n"
         )?;
     }
     writeln!(markdown, "## User description\n")?;

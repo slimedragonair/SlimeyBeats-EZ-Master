@@ -49,6 +49,8 @@ fn companion_identity_keeps_linked_engine_separate_and_desktop_unknown() {
     )
     .unwrap();
     assert!(report.markdown().contains("may reach its model provider"));
+    assert!(report.markdown().contains("before you review or save it"));
+    assert!(!report.markdown().contains("stays on your device"));
     assert!(
         report
             .markdown()

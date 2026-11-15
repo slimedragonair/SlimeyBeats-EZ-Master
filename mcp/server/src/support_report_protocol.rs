@@ -16,7 +16,7 @@ pub struct PrepareSupportReport {
     #[serde(default)]
     #[schemars(length(max = 512))]
     pub title: String,
-    /// Deliberately user-entered description/reproduction steps, at most 16384 UTF-8 bytes. Default empty. Obvious paths/emails/secrets are filtered best-effort; personal content may remain and requires full owner review. No automatic error/log collection.
+    /// Deliberately user-entered description/reproduction steps, at most 16384 UTF-8 bytes. Default empty. Obvious paths/emails/secrets are filtered best-effort; personal content may remain and requires full owner review. The AI client/provider may already receive this input before filtering. No automatic error/log collection.
     #[serde(default)]
     #[schemars(length(max = 16384))]
     pub details: String,
@@ -39,7 +39,7 @@ pub struct SaveSupportReport {
 #[tool_router(router=support_report_router,vis="pub(crate)")]
 impl Companion {
     #[tool(
-        description = "Prepare a private local support-report preview from allowlisted connection counts/booleans and optional user-entered text. No file/audio/project/log/error/environment collection, readiness probes, network or issue posting. IMPORTANT: returned report text goes to your AI client and may go to its model provider; obtain owner agreement before including sensitive text. Filtering is best-effort and typed text may remain sensitive: show the ENTIRE preview to the owner. Keeps one immutable report in memory per connection; successful preparation replaces its review_id, failures preserve the old report and audio session. Companion version and linked_engine_build are separate; installed desktop version stays unknown. Returns preview_markdown, review_id, bytes and notices; get_help(support_reports) explains the next step.",
+        description = "Prepare a support-report preview using allowlisted connection counts/booleans and optional non-sensitive user text. This companion does not read files/audio/projects/logs/errors/environment, probe tool readiness, upload files or post issues. IMPORTANT: tool arguments and returned report text may reach your AI client's model provider before review or saving. Filtering cannot retract text already sent to that client; use only non-sensitive descriptions. Filtering is best-effort and typed text may remain sensitive: show the ENTIRE preview to the owner. Keeps one immutable report in memory per connection; successful preparation replaces its review_id, failures preserve the old report and audio session. Companion version and linked_engine_build are separate; installed desktop version stays unknown. Returns preview_markdown, review_id, bytes and notices; get_help(support_reports) explains the next step.",
         annotations(
             read_only_hint = true,
             destructive_hint = false,
