@@ -42,6 +42,8 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Browser editor parity (`current-work`):** Studio includes a stem timeline, precise time selection and the same shared Rust silence, fade, gain and reverse tools, with explicit preview commits, undo/redo and local recovery. Open **Stem mix → Time edits**; **Mixer** returns to live faders. [Browser editor workflow, tested scope and remaining checks](docs/WEB_STEM_EDITOR.md). The aligned-bank limits and separate export workflow remain.
 
+**Browser recovery fix:** restored stems now replace older playback buffers, keeping audition and export on the same audio. Unchanged live stems still reuse their buffers. [Regression and recovery scope](docs/WEB_STEM_EDITOR.md#restored-playback-must-match-restored-audio).
+
 <img src="docs/images/web-stem-editor-phone.png" width="280" alt="Development browser Studio Time edits view with aligned stem waveforms and fit/zoom controls">
 
 **Time edits on a small screen.** Open **Studio → Stem mix → Time edits**, choose a part, select or type a range, and apply a tool explicitly. **Mixer** returns to live faders. [Full-size timeline](docs/images/web-stem-editor-phone.png) · [Time-edit tools](docs/images/web-stem-editor-tools.png). These actual development captures use generated audio in Chromium phone emulation; they are not physical-device acceptance.

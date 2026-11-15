@@ -24,7 +24,8 @@ from browser_capture import BrowserDiagnostics
 ROOT = Path(__file__).resolve().parents[2]
 TOOLS = Path(__file__).resolve().parent
 PROBES = {f'/__region_tests/{name}': TOOLS / name for name in
-          ['region_edit_checks.js', 'region_edit_pcm_checks.js', 'region_edit_ui_probe.js', 'region_edit_timeline_checks.js']}
+          ['region_edit_checks.js', 'region_edit_pcm_checks.js', 'region_edit_ui_probe.js', 'region_edit_timeline_checks.js',
+           'studio_worker_buffer_checks.js']}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -137,6 +138,11 @@ def run(args):
                     return entry.name;
                 }""")
                 result['runtime'] = urls
+                urls['playbackUrl'] = page.evaluate("""() => {
+                    const entry = performance.getEntriesByType('resource').find(e => new URL(e.name).pathname.endsWith('/studio-player.js'));
+                    if (!entry) throw Error('Production StudioPlayback was not loaded by the application');
+                    return entry.name;
+                }""")
                 result['wasm_sha256'] = hashlib.sha256((args.site / 'pkg/dsp_bg.wasm').read_bytes()).hexdigest()
                 worker = page.evaluate("""async urls => {
                     const { verifyRegionEdits } = await import('/__region_tests/region_edit_checks.js');
@@ -144,6 +150,12 @@ def run(args):
                 }""", urls)
                 result['checks'].extend(worker['checks'])
                 result['checks'].extend(verify_artifacts(worker['artifacts'], args.out))
+                replacement = page.evaluate("""async urls => {
+                    const { verifyWorkerBufferReplacement } = await import('/__region_tests/studio_worker_buffer_checks.js');
+                    return verifyWorkerBufferReplacement(urls);
+                }""", urls)
+                result['checks'].extend(replacement['checks'])
+                result['worker_buffer_replacement'] = replacement
                 result['worker'] = 'passed'
                 # Persist the checkpoint before running longer application interactions.
                 (args.out / 'results.json').write_text(json.dumps(result, indent=2), encoding='utf-8')

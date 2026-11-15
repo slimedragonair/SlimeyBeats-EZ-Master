@@ -79,6 +79,16 @@ remain. Rendering, live buffers, history and exports need additional memory;
 these input limits are not a guarantee that every phone can edit a project at
 the limit. Desktop remains the choice for larger sessions and native-only tools.
 
+### Restored playback must match restored audio
+
+A follow-up regression reproduced an older cache bug: a fresh recovery worker
+could assign the same pointer/length hint to different stem audio, causing the
+player to retain the previous live buffer while exports used the restored bank.
+Newly supplied PCM now always replaces that buffer. Unchanged stems from the
+same worker still reuse their buffers. The regression checks every prepared
+sample and peak against the replacement, preserves the previous failure, and
+runs in the preview smoke check as well as the complete editor suite.
+
 ## Implementation and checks
 
 - `rust/src/studio/region_edit.rs`: the existing shared sample-edit processor.
@@ -92,19 +102,19 @@ the limit. Desktop remains the choice for larger sessions and native-only tools.
   workflow integration. No new native MCP tool is needed for this browser UI.
 
 The unmodified November 15, 2026 baseline passed the existing 25-group Chromium
-Studio suite. The final local candidate runtime `bd4cedda439abe96` has the following
+Studio suite. The final local candidate runtime `0d93bfe1af172e69` has the following
 results; the live page identifies its own subsequently published build.
 
 | Check | Result and scope |
 | --- | --- |
 | Binding and navigation tests | 20 native-host WASM-binding tests and eight Node navigation/envelope tests passed. WASM build, formatting and strict Clippy passed. |
-| Actual Chromium 143 engine, worker and app | 20 groups passed: all five tools in mono/stereo, exact unchanged samples/other stems, one-frame/end/rounding boundaries, invalid/stale/overlapping requests, discard/commit, undo/redo, changed-stem transfers and recovery replay. |
+| Actual Chromium 143 engine, worker and app | 21 groups passed: all five tools in mono/stereo, exact unchanged samples/other stems, one-frame/end/rounding boundaries, invalid/stale/overlapping requests, discard/commit, undo/redo, changed-stem transfers, recovery replay and fresh-worker playback-buffer replacement. |
 | Downloads and actual restore | Independently extracted raw/session ZIPs retained exact edited float32 bank and committed preview; changing listening volume did not change saved PCM. Actual recovery save/reload/restore reproduced the bank and preview with playback stopped. |
 | Touch and layout | Chromium 143 exercised all five tools and six navigation controls at 320/390px on the second stem, with exact PCM and undo/redo checks, uncovered controls and no overflow. These are browser touch events, not physical-phone tests. |
 | Existing workflow regressions | Chromium 143 passed 25 Studio groups, 20 learning/layout groups and 14 recovery groups, including a confirmed owned-browser process termination. |
 | Live audio regression | Actual worklet output matched direct shared processing exactly in tested 48 kHz stereo and 44.1 kHz mono fixtures. Live-stem tests retained mute/solo/A-B isolation, smooth updates and source reuse. Synthetic output does not establish physical audibility. |
 | Independent interface review | Actual main-app captures/checks in Chrome 156 and Chromium 143 covered desktop and 320/390px Mixer/Time edits switching, selection/audio/fader retention, pending-mix explanations and reachable pinned playback. |
-| Firefox / WebKit | Firefox 144 and Linux WebKit 26 each passed all 20 editor groups, including actual native stem-chooser interaction, all five edits with exact PCM/undo/redo and 320/390px checks at 100/200% root text size. |
+| Firefox / WebKit | Firefox 144 and Linux WebKit 26 each passed all 21 editor groups, including actual native stem-chooser interaction, all five edits with exact PCM/undo/redo and 320/390px checks at 100/200% root text size. |
 
 Earlier WebKit candidates exposed selected native text beyond its in-bounds
 select rectangle: the 320px page grew to 364px after a stem selection/edit. Keeping
