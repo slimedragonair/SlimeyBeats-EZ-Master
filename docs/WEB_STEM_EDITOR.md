@@ -1,6 +1,6 @@
 # Browser stem timeline and time edits
 
-The [main browser Studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) includes these selected desktop editor tools. The isolated [current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for testing with a displayed build ID. The Windows installer remains Hotfix3 and has its own release scope.
+The [main browser Studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) includes these selected desktop editor tools. The isolated [current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for testing with a displayed build ID. **Hotfix4 desktop** includes the [native timeline, time edits and loop auditioning](STEM_EDITOR.md); see [release scope and external QA report](HOTFIX4.md). Browser results below do not qualify a Windows package, and browser loop auditioning remains outside this milestone.
 
 ## Edit a part
 

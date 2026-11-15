@@ -17,7 +17,7 @@ fn identity(version: &str, revision: u64) -> BuildIdentity {
 fn running_identity_preserves_the_same_version_and_explicit_revision() {
     assert_eq!(
         super::super::current(),
-        identity("0.5.0-beta.3", 2026111403)
+        identity("0.5.0-beta.3", 2026111501)
     );
 }
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0-beta.3 Hotfix4 — 2026-11-15
+
+- Prepare Windows Studio Preview build revision **2026111501**, keeping desktop **0.5.0-beta.3**, MCP **0.2.0-beta.3**, browser Studio **0.3.0-beta.3** and release tag **v0.5.0-beta.3**. Use immutable `-Hotfix4-Setup.exe`, `-Hotfix4.zip` and `-Hotfix4-Source.zip` assets; preserve earlier packages and the original tag.
+- Include the shared live-EQ preparation improvements in desktop: warm filter history in bounded work while retaining current playback, then crossfade to the prepared settings. Browser-only worklet revision coalescing remains in the browser adapter.
+- Include the desktop stem timeline, precise selection, fit/zoom, loop auditioning and undoable silence/fade/gain/reverse edits. Preserve aligned parts and separate project, preview and export actions.
+- Include Stem Doctor's timestamped issue scans and explicitly requested conservative repair previews. Scans do not trim, repair or export automatically.
+- Include the matching **45-tool** MCP companion with `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`. Historical Hotfix3 binaries retain 42 tools.
+- Document the main web app's already shipped shared DSP, time edits, Doctor, local MP3, EQ preset and session ZIP exports. A desktop refresh does not imply a new browser deployment or browser-to-desktop bridge.
+- Keep release-specific test results, artifact identities and private-identity Hotfix3 → Hotfix4 installer QA in the external [HOTFIX4-VALIDATION.json](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json) report. Source-feature checks and earlier Hotfix3 installer results remain historical; see [Hotfix4 scope and evidence](docs/HOTFIX4.md).
+
 ## 0.5.0-beta.3 — 2026-11-14
 
 ### Hotfix3 — local recovery and private reporting

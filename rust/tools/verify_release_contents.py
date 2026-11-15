@@ -6,7 +6,7 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 from release_packaging.documentation_links import verify_local_links
-from release_packaging.public_source import DEMO_FILES, GUIDES
+from release_packaging.public_source import DEMO_FILES, DOCUMENTATION_IMAGES, GUIDES
 
 BINARY_NAMES = ['SlimeyBeats-EZ-Master.exe', 'SlimeyBeats-EZ-Master-CLI.exe',
                 'slimeybeats-mcp.exe', 'slimeybeats-vst3-host.exe']
@@ -20,7 +20,9 @@ def verify(folder, source_zip):
     required = [*BINARY_NAMES, 'Connect AI Assistant.bat', 'Connect-AI-Assistant.ps1',
                 'LICENSE', 'OUTPUT_OWNERSHIP.md', 'THIRD_PARTY_NOTICES.md', 'Examples/CREDITS.md']
     required.extend('docs/' + name for name in GUIDES)
-    assert all((folder / name).is_file() for name in required)
+    required.extend('docs/images/' + name for name in DOCUMENTATION_IMAGES)
+    for name in required:
+        assert (folder / name).is_file(), name
     for relative in ['', 'MCP-dependencies', 'Plugin-dependencies']:
         root = folder / relative
         packages = json.loads((root / 'THIRD-PARTY.json').read_text(encoding='utf-8'))
@@ -49,15 +51,17 @@ def verify(folder, source_zip):
             assert path.suffix.lower() not in {'.exe', '.dll', '.so', '.pt', '.pth', '.onnx'}, name
             if path.suffix.lower() in {'.wav', '.mp3', '.flac', '.m4a', '.aiff', '.ogg'}:
                 assert name in {'examples/audio/' + value for value in DEMO_FILES}, name
-        for name in ['rust/Cargo.toml', 'web/dsp/src/studio.rs', 'mcp/server/src/studio_protocol.rs',
+        for name in ['README.md', 'rust/Cargo.toml', 'web/dsp/src/studio.rs', 'mcp/server/src/studio_protocol.rs',
                      'plugins/host/src/output_channel.rs', 'rust/assets/learning-guide.json',
-                     *('docs/' + guide for guide in GUIDES)]:
+                     *('docs/' + guide for guide in GUIDES),
+                     *('docs/images/' + image for image in DOCUMENTATION_IMAGES)]:
             assert name in relative, name
         for name in DEMO_FILES:
             assert archive.read(relative['examples/audio/' + name]) == (folder / 'Examples' / name).read_bytes()
         source_files = len(names)
     return {'passed': True, 'components': {name: digest(folder/name) for name in BINARY_NAMES},
-            'guides_checked': len(GUIDES), 'local_guide_links_checked': checked_links, 'source_files': source_files,
+            'guides_checked': len(GUIDES), 'images_checked': len(DOCUMENTATION_IMAGES),
+            'local_guide_links_checked': checked_links, 'source_files': source_files,
             'source_archive_sha256': digest(source_zip), 'example_provenance_files_match': True,
             'private_data_models_build_products_excluded': True, 'dependency_license_files_present': True}
 

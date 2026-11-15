@@ -101,7 +101,10 @@ fn release_asset(id: u64, name: &str, bytes: u64, hash: Option<&str>) -> Value {
 }
 
 pub(super) fn available_candidate() -> UpdateCandidate {
-    let fixture = Fixture::new(manifest_fixture());
+    let mut manifest = manifest_fixture();
+    // This fixture represents a future update even after a same-version hotfix.
+    manifest["build_revision"] = json!(super::identity::BUILD_REVISION.checked_add(1).unwrap());
+    let fixture = Fixture::new(manifest);
     let result = check_with(
         &super::current(),
         WINDOWS_X86_64,
