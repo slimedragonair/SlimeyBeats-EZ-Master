@@ -3,14 +3,14 @@
 Run `python web/tools/verify_recovery_browser.py --site <built-site> --out <new-output-folder>`.
 Repeat with `--browser firefox` and `--browser webkit`. The harness uses the real
 browser workers, decoders, audio exports and IndexedDB. Chromium additionally
-crashes a disposable renderer, then restores a completed point in a fresh tab.
+force-quits an owned browser process and restores a completed point from its
+private persisted profile, checking exact exported audio and stopped playback.
 The harness does not change installed applications or use personal audio.
 
-The Chromium crash check uses the owned target's `Page.crash` testing command,
-observes the actual renderer crash event, closes that
-target, then waits for its browser-owned Web Lock to be released before restoring.
-It never expires or steals a lease. A navigation error or completed `page.close()`
-alone is not treated as proof of lock release; live-tab denial is tested separately.
+The process fixture starts a dedicated Chromium with a generated profile, records
+its process handle, kills only that owned process tree/group, and verifies its
+nonzero exit before reopening the same profile. The old session lock must be
+absent; no lease is expired or stolen. Live-tab denial is tested separately.
 
 `recovery_store_checks.js` exercises transaction rollback, retention, stale
 writers, payload/index separation, binary files, privacy canaries, quota fallback

@@ -1,5 +1,4 @@
 """Editing-origin and worker isolation checks for web recovery."""
-import json
 from playwright.sync_api import expect
 from verify_studio_browser import fixture
 
@@ -98,47 +97,6 @@ def import_race(browser, base, out, ready, open_recovery):
 
 
 def chromium_crash(browser, base, ready, open_recovery, save_point, *, proof=None):
-    context = browser.new_context()
-    context.add_init_script("localStorage.setItem('slimeybeats.interface-preferences.tutorial-dismissed','declined')")
-    evidence = {'passed': False, 'browser': browser.version}
-    try:
-        page = context.new_page(); page.on('dialog', lambda dialog: dialog.accept())
-        page.goto(base, wait_until='networkidle'); ready(page)
-        page.locator('#file').set_input_files(fixture('Before forced crash.wav', seconds=.2))
-        expect(page.locator('#master')).to_be_enabled()
-        open_recovery(page); page.locator('#recovery-enable').click(); save_point(page)
-        owner = page.evaluate("async () => (await (new (await import('/recovery-store.js')).RecoveryStore()).list())[0].owner")
-        lock_name = 'slimeybeats-recovery:' + owner
-        page.wait_for_function('(name) => navigator.locks.query().then(s => s.held.some(lock => lock.name === name))', arg=lock_name)
-        evidence['lock_held_before_crash'] = True
-        # The internal chrome://crash navigation can be aborted without a crash
-        # in headless CI. Force this owned renderer through its testing protocol.
-        crash_session = context.new_cdp_session(page)
-        with page.expect_event('crash', timeout=30000):
-            # Closing after the observed event also completes the pending CDP
-            # command, whose renderer can no longer reply after it has crashed.
-            page.once('crash', lambda _: page.close())
-            try: crash_session.send('Page.crash')
-            except Exception as error:
-                assert 'crash' in str(error).lower() or 'closed' in str(error).lower(), str(error)
-        evidence['renderer_crash_observed'] = True
-        if not page.is_closed(): page.close()
-        fresh = context.new_page(); fresh.goto(base, wait_until='networkidle'); ready(fresh)
-        # Closing the crashed target and releasing its browser-owned Web Lock
-        # are asynchronous. Await real release; never expire or steal a lease.
-        fresh.wait_for_function('''(name) => navigator.locks.query().then(s =>
-            ![...s.held, ...s.pending].some(lock => lock.name === name))''', arg=lock_name, timeout=30000)
-        evidence['crashed_target_lock_released'] = True
-        fresh.locator('#recovery-offer-open').click(); fresh.locator('#recovery-points button').first.click()
-        expect(fresh.locator('#recovery-action-status')).to_contain_text('Restored with playback stopped', timeout=30000)
-        fresh.locator('#recovery-close').click()
-        expect(fresh.locator('#filename')).to_have_text('Before forced crash.wav')
-        expect(fresh.locator('#play')).to_have_text('Play')
-        fresh.locator('#master').click(); expect(fresh.locator('#export')).to_be_enabled(timeout=60000)
-        evidence['passed'] = True
-        return ['forced Chromium renderer crash: completed local PCM point survives and restores into a fresh stopped tab']
-    finally:
-        try:
-            if proof is not None: proof.write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
-        finally:
-            context.close()
+    from recovery_process_check import process_crash
+    assert proof is not None, 'A fresh crash proof destination is required'
+    return process_crash(browser.browser_type, base, ready, open_recovery, save_point, proof)
