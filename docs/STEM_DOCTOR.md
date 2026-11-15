@@ -8,6 +8,13 @@ after its checks; check its displayed build ID.
 
 ## Inspect before changing sound
 
+![Native development Stem Doctor scan and separate repair controls](images/doctor-desktop.png)
+
+[Open the desktop capture at full size](images/doctor-desktop.png).
+This actual Windows renderer capture uses isolated preferences/recovery and
+generated audio. The compact toolbar's **Doctor** opens the full **Stem Doctor**
+page; timestamped findings and a repair preview remain separate actions.
+
 1. Open **Studio** and load a mix, use the loaded mastering mix, or import aligned
    stems. Open **Stem Doctor** (**Doctor** in the compact desktop toolbar).
 2. Choose the original, current saved preview, or a stem as the processing target.
@@ -127,8 +134,9 @@ Current local checks passed:
 - **31 shared Doctor tests**, covering clean bass/full-scale sine counterexamples,
   clipped runs, silent/right-only channels, local low-mid spans, quiet/tonal splits,
   finite values, cancellation, bounded reports and exact outside-region samples.
-- **364 native library tests, 2 ignored** before the final short-span label helper; focused native Studio interaction/layout
-  checks include the new scan, stale-result, pending-mix and preview workflows.
+- The final local Windows library suite passed **369 tests, 2 ignored** through
+  the relocated cache paths. Focused native Studio interaction/layout checks
+  include the new scan, stale-result, pending-mix and preview workflows.
 - **22 browser binding tests** and **47 MCP tests** (41 unit, 6 integration).
 - **12 complete Doctor browser workflow groups in each engine**: Chromium 143,
   Firefox 144 and Linux WebKit 26. The actual built WASM/worker, candidate commit/
@@ -165,9 +173,27 @@ fader. The follow-up uses **Doctor** in compact navigation and removes its
 redundant **View** label, preserving every action and existing visibility
 assertion. **72 focused Studio tests** passed, including both reported failures,
 new Doctor navigation/four-row coverage and precise timestamp/hover checks;
-strict Clippy and formatting passed. Its Linux release CI rerun remains pending.
+strict Clippy and formatting passed. The complete Windows and Linux release CI
+rerun passed on implementation commit `82e6e5e`.
 The owner's Rust cache relocation has completed; an offline MCP check and full
 browser build passed through the preserved paths with the same browser runtime
 and WASM bytes. Physical phones and hardware listening remain unqualified;
 Linux WebKit is an engine check, not iPhone acceptance. Windows WebKit's installed
 build lacks Web Audio; its unsupported-audio runs are not reported as passes.
+
+## Qualified implementation and publication
+
+Implementation commit **`82e6e5ef61ff44aeebd87db0c5d0e8dccb5ec6a8`** passed:
+
+- [Windows and Linux native checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43756165559), including the repaired compact layout, MCP protocol and export checks.
+- [Full browser checks](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43756165674), including the existing recovery, long imports, live EQ, portable exports, Studio, timeline, Doctor, memory, live playback, learning and compact-layout matrices.
+- [Current-work preview publication](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43756165646), including its mobile smoke, Doctor, time-edit engine and root/preview storage checks.
+
+All **372 stable-site artifact file hashes** matched the pre-feature baseline.
+An independent post-deployment fetch verified five critical stable files and four
+preview files against the publication manifest. This distinguishes the complete
+artifact comparison from the smaller set fetched from the public server.
+
+Later documentation-only updates refresh this guide and its screenshots; they
+do not expand the implementation or physical-device qualification above. Main
+and the Hotfix3 installer were not promoted or replaced by this development work.

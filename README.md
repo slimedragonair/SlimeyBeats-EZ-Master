@@ -44,6 +44,10 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Issue Detector and Stem Doctor (`current-work`):** Studio now offers read-only, timestamped clipping/quiet-gap/possible-ending/low-mid checks, explained findings and explicitly requested repair previews. Scanning never trims or changes audio. Desktop, browser and the development MCP share the same Rust implementation; the MCP adds `scan_audio_issues` and `preview_stem_doctor` (**45 development tools**). [Workflow, limits and validation status](docs/STEM_DOCTOR.md). The installer above remains Hotfix3.
 
+![Development desktop Stem Doctor with timestamped findings, waveform markers and explicit repair preview controls](docs/images/doctor-desktop.png)
+
+[Full-size desktop Doctor](docs/images/doctor-desktop.png). This actual development capture uses generated test audio; scans and repair previews are separate actions.
+
 <img src="docs/images/doctor-web-findings.png" width="280" alt="Browser Stem Doctor explaining a timestamped clipping candidate with precise frame duration">
 
 **Inspect, then preview.** Open **Studio → Stem Doctor**, select a saved target and scan. Review the evidence, preview a supported fix, compare and undo before exporting. Compact desktop calls the tab **Doctor**. [Full-size findings](docs/images/doctor-web-findings.png) · [Repair controls](docs/images/doctor-web-repair.png). These actual hosted-browser captures use generated audio and touch emulation; physical-phone listening remains separate.
