@@ -53,9 +53,10 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
         }
         if ui
             .add(
-                crystal_button::secondary("Stem Doctor")
+                crystal_button::secondary(if compact { "Doctor" } else { "Stem Doctor" })
                     .selected(super::doctor_controls::active(studio)),
             )
+            .on_hover_text("Stem Doctor · scan the selected audio, inspect findings and preview supported repairs")
             .clicked()
         {
             studio.page = Page::Repair;
@@ -101,7 +102,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                 tabs(studio, ui);
                 promote = history(studio, ui);
                 if studio.page == Page::Stems {
-                    super::editor_toolbar::view_selector(studio, ui);
+                    super::editor_toolbar::view_selector(studio, ui, true);
                 }
             });
         });
@@ -110,7 +111,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
         ui.horizontal_wrapped(|ui| {
             promote = history(studio, ui);
             if studio.page == Page::Stems {
-                super::editor_toolbar::view_selector(studio, ui);
+                super::editor_toolbar::view_selector(studio, ui, false);
             }
         });
     }

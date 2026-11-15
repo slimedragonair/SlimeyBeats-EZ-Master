@@ -3,12 +3,14 @@ use super::{editor_state::time_label, state::Studio};
 use crate::gui::{crystal_button, theme};
 use eframe::egui;
 
-pub(super) fn view_selector(studio: &mut Studio, ui: &mut egui::Ui) {
+pub(super) fn view_selector(studio: &mut Studio, ui: &mut egui::Ui, compact: bool) {
     if studio.bank.is_none() || studio.bulk_import.is_some() {
         return;
     }
-    ui.separator();
-    ui.label("View");
+    if !compact {
+        ui.separator();
+        ui.label("View");
+    }
     for (timeline, label) in [(true, "Timeline"), (false, "Mixer")] {
         if ui
             .add(crystal_button::secondary(label).selected(studio.editor.timeline == timeline))

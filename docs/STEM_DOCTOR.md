@@ -9,7 +9,7 @@ after its checks; check its displayed build ID.
 ## Inspect before changing sound
 
 1. Open **Studio** and load a mix, use the loaded mastering mix, or import aligned
-   stems. Open **Stem Doctor**.
+   stems. Open **Stem Doctor** (**Doctor** in the compact desktop toolbar).
 2. Choose the original, current saved preview, or a stem as the processing target.
    Scanning a raw stem does not include its live fader gain, mute or solo.
 3. Scan the selected audio. Review timestamped findings, measured evidence and
@@ -25,6 +25,16 @@ Pending live faders must be committed with **Update mix preview** before repairs
 or applying a preview. Read-only scans describe the saved audio. Changing target,
 source, revision or retained history invalidates earlier findings; scan again.
 Reports are transient navigation data, not an automatic recovery attachment.
+
+<img src="images/doctor-web-findings.png" width="280" alt="Actual browser Stem Doctor viewport showing a precise clipping candidate and plain-language explanation">
+<img src="images/doctor-web-repair.png" width="280" alt="Actual browser viewport with repair strength, explicit Preview selected fix, comparison controls and export context">
+
+[Full-size findings](images/doctor-web-findings.png) ·
+[Full-size repair controls](images/doctor-web-repair.png).
+These are actual 390×844 Chromium touch-emulation viewports from the published
+development preview, using generated tones and one artificial plateau. The second
+capture checks that fixed playback controls leave the repair action reachable.
+They are interface illustrations, not physical-phone or listening qualification.
 
 ## What is measured
 
@@ -53,7 +63,11 @@ Strength is 0–1; zero is a bypass. Times are numeric seconds, rounded to the
 nearest complete frame with half frames upward and an exclusive end. Duration,
 sample rate, channels, original files and samples outside the selected frames
 are retained. Local sample-peak protection is not true-peak certification.
-Any later whole-mix peak protection can affect the mix beyond a raw stem edit.
+This exact-sample guarantee applies to working audio and raw stem-bank samples.
+Later mix or WAV/MP3 delivery peak protection can attenuate the whole saved file,
+including samples beyond the selection. Downloads can therefore differ in level
+from raw working audio even when the edit itself is strictly local. Keep final
+delivery protection separate from judging which samples the repair changed.
 
 There is no automatic repair-all, bleed isolation, missing-harmonic recovery,
 genre classifier, neural download or server processing in this milestone.
@@ -139,9 +153,21 @@ fixtures at requested 1480×940 and 1100×720 sizes. Each recorded a completed s
 four findings and no error. Windows 125% DPI produced 1850×1175 and 1375×900 pixels.
 Native input/layout checks, rendered pixels and audio listening are distinct.
 
-Broader regression CI and hosted-publication verification are pending for the
-first pushed checkpoint. A final local short-span native label recheck is paused
-while the owner-requested Rust cache move frees a full C: drive; the same checks
-are included in CI. The mobile Doctor build passed before this environment issue. Physical phones and hardware listening remain unqualified;
+The first checkpoint's mobile publication workflow passed. An independent check
+of its actual public HTTPS app passed scan/report download, selected repair,
+exact untouched **raw** PCM, explicit delivery peak-guard gain, exact undo/redo
+working audio and exports, 320/390px layout and 87 consistently versioned runtime
+asset requests. No request escaped into the production root or uploaded audio.
+Existing Chromium Studio and time-editor regressions also passed 25 and 21 groups.
+
+The broader native CI caught a compact toolbar wrap that clipped the fourth
+fader. The follow-up uses **Doctor** in compact navigation and removes its
+redundant **View** label, preserving every action and existing visibility
+assertion. **72 focused Studio tests** passed, including both reported failures,
+new Doctor navigation/four-row coverage and precise timestamp/hover checks;
+strict Clippy and formatting passed. Its Linux release CI rerun remains pending.
+The owner's Rust cache relocation has completed; an offline MCP check and full
+browser build passed through the preserved paths with the same browser runtime
+and WASM bytes. Physical phones and hardware listening remain unqualified;
 Linux WebKit is an engine check, not iPhone acceptance. Windows WebKit's installed
 build lacks Web Audio; its unsupported-audio runs are not reported as passes.
