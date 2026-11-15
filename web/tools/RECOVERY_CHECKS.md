@@ -6,6 +6,11 @@ browser workers, decoders, audio exports and IndexedDB. Chromium additionally
 crashes a disposable renderer, then restores a completed point in a fresh tab.
 The harness does not change installed applications or use personal audio.
 
+The Chromium crash check observes the actual renderer crash event, closes that
+target, then waits for its browser-owned Web Lock to be released before restoring.
+It never expires or steals a lease. A navigation error or completed `page.close()`
+alone is not treated as proof of lock release; live-tab denial is tested separately.
+
 `recovery_store_checks.js` exercises transaction rollback, retention, stale
 writers, payload/index separation, binary files, privacy canaries, quota fallback
 and asynchronous controller races. `recovery_studio_checks.py` covers actual

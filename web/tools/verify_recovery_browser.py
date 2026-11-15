@@ -197,7 +197,8 @@ def run(args):
             result['checks'] += studio_recovery(browser, base, args.out, ready, open_recovery, save_point)
             result['checks'] += import_race(browser, base, args.out, ready, open_recovery)
             if args.browser == 'chromium':
-                result['checks'] += chromium_crash(browser, base, ready, open_recovery, save_point)
+                result['checks'] += chromium_crash(browser, base, ready, open_recovery, save_point,
+                    proof=args.out / 'chromium-crash-proof.json')
             assert not result['errors'], result['errors']
             assert all(r['method'] == 'GET' and r['body'] == 0 and r['url'].startswith(base) for r in result['requests'])
             result['checks'].append('all observed requests same-origin static GET; no audio or report uploads')

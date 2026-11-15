@@ -1,4 +1,5 @@
 """Editing-origin and worker isolation checks for web recovery."""
+import json
 from playwright.sync_api import expect
 from verify_studio_browser import fixture
 
@@ -96,23 +97,44 @@ def import_race(browser, base, out, ready, open_recovery):
     return ['real in-flight restore vs newer audio import: newer filename/audio/worker/job retained and still masters']
 
 
-def chromium_crash(browser, base, ready, open_recovery, save_point):
+def chromium_crash(browser, base, ready, open_recovery, save_point, *, proof=None):
     context = browser.new_context()
     context.add_init_script("localStorage.setItem('slimeybeats.interface-preferences.tutorial-dismissed','declined')")
-    page = context.new_page(); page.goto(base, wait_until='networkidle'); ready(page)
-    page.locator('#file').set_input_files(fixture('Before forced crash.wav', seconds=.2))
-    expect(page.locator('#master')).to_be_enabled()
-    open_recovery(page); page.locator('#recovery-enable').click(); save_point(page)
-    try: page.goto('chrome://crash', timeout=10000)
-    except Exception as error:
-        assert 'crash' in str(error).lower() or 'closed' in str(error).lower(), str(error)
-    page.close()
-    fresh = context.new_page(); fresh.goto(base, wait_until='networkidle'); ready(fresh)
-    fresh.locator('#recovery-offer-open').click(); fresh.locator('#recovery-points button').first.click()
-    expect(fresh.locator('#recovery-action-status')).to_contain_text('Restored with playback stopped', timeout=30000)
-    fresh.locator('#recovery-close').click()
-    expect(fresh.locator('#filename')).to_have_text('Before forced crash.wav')
-    expect(fresh.locator('#play')).to_have_text('Play')
-    fresh.locator('#master').click(); expect(fresh.locator('#export')).to_be_enabled(timeout=60000)
-    context.close()
-    return ['forced Chromium renderer crash: completed local PCM point survives and restores into a fresh stopped tab']
+    evidence = {'passed': False, 'browser': browser.version}
+    try:
+        page = context.new_page(); page.on('dialog', lambda dialog: dialog.accept())
+        page.goto(base, wait_until='networkidle'); ready(page)
+        page.locator('#file').set_input_files(fixture('Before forced crash.wav', seconds=.2))
+        expect(page.locator('#master')).to_be_enabled()
+        open_recovery(page); page.locator('#recovery-enable').click(); save_point(page)
+        owner = page.evaluate("async () => (await (new (await import('/recovery-store.js')).RecoveryStore()).list())[0].owner")
+        lock_name = 'slimeybeats-recovery:' + owner
+        page.wait_for_function('(name) => navigator.locks.query().then(s => s.held.some(lock => lock.name === name))', arg=lock_name)
+        evidence['lock_held_before_crash'] = True
+        # A navigation error containing chrome://crash does not prove that a
+        # renderer actually crashed. Observe its lifecycle event before closing.
+        with page.expect_event('crash', timeout=30000):
+            try: page.goto('chrome://crash', timeout=10000)
+            except Exception as error:
+                assert 'crash' in str(error).lower() or 'closed' in str(error).lower(), str(error)
+        evidence['renderer_crash_observed'] = True
+        page.close()
+        fresh = context.new_page(); fresh.goto(base, wait_until='networkidle'); ready(fresh)
+        # Closing the crashed target and releasing its browser-owned Web Lock
+        # are asynchronous. Await real release; never expire or steal a lease.
+        fresh.wait_for_function('''(name) => navigator.locks.query().then(s =>
+            ![...s.held, ...s.pending].some(lock => lock.name === name))''', arg=lock_name, timeout=30000)
+        evidence['crashed_target_lock_released'] = True
+        fresh.locator('#recovery-offer-open').click(); fresh.locator('#recovery-points button').first.click()
+        expect(fresh.locator('#recovery-action-status')).to_contain_text('Restored with playback stopped', timeout=30000)
+        fresh.locator('#recovery-close').click()
+        expect(fresh.locator('#filename')).to_have_text('Before forced crash.wav')
+        expect(fresh.locator('#play')).to_have_text('Play')
+        fresh.locator('#master').click(); expect(fresh.locator('#export')).to_be_enabled(timeout=60000)
+        evidence['passed'] = True
+        return ['forced Chromium renderer crash: completed local PCM point survives and restores into a fresh stopped tab']
+    finally:
+        try:
+            if proof is not None: proof.write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
+        finally:
+            context.close()
