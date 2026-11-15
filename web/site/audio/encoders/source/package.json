@@ -1,0 +1,57 @@
+{
+  "name": "wasm-media-encoders",
+  "version": "0.7.0",
+  "main": "dist/index.cjs",
+  "module": "dist/es/index.mjs",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/index.cjs",
+      "esnext": "./dist/esnext/index.mjs"
+    },
+    "./esnext": "./dist/esnext/index.mjs",
+    "./wasm/ogg": "./wasm/ogg.wasm",
+    "./wasm/mp3": "./wasm/mp3.wasm",
+    "./wasm/ogg.wasm": "./wasm/ogg.wasm",
+    "./wasm/mp3.wasm": "./wasm.mp3.wasm"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arseneyr/wasm-media-encoders"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "scripts": {
+    "test": "make test",
+    "prepack": "make clean && make prod"
+  },
+  "dependencies": {
+    "@swc/helpers": "^0.5.10"
+  },
+  "//": "typescript 5.4.3 workaround for https://github.com/yarnpkg/berry/issues/6270",
+  "devDependencies": {
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-url": "^8.0.2",
+    "@swc/core": "^1.4.16",
+    "@types/node": "^20.12.7",
+    "@types/wav": "^1.0.4",
+    "rollup": "^4.14.2",
+    "rollup-plugin-ts": "^3.4.5",
+    "rollup-plugin-typescript": "^1.0.1",
+    "tslib": "^2.6.2",
+    "tsx": "^4.9.3",
+    "typescript": "5.4.3",
+    "vitest": "^1.6.0",
+    "wav": "^1.0.2"
+  },
+  "packageManager2": "yarn@4.1.1+sha256.f3cc0eda8e5560e529c7147565b30faa43b4e472d90e8634d7134a37c7f59781"
+}

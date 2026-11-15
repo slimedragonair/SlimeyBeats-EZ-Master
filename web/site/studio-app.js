@@ -10,10 +10,10 @@ import {
 } from "./studio-controls.js";
 import { waveform, spectrum } from "./studio-plots.js";
 import { wireSelection } from "./studio-selection.js";
-import { stemZip } from "./studio-zip.js";
+import { wireStudioExports } from "./studio-export-actions.js";
 import { wireStemImport } from "./studio-import-actions.js";
 import { interleave } from "./dsp-client.js";
-import { download, time } from "./view.js";
+import { time } from "./view.js";
 import { wireStudioFeedback } from "./studio-feedback.js";
 import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
 import { changedRecovery } from "./recovery-bridge.js";
@@ -82,7 +82,7 @@ export function createStudio({
         $("undo").disabled = busy || pendingMix || !info.can_undo;
         $("redo").disabled = busy || pendingMix || !info.can_redo;
         $("spectrum").disabled = busy || !info.loaded;
-        for (const id of ["voice", "repair", "export", "promote"])
+        for (const id of ["voice", "repair", "export", "export-session", "promote"])
             $(id).disabled = busy || pendingMix || !info.loaded;
         for (const id of ["mix", "export-stems"])
             $(id).disabled = busy || !info.stems.length;
@@ -336,51 +336,10 @@ export function createStudio({
         draw();
         sync();
     };
-    for (const id of ["export", "export-stems", "promote"])
-        $(id).onclick = () =>
-            job(
-                id === "promote"
-                    ? "Preparing the mastering source…"
-                    : "Preparing a local download…",
-                async () => {
-                    const result = await client.call(
-                        id === "export"
-                            ? "export"
-                            : id === "export-stems"
-                              ? "stem-export"
-                              : "working",
-                        { format: $("format").value },
-                    );
-                    if (cancelled) return;
-                    if (id === "promote") {
-                        await promote(
-                            new File([result.bytes], "Studio mix.wav", {
-                                type: "audio/wav",
-                            }),
-                        );
-                        notice(
-                            "Studio preview loaded for mastering. Your Studio workspace is retained.",
-                        );
-                    } else {
-                        download(
-                            id === "export-stems"
-                                ? stemZip(result.files, result.manifest)
-                                : result.bytes,
-                            id === "export-stems"
-                                ? "Studio-stems.zip"
-                                : "Studio-preview.wav",
-                            id === "export-stems"
-                                ? "application/zip"
-                                : "audio/wav",
-                        );
-                        notice(
-                            "Download prepared from the current preview. Listening volume is not applied.",
-                        );
-                    }
-                },
-                id !== "export-stems",
-            );
+    const exportActions = wireStudioExports({ getState: () => ({ busy, cancelled, info }),
+        client, playback, job, promote, notice });
     $("cancel").onclick = () => {
+        exportActions.cancel();
         cancelled = true;
         notice(
             "Cancelling after the current processing step. Keeping your previous preview…",
@@ -388,6 +347,7 @@ export function createStudio({
         sync();
     };
     $("close").onclick = () => {
+        exportActions.cancel();
         cancelled = true;
         client.stop();
         importer.clear();

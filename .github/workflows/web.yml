@@ -40,7 +40,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
           pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_test'
           echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
-          python3 -m pip install playwright==1.57.0
+          python3 -m pip install playwright==1.57.0 numpy==2.5.2
           python3 -m playwright install --with-deps chromium firefox webkit
       - name: Verify recovery and private reporting in three engines
         run: |
@@ -63,6 +63,16 @@ jobs:
         run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'
       - name: Verify WebKit
         run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
+      - name: Verify bounded live EQ and portable exports in three engines
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_bootstrap_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/bootstrap-$browser"
+            python3 web/tools/verify_eq_preview.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-$browser.json"
+            python3 web/tools/verify_mp3_export.py --integration --browser "$browser" --out "${{ runner.temp }}/browser-checks/mp3-$browser"
+            python3 web/tools/verify_session_export.py --browser "$browser"
+            python3 web/tools/verify_export_workflows.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/exports-$browser"
+          done
+          python3 web/tools/verify_session_export_lifecycle.py
       - name: Verify repeated track replacement and export
         run: python3 web/tools/verify_memory.py --tracks 4 --seconds 10 --out '${{ runner.temp }}/browser-checks/replacement'
       - name: Verify Studio editing in three engines

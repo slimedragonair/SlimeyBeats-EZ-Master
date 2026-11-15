@@ -157,6 +157,12 @@ The server reported **Dummy Output**, with no headphones or speakers connected, 
 
 The **desktop app is the flagship workstation**. The browser remains a private, accessible companion, with web/mobile feature coverage expanding as device limits allow. Advanced tools will target desktop first.
 
+**Browser parity work (development source):** local **320 kbps MP3 export**, desktop-compatible **EQ preset JSON**, and **session ZIP downloads** for mastering and Studio. ZIPs combine the current rendered audio, available imported stems and versioned analysis/settings; full source/reference tracks and undo history are not automatically added. Live EQ now spreads filter preparation across processing blocks and coalesces slider bursts. [Workflow, limits and architecture](docs/WEB_EXPORTS.md) · [Tester-requested roadmap, easiest to hardest](docs/BROWSER_PARITY_ROADMAP.md). These additions are on `feature/stem-editor-workspace`; the hosted preview and published installer remain separate releases.
+
+![Development browser report with MP3 export, EQ preset and session ZIP downloads](docs/images/web-session-downloads.png)
+
+Actual development capture with synthetic test audio. [Validation and remaining device/timing limits](docs/WEB_EXPORT_VALIDATION.md). MP3 is lossy and adds codec padding; keep WAV for exact loops, aligned stems and tracks at the 15-minute reimport boundary.
+
 Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV. The browser mastering page supports **up to 15 minutes per mono/stereo track**, with separate **384 MiB decoded PCM and source-file limits**. Studio has a separate **128 MiB combined decoded-input limit**; the beta.3 removal of the part-count ceiling does not raise it. Available device memory can impose a lower practical limit. It uses a 48 kHz decoded sample rate and exports 16/24-bit PCM or 32-bit float WAV. The app keeps one active mix plus an optional reference; importing another mix replaces the previous one. The desktop app supports longer files, source-rate handling, batch queues and compressed exports. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
 
 ![Current browser Basic overview with a prepared master, separate Export and pinned comparison controls](docs/images/web-basic-overview.png)

@@ -1,5 +1,7 @@
 # Private browser preview
 
+**Development source:** `feature/stem-editor-workspace` adds local 320 kbps MP3 export, portable EQ presets and mastering/Studio session ZIPs, plus bounded live EQ filter preparation. These changes are not yet a hosted-site or installer release. See [new export workflows and limits](WEB_EXPORTS.md) and the [browser parity roadmap](BROWSER_PARITY_ROADMAP.md). Published behavior and historical measurements below remain labeled separately.
+
 [Open SlimeyBeats in your browser](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/)
 
 The browser preview uses the project's Rust mastering engine, compiled to WebAssembly. Audio processing happens on your device. The website's host serves static files; there is no upload endpoint, account, analytics, server rendering, or payment system.
@@ -34,7 +36,7 @@ Decoded parts must have identical sample rate, channel count and frame count. Th
 | Export | WAV 16-bit PCM, 24-bit PCM, or 32-bit float; optional deterministic dither for integer formats |
 | Live EQ | Rust streaming processor in AudioWorklet, with smoothed parameter changes and peak protection |
 | Requirements | WebAssembly, module workers, Web Audio and AudioWorklet; HTTPS or localhost |
-| Session storage | Memory in the current tab; no saved session or automatic recovery |
+| Session storage | Memory by default; opt-in local recovery in IndexedDB with separate budgets and explicit deletion |
 
 The duration cap is **15:00 inclusive**, measured after decoding; even one frame over is rejected. A 15-minute stereo track decoded at 48 kHz contains **43,200,000 frames / 329.59 MiB of float PCM**. Source-file size and decoded size are different: a small MP3 can expand to hundreds of MiB. Mastering, A/B buffers, temporary processing and export require additional memory beyond that PCM size. The duration/file limits are shown beside Add audio file; import errors appear there too, including the measured and allowed duration.
 

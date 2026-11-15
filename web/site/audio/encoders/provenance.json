@@ -1,0 +1,30 @@
+{
+  "package": "wasm-media-encoders",
+  "version": "0.7.0",
+  "packageSourceCommit": "4a45333baadbab312d1cc0911151dfad23157c51",
+  "packageTarball": "https://registry.npmjs.org/wasm-media-encoders/-/wasm-media-encoders-0.7.0.tgz",
+  "packageIntegrity": "sha512-Sp4wUasgxOK/IFfNhpon6LQQgYGwtpxyV4isjGIe1rvhnJL3w2KYr4f+CdqDNtGPDcgCDRY+uBanVfSx6Si0WQ==",
+  "lameVersion": "3.100",
+  "lameSourceCommit": "98db548e8e851defbba3184125ce10725355c332",
+  "lameSourceUrl": "https://codeload.github.com/arseneyr/lame/tar.gz/98db548e8e851defbba3184125ce10725355c332",
+  "reviewedOn": "2026-11-15",
+  "files": {
+    "lame-3.100-wme-0.7.0.wasm": "85e81719250b9a667b1258143f689dda70e3e57a7e7c29ab0b4cef65c8f6eb9a",
+    "lame-98db548-source.tar.gz": "ed3a6fa3ff2a9780552fa14c1228d3cd006f2e396128a62212617e387e2af996",
+    "LGPL-2.0-LAME.txt": "bfe4a52dc4645385f356a8e83cc54216a293e3b6f1cb4f79f5fc0277abf937fd",
+    "LICENSE-LAME.txt": "7a40cbd8818c57e5285e83c772a459a996d1662c824a879836b97b473c07cae4",
+    "MIT-wasm-media-encoders.txt": "7f766c19bc26ca14d9dad1bf102211f12b0a5c139f66e1132a9867fcfa04bdf0",
+    "README-LAME.txt": "687ad59451fddafba33340222a5c5820a99b62249d69b25a3667b396bd623d10",
+    "source/Makefile": "d5583bebc1ebaf4322b4d315646f9202823044911a72cc25347e12f1accc8c5d",
+    "source/package.json": "d200840b3e46348dc69ad4f6455a5759d250f5dd8c68e1b3c88f9c95d0b68206",
+    "source/printVersion.ts": "fc635d51cfb826b29f0be53a063fb78a896b11d39fc63466025d8c462741bd23",
+    "source/src/version.ts": "e97b9d8fa5b2351fdc7130c8eaa4453e5ed4f9c7d6b80dc445c19855bb33a9bd",
+    "source/src/wasm/common_params.h": "f056532233b4ffd84d3462c5251c6a42b5034d24c3ac38fdad70abc0cb4193c6",
+    "source/src/wasm/lame/lame_enc.c": "a962f71f7f568d6bf54fd2663b05655b624fbd94585e98daf70575373e35bf3a",
+    "source/src/wasm/minify_graph.json": "1faafee656ce13b9d3706bab5b1775459442f599fd953cfd43d035740453a314",
+    "source/.gitmodules": "f5822b5e142c952f53ffff6a7b197d97a5bcae6da5324091da1cb111be55a0c4",
+    "source/.yarnrc.yml": "a51cf95b28ed8d0ede3d90932e7bc01807c9c1b9cacf8c2a270059baee6f1487",
+    "source/tsconfig.json": "7e392ea6e11afe99197f3d13cc95161c201d48feb59161b8d780f8fa43263983",
+    "source/yarn.lock": "943305f35c96321bf50dc109041a8d2bda46456c700b277aeabd8820e6123e20"
+  }
+}

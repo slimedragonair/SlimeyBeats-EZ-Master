@@ -22,6 +22,9 @@ import { wireJobFeedback } from "./job-feedback.js";
 import { wireWorkspaceNavigation } from "./workspace-navigation.js";
 import { connectRecovery, changedRecovery } from "./recovery-bridge.js";
 import { masterRecoverySize, captureMasterRecovery, prepareMasterRecovery, restoreMasterFields } from "./master-recovery.js";
+import { verifiedMp3 } from "./audio/verified-mp3-export.js";
+import { eqProfileJson } from "./session-export.js";
+import { packageSession } from "./session-export-client.js";
 
 let settings,
     defaults,
@@ -42,6 +45,7 @@ let settings,
     curveTimer,
     visibility,
     jobFeedback;
+let exportAbort;
 const player = new Player(syncControls, (error) => {
     status(error.message, true);
 });
@@ -125,8 +129,12 @@ function syncControls() {
         : locked || !loaded;
     $("master").disabled = locked || !loaded;
     $("export").disabled = locked || !mastered || stale;
+    $("save-session").disabled = $("export").disabled;
+    $("save-eq").disabled = locked || !ready;
     $("mobile-master").disabled = $("master").disabled;
     $("mobile-export").disabled = $("export").disabled;
+    const exportLabel = $("format").value === "mp3" ? "↥ Export MP3" : "↥ Export WAV";
+    $("export").textContent = $("mobile-export").textContent = exportLabel;
     $("mobile-master").textContent = mastered
         ? "◇ Re-master"
         : "◇ Master track";
@@ -145,6 +153,7 @@ function syncControls() {
         "dither",
     ])
         $(id).disabled = busy || !ready;
+    $("dither").disabled ||= $("format").value === "mp3" || $("format").value === "wav32f";
     $("suggest").disabled = locked || !loaded;
     $("play").disabled = locked || !loaded;
     $("stop").disabled = !loaded;
@@ -217,7 +226,7 @@ function eqChanged() {
     $("eq-output-value").textContent = `${settings.eq_output_db.toFixed(1)} dB`;
     if (player.master)
         status(
-            "Live EQ updated. Export resolves whole-track loudness and verifies the WAV peak.",
+            "Live EQ updated. Export resolves whole-track loudness and checks the saved file's peak.",
         );
 }
 function clearMaster() {
@@ -372,24 +381,53 @@ async function master() {
         reportView(report);
         eqChanged();
         status(
-            "Master ready. Play B to listen. Nothing is exported until you choose Export WAV.",
+            "Master ready. Play B to listen. Choose WAV or MP3, then Export when ready.",
         );
     });
 }
-async function exportWav() {
-    await job(async () => {
+async function exportAudio(bundle = false) {
+    if (busy || restoring) return;
+    let controller;
+    await job(async (ensureCurrent) => {
         const source = trackRevision,
             version = revision,
-            snapshot = JSON.stringify(settings);
-        status("Resolving final EQ and verifying the encoded WAV…");
+            selected = $("format").value,
+            snapshot = structuredClone(settings);
+        if (!player.master || masterKey !== masterSignature())
+            throw new Error("Master your current direction before exporting.");
+        const ensureSnapshot = () => {
+            ensureCurrent();
+            if (source !== trackRevision || version !== revision || masterKey !== masterSignature())
+                throw new Error("Settings changed during export. Export again to save your latest settings.");
+        };
+        controller = new AbortController();
+        exportAbort = controller;
+        status("Resolving final EQ and verifying the saved audio…");
         const result = await dsp.call("export", {
-            settings: snapshot,
-            format: $("format").value,
+            settings: JSON.stringify(snapshot),
+            format: selected === "mp3" ? "wav32f" : selected,
         });
-        if (source !== trackRevision || version !== revision)
-            throw new Error(
-                "EQ changed during export. Export again to save your latest settings.",
-            );
+        ensureCurrent();
+        if (selected === "mp3") {
+            const encoded = await verifiedMp3(result.bytes, {
+                context: player.context(), client: dsp, ceiling: snapshot.ceiling_dbtp,
+                profile: snapshot.profile, signal: controller.signal, onProgress: dspProgress,
+            });
+            result.bytes = encoded.bytes;
+            result.report.output = encoded.analysis;
+            result.report.exports = [encoded.metadata];
+            result.report.notes.push("Browser MP3 export: decoded saved-file analysis and peak verification. Safety attenuation is applied to the resolved float WAV before encoding; listening volume is excluded. MP3 can include encoder padding.");
+        }
+        ensureSnapshot();
+        const extension = selected === "mp3" ? "mp3" : "wav";
+        const bytes = bundle ? await packageSession("mastering", {
+            audio: { name: `master.${extension}`, bytes: result.bytes }, report: result.report,
+            settings: { ...snapshot, formats: [selected] },
+            source: { name: currentFile.name, duration_seconds: player.original.duration,
+                sample_rate: player.original.sampleRate, channels: player.original.numberOfChannels },
+            reference: referenceFile ? { name: referenceFile.name } : null,
+        }, { signal: controller.signal }) : result.bytes;
+        ensureSnapshot();
         report = result.report;
         report.file = currentFile.name;
         reportView(report);
@@ -398,14 +436,15 @@ async function exportWav() {
             .replace(/\.[^.]+$/, "")
             .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
         download(
-            result.bytes,
-            `${stem}_master_${$("format").value}.wav`,
-            "audio/wav",
+            bytes,
+            bundle ? `${stem}_session.zip` : `${stem}_master_${selected}.${extension}`,
+            bundle ? "application/zip" : selected === "mp3" ? "audio/mpeg" : "audio/wav",
         );
         status(
-            `WAV downloaded · ${report.output.metrics.integrated_lufs.toFixed(1)} LUFS · ${report.output.metrics.true_peak_dbtp.toFixed(2)} dBTP. Your original is unchanged.`,
+            `${bundle ? "Session ZIP" : extension.toUpperCase()} downloaded · ${report.output.metrics.integrated_lufs.toFixed(1)} LUFS · ${report.output.metrics.true_peak_dbtp.toFixed(2)} dBTP. Your original is unchanged.`,
         );
     });
+    if (exportAbort === controller) exportAbort = null;
 }
 function directionChanged() {
     settings.profile = $("profile").value;
@@ -427,7 +466,7 @@ function directionChanged() {
     if (player.master)
         status(
             masterKey === masterSignature()
-                ? "Master preview ready. Listen, tweak, or export your WAV."
+                ? "Master preview ready. Listen, tweak, or export your audio."
                 : "Mastering direction changed. Re-master from the original to apply it.",
         );
 }
@@ -453,7 +492,15 @@ $("demo").onclick = () =>
     });
 $("analyze").onclick = analyze;
 $("master").onclick = $("mobile-master").onclick = master;
-$("export").onclick = $("mobile-export").onclick = exportWav;
+$("export").onclick = $("mobile-export").onclick = () => exportAudio();
+$("save-session").onclick = () => exportAudio(true);
+$("save-eq").onclick = () => {
+    if (!settings || busy || restoring) return;
+    try {
+        download(eqProfileJson(settings), "SlimeyBeats.eq.json", "application/json");
+        status("EQ preset downloaded. It includes seven bands and loudness/output controls, with no audio.");
+    } catch (error) { status(error.message, true); }
+};
 $("play").onclick = async () => {
     try {
         if (player.playing) player.pause();
@@ -543,7 +590,7 @@ $("dither").onchange = () => {
     settings.dither = $("dither").checked;
     changedRecovery();
 };
-$("format").addEventListener("change", changedRecovery);
+$("format").addEventListener("change", () => { syncControls(); changedRecovery(); });
 $("reference").onclick = () => $("reference-file").click();
 $("reference-file").onchange = () =>
     job(async (ensureCurrent) => {
@@ -586,6 +633,7 @@ $("save-report").onclick = () => {
         );
 };
 $("cancel").onclick = async () => {
+    exportAbort?.abort();
     restoring = true;
     jobRevision++;
     busy = false;

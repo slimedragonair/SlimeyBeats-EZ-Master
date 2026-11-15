@@ -326,9 +326,14 @@
                         <div class="section-heading">
                             <h2>Processing report</h2>
                             <button id="save-report" disabled>
-                                ↓ Save JSON
+                                ↓ Save report JSON
                             </button>
                         </div>
+                        <div class="edit-actions" aria-label="Portable session downloads">
+                            <button id="save-eq" disabled title="Save seven EQ bands, loudness hold and output gain as a desktop-compatible preset. No audio is included.">Save EQ preset</button>
+                            <button id="save-session" disabled title="Download the current rendered master, analysis, EQ preset and settings in one ZIP. Your original audio is not included.">Download session ZIP</button>
+                        </div>
+                        <p class="small">Session ZIP uses the chosen export format. It contains the rendered master and portable settings; local recovery restores an editing workspace.</p>
                         <p id="report-empty" class="muted">
                             Master your track to see the changes, measurements,
                             and safety notes.
@@ -498,13 +503,13 @@
                     </p>
                     </div>
                     <div class="eyebrow divider">Export quality</div>
-                    <label class="sr-only" for="format">WAV format</label
+                    <label class="sr-only" for="format">Export format</label
                     ><select id="format">
                         <option value="wav24">WAV · 24-bit PCM</option>
                         <option value="wav16">WAV · 16-bit PCM</option>
                         <option value="wav32f">
                             WAV · 32-bit float
-                        </option></select
+                        </option><option value="mp3">MP3 · 320 kbps</option></select
                     ><label class="check" data-advanced
                         ><input id="dither" type="checkbox" checked /> Dither
                         integer exports
@@ -517,8 +522,8 @@
                         </button></label
                     >
                     <p class="small">
-                        Export uses the decoded sample rate. Browser decoding
-                        may resample your input.
+                        Export uses the decoded sample rate. MP3 is lossy and can add short padding;
+                        use WAV for aligned stems and exact loops. Browser decoding may resample your input.
                     </p>
                 </aside>
             </main>
@@ -622,6 +627,6 @@
             locally.</noscript
         >
         <script type="module" src="support.js"></script>
-        <script type="module" src="app.js"></script>
+        <script type="module" src="bootstrap.js"></script>
     </body>
 </html>
