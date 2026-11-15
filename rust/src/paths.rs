@@ -47,6 +47,27 @@ pub fn interface_preferences_file() -> PathBuf {
     settings_file().with_file_name("interface-preferences.json")
 }
 
+/// Durable local recovery data is independent of installation and export folders.
+pub fn recovery_root() -> Option<PathBuf> {
+    #[cfg(windows)]
+    {
+        cache_root().map(|root| root.join("recovery"))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        xdg_directory(
+            std::env::var_os("XDG_DATA_HOME").as_deref(),
+            std::env::var_os("HOME").as_deref(),
+            ".local/share",
+        )
+        .map(|root| root.join("recovery"))
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        None
+    }
+}
+
 pub fn app_root() -> PathBuf {
     #[cfg(target_os = "linux")]
     if let Some(root) = xdg_directory(

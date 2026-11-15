@@ -16,6 +16,8 @@ import { interleave } from "./dsp-client.js";
 import { download, time } from "./view.js";
 import { wireStudioFeedback } from "./studio-feedback.js";
 import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
+import { changedRecovery } from "./recovery-bridge.js";
+import { captureStudioRecovery, prepareStudioRecovery, studioRecoverySize, restoreStudioFields } from "./studio-recovery.js";
 
 const $ = (id) => document.getElementById(`s-${id}`);
 const EMPTY = { loaded: false, stems: [], controls: { tracks: [] }, notes: [] };
@@ -30,7 +32,8 @@ export function createStudio({
     onState,
 }) {
     document.getElementById("studio-tools").innerHTML = studioTemplate;
-    const client = new StudioClient(),
+    let activeClient = new StudioClient();
+    const client = { call: (...args) => activeClient.call(...args), stop: (...args) => activeClient.stop(...args) },
         playback = new StudioPlayback((error) => {
             if (error) notice(error.message, true);
             sync();
@@ -111,6 +114,7 @@ export function createStudio({
         feedback.begin();
         if (requiresMix && !requireUpdatedMix()) return;
         busy = true;
+        changedRecovery();
         cancelled = false;
         pauseMain();
         playback.pause();
@@ -131,6 +135,7 @@ export function createStudio({
             sync();
             draw();
             onState();
+            changedRecovery();
         }
     }
     async function mutate(
@@ -157,6 +162,11 @@ export function createStudio({
         committing = true;
         sync();
         await client.call("commit", { proposal: result.proposal });
+        publish(result, buffers, reset, label);
+        changedRecovery();
+        return true;
+    }
+    function publish(result, buffers, reset, label) {
         playback.setAudio(buffers, reset);
         info = result.info;
         filename = label;
@@ -203,12 +213,12 @@ export function createStudio({
         notice(
             "Preview ready. Compare Before and Preview, then export when ready.",
         );
-        return true;
     }
     function changed() {
         dirty = true;
         sync();
         draw();
+        changedRecovery();
     }
     function mixChanged() {
         pendingMix = true;
@@ -260,6 +270,8 @@ export function createStudio({
             );
         }, true);
     strengthReadouts();
+    for (const event of ["input", "change"])
+        document.getElementById("studio-tools").addEventListener(event, changedRecovery);
     const importer = wireStemImport({
         client,
         playback,
@@ -393,6 +405,7 @@ export function createStudio({
         mixFaders({ tracks: [] }, mixChanged);
         notice("Choose audio.");
         leave();
+        changedRecovery();
     };
     for (const key of ["mix", "voice", "repair"])
         $("tab-" + key).onclick = () => {
@@ -484,6 +497,37 @@ export function createStudio({
         },
         get label() {
             return info.loaded ? filename : "Studio editor";
+        },
+        recovery: {
+            get busy() { return busy; },
+            get loaded() { return info.loaded; },
+            get stemCount() { return info.stems.length; },
+            estimate: () => info.loaded ? studioRecoverySize(playback) : 0,
+            capture: () => captureStudioRecovery(client, playback, { info, controls, pendingMix, dirty, filename }),
+            async prepare(value, current) {
+                const staged = await prepareStudioRecovery(StudioClient, value, playback, current);
+                let adopted = false;
+                let buffers;
+                try { buffers = playback.prepareAudio(staged.result); }
+                catch (error) { staged.client.stop(); throw error; }
+                return {
+                    commit() {
+                        playback.stop(); pauseMain();
+                        client.stop(); activeClient = staged.client; adopted = true;
+                        publish(staged.result, buffers, true, typeof value.filename === "string" ? value.filename.slice(0, 200) : "Recovered Studio");
+                        restoreStudioFields(value.fields);
+                        // Native mix validation runs in the staged worker before these controls reach live playback.
+                        controls = structuredClone(value.pendingMix ? value.controls : info.controls);
+                        pendingMix = value.pendingMix === true;
+                        dirty = value.dirty === true;
+                        if (pendingMix) playback.setMix(controls);
+                        mixFaders(controls, mixChanged, info.channels, info.stem_names);
+                        playback.stop(); playback.side = "after";
+                        sync(); draw(); onState();
+                    },
+                    dispose() { if (!adopted) staged.client.stop(); },
+                };
+            },
         },
     };
 }

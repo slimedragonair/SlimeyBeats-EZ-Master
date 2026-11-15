@@ -34,6 +34,15 @@ struct Arguments {
     studio_four_stems: bool,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
+    /// Diagnostic runs isolate persistent recovery from normal app data.
+    #[arg(long, hide = true, requires = "capture_ui")]
+    recovery_data: Option<PathBuf>,
+    #[arg(long,hide=true,requires_all=["capture_ui","recovery_data"])]
+    capture_wait_recovery: bool,
+    #[arg(long,hide=true,requires_all=["capture_ui","recovery_data"],conflicts_with_all=["files","session","studio_session","auto_master"])]
+    capture_restore_recovery: bool,
+    #[arg(long,hide=true,requires_all=["capture_ui","recovery_data"])]
+    capture_stay_open: bool,
     #[arg(long, hide = true, requires = "capture_ui")]
     capture_save_settings: bool,
     #[arg(long, hide=true, num_args=2, requires="capture_ui", value_parser=clap::value_parser!(u32).range(1..=7680))]
@@ -42,7 +51,7 @@ struct Arguments {
     capture_settings_scroll: Option<u32>,
     #[arg(long, hide = true, requires = "capture_ui")]
     capture_workspace_scroll: Option<u32>,
-    #[arg(long, hide = true, requires = "capture_ui", value_parser = ["welcome", "tour", "help", "terms", "mcp", "updates"])]
+    #[arg(long, hide = true, requires = "capture_ui", value_parser = ["welcome", "tour", "help", "terms", "mcp", "updates", "report", "report-preview", "recovery"])]
     capture_learning: Option<String>,
 }
 fn main() -> eframe::Result {
@@ -163,6 +172,14 @@ fn main() -> eframe::Result {
             }
             if let Some(destination) = args.capture_ui {
                 app.capture_ui_once(destination, capture_result);
+            }
+            if let Some(root) = args.recovery_data {
+                app.configure_recovery_capture(
+                    root,
+                    args.capture_wait_recovery,
+                    args.capture_restore_recovery,
+                    args.capture_stay_open,
+                );
             }
             if let Some(offset) = args.capture_settings_scroll {
                 app.capture_settings_at(offset as f32);

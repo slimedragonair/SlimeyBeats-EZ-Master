@@ -55,7 +55,7 @@ Interface preferences do not restore audio, the queue or prepared previews. Keep
 
 If native interface preferences cannot be read, the file is preserved and an error is shown. Help offers **Save current interface preferences** for explicit recovery. Write failures also show an error; do not assume a choice survived a restart when saving failed.
 
-If browser storage is blocked, unavailable or unreadable, a visible notice explains that choices last only for the current tab. Automatic guidance stays off; Help and manual replay remain available. Reloading or closing a browser tab discards its audio session even when interface storage works. If guidance itself cannot load, open Help to retry.
+If browser storage is blocked, unavailable or unreadable, a visible notice explains that choices last only for the current tab. Automatic guidance stays off; Help and manual replay remain available. Without opt-in audio recovery and a completed point, reloading/closing discards the audio session even when interface storage works. Audio recovery uses separate IndexedDB storage, not these interface preferences. If guidance itself cannot load, open Help to retry.
 
 ## Contributor map
 
@@ -73,3 +73,6 @@ Keep preference writes separate from audio operations, retain terminal tutorial 
 ## Updates & tools
 
 Native Help includes the update checker/downloader, automatic-check preference and optional-codec setup. Progress and confirmation reveal once without taking focus on every progress tick. A new-build indicator opens this page and restores keyboard focus when Help closes. Update preferences live in `update-preferences.json` beside the other desktop preferences, with bounded reads, atomic saves and preservation of damaged files until an explicit save. [Lifecycle and implementation](UPDATES_AND_OPTIONAL_TOOLS.md).
+
+
+Hotfix3 Help also includes **Recovery** and **Report a problem**. Recovery audio is separate from interface/preferences data; reviewed reports do not collect it. [Storage choices, recovery and private reporting](RECOVERY_AND_REPORTING.md).

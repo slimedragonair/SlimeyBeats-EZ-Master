@@ -14,15 +14,17 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Setup.exe) · [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3-Setup.exe) · [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
 **Studio Preview 0.5.0-beta.3** includes the guided desktop interface, Studio, the **0.2.0-beta.3 MCP companion** and the isolated VST3 worker. Import aligned stems from multiple files or a Suno/stem ZIP with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save projects. Optional local separation produces two/four stems. Browser Studio **0.3.0-beta.3** shares Rust DSP for imported-stem editing. Preview installs separately from stable. [Release notes and downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) · [Studio guide](docs/STUDIO.md).
 
-**Hotfix2 — easier updates and first-use setup:** open **Help → Updates & tools** to check/download a newer build. Codec, stem-engine and missing native-helper setup continue the action that needs them, with progress and Cancel. Install this build once to gain the updater; future hotfixes are detected by build revision without changing the displayed app version. The companion now exposes **40 tools**, including optional-tool status/setup. [Workflow, privacy and platform limits](docs/UPDATES_AND_OPTIONAL_TOOLS.md).
+**Hotfix3 — recovery and reviewed support reports:** desktop autosave protects loaded mixes, Studio previews and pending controls with local restore points. Inspect a copy before restoring; current work is backed up separately. **Help → Report a problem** generates an exact local preview before reviewed Copy/Save, without automatically collecting audio, names, paths or raw logs. Browser audio recovery is **opt-in**, within separate storage limits. The companion exposes **42 tools**, including reviewed support-report preparation/save. [Recovery, privacy, storage and tested scope](docs/RECOVERY_AND_REPORTING.md).
+
+**Hotfix2 — easier updates and first-use setup:** open **Help → Updates & tools** to check/download a newer build. Codec, stem-engine and missing native-helper setup continue the action that needs them, with progress and Cancel. Install this build once to gain the updater; future hotfixes are detected by build revision without changing the displayed app version. The Hotfix2 companion added optional-tool status/setup; Hotfix3 also adds reviewed support reports, for **42 tools**. [Workflow, privacy and platform limits](docs/UPDATES_AND_OPTIONAL_TOOLS.md).
 
 Prefer the earlier mastering-only release? [Stable v0.4.2](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.4.2) remains available; it does not include Studio, MCP or the new tour. The hosted browser updates from `main` after its checks pass. Desktop remains the flagship for neural extraction, native effects and larger projects.
 
-**Live stem editing is included:** stem gain, mute, solo and balance update during playback. Editing selects B automatically; Before and the live mix are separate listening choices. Studio also prevents a hidden mastering player from sounding underneath it. **Update mix preview** prepares the current balance for saving or further effects; it is no longer needed just to hear fader changes. [Live monitoring and save workflow](docs/STEM_LIVE_MONITORING.md). The newest download filename includes **Hotfix2**; the app version stays 0.5.0-beta.3.
+**Live stem editing is included:** stem gain, mute, solo and balance update during playback. Editing selects B automatically; Before and the live mix are separate listening choices. Studio also prevents a hidden mastering player from sounding underneath it. **Update mix preview** prepares the current balance for saving or further effects; it is no longer needed just to hear fader changes. [Live monitoring and save workflow](docs/STEM_LIVE_MONITORING.md). The newest download filename includes **Hotfix3**; the app version stays 0.5.0-beta.3.
 
 **Bulk import:** choose several stem files at once or open a Suno/stem ZIP, review the parts, then import explicitly. Within one logical source folder, matching WAV/MP3 basenames count as one part: WAV is preferred, MP3 is optional, and a missing preferred encoding falls back to the available one. Prefer a consistent encoding across the bank; fallback can fail alignment when decoded lengths differ. Guitar, piano, synth, strings and percussion have named types; extensible `part_N` IDs cover repeated/custom instruments. Mixing, direct edits, raw stem exports and desktop projects retain the selected bank, subject to available memory and input safety budgets. All discovered parts start selected for review; uncheck anything you do not want. **Automatic model separation still produces only two/four stems.** Import needs no model.
 
@@ -42,7 +44,15 @@ Studio puts active cleanup/repair editors in the workspace and keeps **Preview b
 
 **Analyze → Master → Export.** Analyze is at the top right. Master prepares a preview; Export saves it when you are ready. Tweak Manual EQ or re-master in between. The captures below show the beta.3 interface. [Learning, Help and remembered choices](docs/LEARNING_AND_HELP.md).
 
-Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Setup.exe), or download the [release source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Source.zip) and follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source).
+Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3-Setup.exe), or download the [release source ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3-Source.zip) and follow [the build guide](docs/BUILDING.md#get-the-learning-preview-source).
+
+![Native recovery history with inspect, restore and explicit deletion](docs/images/recovery-desktop.png)
+
+**Recover deliberately.** Background desktop copies protect loaded audio and pending controls. Inspect a saved point before restoring; current work gets a separate backup and playback stays paused. Browser audio recovery is opt-in. Projects and exports remain your lasting copies. [Storage choices and limits](docs/RECOVERY_AND_REPORTING.md).
+
+![Exact local support preview with pinned review, copy and save actions](docs/images/private-report-desktop.png)
+
+**Share only what you reviewed.** Generate a local report, inspect the complete text, then explicitly copy or save it. Automatic diagnostics omit audio, filenames, paths and raw logs. Public issues and private security reporting are separate choices; opening either form does not attach or submit a report.
 
 ![Native Updates and tools page showing automatic checks, manual checking and optional local codec setup](docs/images/updates-and-tools.png)
 
@@ -76,7 +86,7 @@ Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Mas
 
 ## Get started
 
-1. Download [Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2-Setup.exe) for Windows x64. A [portable ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix2.zip) is available too.
+1. Download [Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3-Setup.exe) for Windows x64. A [portable ZIP](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3.zip) is available too.
 2. Run Setup. It installs for your current Windows account without requiring administrator access, separately from stable.
 3. Take or skip the optional tour, then add or drop a mono/stereo audio file.
 4. Click **Analyze** at the top right. Choose a profile and loudness mode, then **Master track** or **Master queue**.
@@ -84,7 +94,7 @@ Use the [Windows installer](https://github.com/slimedragonair/SlimeyBeats-EZ-Mas
 
 WAV input and output work immediately, without Python or FFmpeg. The desktop GUI prepares verified codecs when compressed formats or sample-rate conversion need them, reusing working system tools and preserving PATH. See [installation and codec setup](docs/INSTALLATION.md).
 
-**Remembered preferences (desktop beta.3):** mastering settings, separate master/Studio export destinations and formats, listening volume, level matching and the two/four-stem choice survive normal restarts. Changes save automatically; **Save settings** saves both preference files immediately. Audio, queues and Studio projects are not recovered automatically; use **Save project** to continue Studio work later. [What is remembered and where](docs/USER_GUIDE.md#remembering-desktop-settings). Install beta.3 for these preferences and the guided interface; older packages retain their own behavior.
+**Remembered preferences (desktop beta.3):** mastering settings, separate master/Studio export destinations and formats, listening volume, level matching and the two/four-stem choice survive normal restarts. Changes save automatically; **Save settings** saves both preference files immediately. Hotfix3 adds separate local recovery for loaded audio, queues and pending controls; only completed recovery points survive an interruption. Use **Save project** and exports for lasting Studio work. [What is remembered and where](docs/USER_GUIDE.md#remembering-desktop-settings) · [Recovery choices and limits](docs/RECOVERY_AND_REPORTING.md). Older packages retain their own behavior.
 
 ## Studio Preview
 
@@ -128,7 +138,7 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 | Input | Mono/stereo, 8–384 kHz; WAV is native, other supported codecs use FFmpeg |
 | Export | WAV 16/24-bit PCM or 32-bit float; FLAC 16/24-bit; MP3 320 kbps |
 | Sample-rate conversion | Optional; requires FFmpeg |
-| Processing | Local; full tracks are held in memory |
+| Processing | Local; full tracks are held in memory. Optional recovery makes separate local copies. |
 | Installer data | Settings and exports are kept on your computer and preserved by uninstall |
 
 The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. The [browser preview](docs/WEB.md) processes audio locally with Rust/WebAssembly, including real-time EQ and WAV export. It has a responsive phone layout; physical iPhone and Android devices still need qualification. Native Android/iOS apps are future work.
@@ -151,9 +161,11 @@ The browser screenshot above uses generated test audio in the current app. [Open
 
 **Phone layout:** Re-master and Export stay separate, and playback remains available while scrolling. The capture uses generated test audio. [Open it at full size](docs/images/web-phone-master.png). This is browser emulation, not physical iPhone/Android qualification.
 
-Audio and measurements stay in tab memory until you download them. There are no uploads, accounts, analytics or server DSP. The host still serves ordinary static files. Reloading/closing the tab discards the session; save your WAV first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
+By default, audio and measurements stay in tab memory until downloaded. Opting into local recovery stores audio/settings in this site's IndexedDB beyond tab lifetime, with explicit disable/delete controls and separate size limits. There are no audio uploads, accounts, analytics or server DSP. Without a completed recovery point, reloading/closing the tab discards the session; export important work first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
 
 ## Evidence and limits
+
+**Hotfix3 recovery/report checks, November 14:** **352 local Windows native release tests passed**, with two opt-in archive tests excluded; strict format/Clippy checks and 42-tool release MCP protocol checks passed. An actual GUI process was terminated after saving, its input moved, and identical audio/track metadata restored and re-saved. Freshly built Chromium, Firefox and Linux WebKit previews passed recovery, storage-race, editable-Studio and report-privacy checks; existing mastering, Studio and learning/layout browser regressions also passed. The release's **Hotfix3 validation** records exact source/build hashes, hosted checks and installer scope. These checks do not establish physical iPhone/Android storage capacity, hardware audibility or operating-system clipboard acceptance. [Recovery/report workflow and limits](docs/RECOVERY_AND_REPORTING.md).
 
 The figures below qualify their named candidates.
 
@@ -180,7 +192,7 @@ Earlier native suites passed **107 Windows / 109 Linux tests**, with **nine Wind
 | Fresh-agent MCP workflow | Using live help/schemas alone, an agent imported nine paired parts, changed only vocals and prepared a preview without exporting. A separate explicit save request then produced **24-bit WAV/report, nine raw stems and a project**, retaining settings, without invoking mastering; the bridge exited with code 0. This qualifies the tested protocol harness. |
 | Full-length desktop fixture | An authorized anonymous 11-part archive was reviewed and nine parts explicitly imported. A **20-check retest passed**, including default role assignment without kind overrides. All **155,347,200 PCM comparisons matched**, with original ZIP/WAV hashes and modification times retained. This does not qualify the real-track browser workflow or establish listening quality. [Measurements and limits](docs/STUDIO.md#validation-status--november-13-2026). |
 | Earlier native Studio qualification | Beta.1 passed **94 Windows / 96 Linux native tests**, strict Clippy and release builds. Local model setup, two/four separation, projects, exports and native renders passed. Linux used a synthetic audio sink. These are historical results. [Scope](docs/STUDIO.md). |
-| Local MCP source preview | **40 tools** in 0.2.0-beta.3 Hotfix2, including ZIP inspection/import; friendly stem names are exposed separately from stable IDs. Current beta.3 measurements are linked above; the tables in this section preserve earlier qualification. Older stdio/export and discovery checks remain historical. [Setup](docs/MCP.md) · [Studio validation](docs/STUDIO.md). Published v0.4.2 installers do not include this companion. |
+| Local MCP source preview | **42 tools** in 0.2.0-beta.3 Hotfix3, including ZIP inspection/import; friendly stem names are exposed separately from stable IDs. Current beta.3 measurements are linked above; the tables in this section preserve earlier qualification. Older stdio/export and discovery checks remain historical. [Setup](docs/MCP.md) · [Studio validation](docs/STUDIO.md). Published v0.4.2 installers do not include this companion. |
 | Linux-server integration | Maintainer-reported pass: **79 tests and lint**, mastering, six export formats, GUI launch/import/mastering/EQ, and installed desktop/menu launchers, without application source changes. Hardware playback and the file-picker portal remain unverified. |
 | Browser audio | Actual worker mastering and AudioWorklet PCM comparison with the shared Rust processor; deterministic EQ suggestions; mono/stereo/silence; three decoded and independently measured WAV formats. |
 | Browser session safety | Same-name reference replacement invalidates the old master; cancellation and late decode results preserve the current track/job; invalid imports preserve the session; processing works offline after loading; listening volume leaves exported samples unchanged. |

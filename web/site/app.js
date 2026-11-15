@@ -20,6 +20,8 @@ import { wireLearning } from "./learning.js";
 import { wireViewportLayout } from "./viewport-layout.js";
 import { wireJobFeedback } from "./job-feedback.js";
 import { wireWorkspaceNavigation } from "./workspace-navigation.js";
+import { connectRecovery, changedRecovery } from "./recovery-bridge.js";
+import { masterRecoverySize, captureMasterRecovery, prepareMasterRecovery, restoreMasterFields } from "./master-recovery.js";
 
 let settings,
     defaults,
@@ -30,6 +32,8 @@ let settings,
     analysis,
     report,
     referenceFile,
+    masterBaseline,
+    masterReference,
     masterKey = "",
     revision = 0,
     trackRevision = 0,
@@ -42,11 +46,12 @@ const player = new Player(syncControls, (error) => {
     status(error.message, true);
 });
 const plots = new Plots(player);
-const dsp = new DspClient((value, text) => {
+const dspProgress = (value, text) => {
     $("progress").value = value;
     status(text);
     jobFeedback?.refresh();
-});
+};
+let dsp = new DspClient(dspProgress);
 const studio = createStudio({
     getMainAudio: () => player.original,
     pauseMain: () => player.pause(),
@@ -171,6 +176,7 @@ async function job(action) {
     if (busy || restoring) return;
     const current = ++jobRevision;
     busy = true;
+    changedRecovery();
     $("progress").value = 0;
     syncControls();
     try {
@@ -185,6 +191,7 @@ async function job(action) {
         if (current === jobRevision) {
             busy = false;
             syncControls();
+            changedRecovery();
         }
     }
 }
@@ -192,6 +199,7 @@ function eqChanged() {
     if (!settings) return;
     visibility?.refresh();
     revision++;
+    changedRecovery();
     player.updateSettings(settings, revision);
     clearTimeout(curveTimer);
     const version = revision;
@@ -219,6 +227,8 @@ function clearMaster() {
     player.source = "original";
     player.delta = 0;
     masterKey = "";
+    masterBaseline = null;
+    masterReference = null;
     report = null;
     $("output-section").hidden = true;
     reportView(null);
@@ -325,6 +335,7 @@ async function master() {
         status("Mastering locally in the Rust worker…");
         const source = trackRevision,
             key = masterSignature();
+        const baseline = structuredClone(settings);
         const result = await dsp.call("master", {
             settings: JSON.stringify(settings),
         });
@@ -346,6 +357,8 @@ async function master() {
             report.output.metrics.integrated_lufs,
         );
         masterKey = key;
+        masterBaseline = baseline;
+        masterReference = referenceFile;
         player.select("master");
         metrics("input-metrics", analysis);
         metrics("output-metrics", report.output);
@@ -410,6 +423,7 @@ function directionChanged() {
     $("blend-value").textContent = `${$("blend").value}%`;
     $("target-label").hidden = !$("custom-target").checked;
     syncControls();
+    changedRecovery();
     if (player.master)
         status(
             masterKey === masterSignature()
@@ -527,7 +541,9 @@ for (const [id, mode] of [
     };
 $("dither").onchange = () => {
     settings.dither = $("dither").checked;
+    changedRecovery();
 };
+$("format").addEventListener("change", changedRecovery);
 $("reference").onclick = () => $("reference-file").click();
 $("reference-file").onchange = () =>
     job(async (ensureCurrent) => {
@@ -612,6 +628,7 @@ $("clear").onclick = () => {
     $("session-state").textContent = "Your next master starts here";
     status("Ready for a new track.");
     syncControls();
+    changedRecovery();
 };
 for (const type of ["dragenter", "dragover"])
     document.addEventListener(type, (event) => {
@@ -636,6 +653,55 @@ window.addEventListener("beforeunload", (event) => {
         event.returnValue = "";
     }
 });
+connectRecovery({
+    studio: studio.recovery,
+    master: {
+        get ready() { return ready; },
+        get busy() { return busy || restoring; },
+        get loaded() { return !!player.original; },
+        get preview() { return !!player.master; },
+        estimate: () => masterRecoverySize(player, referenceFile, masterReference),
+        capture: () => captureMasterRecovery({ player, settings, baseline: masterBaseline, signature: masterKey,
+            reference: referenceFile, baselineReference: masterReference, file: currentFile, format: $("format").value }),
+        async prepare(value, current) {
+            const staged = await prepareMasterRecovery(value, player, current, (value, text) => { if (current()) dspProgress(value, text); });
+            let adopted = false;
+            return {
+                commit() {
+                    studio.pause(); player.stop(); dsp.stop(); dsp = staged.client; adopted = true;
+                    ++trackRevision; ++referenceRevision; ++jobRevision;
+                    settings = staged.settings; referenceFile = staged.reference;
+                    currentFile = { name: typeof value.name === "string" ? value.name.slice(0, 200) : "Recovered mix.wav" };
+                    clearMaster(); player.setOriginal(staged.source); analysis = null;
+                    restoreMasterFields(settings, value.format);
+                    if (staged.preview) {
+                        report = staged.result.report; analysis = report.input;
+                        player.setMaster(staged.preview, staged.result.raw_analysis, settings,
+                            report.input.metrics.integrated_lufs, report.output.metrics.integrated_lufs);
+                        masterBaseline = structuredClone(value.baseline || settings);
+                        masterReference = value.baselineReference;
+                        // Reference identities are document-local. Rebind only that field.
+                        const signature = staged.signature;
+                        signature.reference_revision = referenceRevision;
+                        masterKey = JSON.stringify(signature);
+                        player.source = "master";
+                        metrics("input-metrics", analysis); metrics("output-metrics", report.output); reportView(report);
+                    }
+                    plots.setAudio(staged.source);
+                    $("track-card").hidden = false; $("drop").hidden = true; $("welcome").hidden = true;
+                    $("measurements").hidden = !analysis; $("output-section").hidden = !staged.preview;
+                    $("filename").textContent = currentFile.name;
+                    $("track-title").textContent = currentFile.name.replace(/\.[^.]+$/, "");
+                    $("filemeta").textContent = `${time(Math.round(staged.source.duration))} · recovered locally · ${staged.source.sampleRate} Hz`;
+                    $("reference-name").textContent = referenceFile ? "Recovered reference retained locally" : "Optional. Borrow a finished track’s tonal direction.";
+                    buildBands(settings, eqChanged, staged.source.sampleRate); eqChanged();
+                    player.stop(); page("overview"); syncControls();
+                },
+                dispose() { if (!adopted) staged.client.stop(); },
+            };
+        },
+    },
+});
 try {
     if (!isSecureContext)
         throw new Error(
@@ -659,10 +725,13 @@ try {
     buildBands(settings, eqChanged);
     ready = true;
     $("engine-status").textContent = "RUST · LOCAL";
+    document.documentElement.dataset.engineState = "ready";
     status("Your private studio is ready. Add a mix or try the example.");
     syncControls();
     eqChanged();
 } catch (error) {
     $("engine-status").textContent = "Engine unavailable";
+    document.documentElement.dataset.engineState = "failed";
     status(error.message, true);
+    document.dispatchEvent(new Event("engine-unavailable"));
 }

@@ -2,7 +2,7 @@
 
 Studio Preview **0.5.0-beta.3** supports aligned imported stems and mix tracks with **no fixed imported-part count**, including multi-file and Suno/stem ZIP import. Practical capacity depends on hardware, decoded input and processing memory; byte/metadata safety budgets still apply. Its matching companion is **MCP 0.2.0-beta.3** and its browser Studio version is **0.3.0-beta.3**. Get the [beta.3 Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3), follow [Windows installation](INSTALLATION.md), or [build from main or the release tag](BUILDING.md#get-the-source). Linux currently requires a source build. Stable v0.4.2 remains the fallback and does not include Studio. Preview uses a separate install identity and can coexist with stable. Existing mastering and Manual EQ remain available; preparing a preview and exporting remain separate actions.
 
-The [live stem monitoring hotfix](STEM_LIVE_MONITORING.md) keeps these versions unchanged. **Hotfix2** also adds [in-app updates and first-use tool setup](UPDATES_AND_OPTIONAL_TOOLS.md). Use the current Hotfix2 installer and its candidate-specific validation assets; earlier test records qualify their named builds.
+The [live stem monitoring hotfix](STEM_LIVE_MONITORING.md) keeps these versions unchanged. **Hotfix2** also adds [in-app updates and first-use tool setup](UPDATES_AND_OPTIONAL_TOOLS.md). Hotfix3 adds [local recovery and reviewed support reports](RECOVERY_AND_REPORTING.md). Use the current Hotfix3 installer and its candidate-specific validation assets; earlier test records qualify their named builds.
 
 ## Controls and Help
 

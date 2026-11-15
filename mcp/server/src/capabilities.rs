@@ -19,10 +19,11 @@ pub fn describe(engine: &Engine) -> Value {
         "studio":{"voice_cleanup":true,"spectral_repair":true,"stem_mixing":true,"stem_engine":engine.stem_runtime.status(),"vst3_hosting":crate::optional_tools::plugin_host(engine).is_some()&&!engine.plugin_roots.is_empty(),"plugin_libraries":engine.plugin_roots.iter().enumerate().map(|(index,path)|json!({"index":index,"name":path.file_name().unwrap_or_default().to_string_lossy()})).collect::<Vec<_>>(),"start":"get_help with topic stems/voice/repair/studio_export/plugins; get_studio_session lists current IDs"},
         "stem_import":{"zip_import":true,"zip_inspect_tool":"inspect_stem_bundle","zip_import_tool":"import_stem_bundle","default_preferred_format":"wav","minimum":2,"maximum":null,"selection_default":"all distinct parts","kinds":mastercraft::studio::stem_mix::StemKind::ALL,"kinds_are_examples":true,"extra_parts":"Use unique canonical part_N IDs (positive decimal integer without leading zeros), e.g. part_10, part_24, part_64, for custom instruments or repeated instrument types. The kinds examples are not an exhaustive ID pool; these are identities, not neural extraction targets.","resource_limits":stem_import_limits(engine),"automatic_separation_modes":["vocal_instrumental","four_stems"]},
         "optional_tools":crate::optional_tools::policy(),
+        "tool_count":42,"support_reports":crate::support_reports::policy(),
         "privacy":"Local stdio only. This companion does not upload audio. Your AI client may send tool requests, measurements and filenames to its model provider. No audio is sent through tool results.",
         "memory":"The input limit is decoded PCM, not total process memory. Mastering holds several working buffers. One source and one master per session; longer tracks depend on RAM.",
         "workflow":["get_help for complete examples and units","list_audio_files","load_audio and poll for source_id","analyze_audio","master_preview and poll for preview_id","optional suggest_eq then apply_eq",audition,"export_audio only when requested"],
-        "help_topics":["quick_start","mastering","eq","export","troubleshooting","privacy","stems","voice","repair","studio_export","plugins","optional_tools"]})
+        "help_topics":["quick_start","mastering","eq","export","troubleshooting","privacy","stems","voice","repair","studio_export","plugins","optional_tools","support_reports","recovery"]})
 }
 
 pub(crate) fn stem_import_limits(engine: &Engine) -> Value {

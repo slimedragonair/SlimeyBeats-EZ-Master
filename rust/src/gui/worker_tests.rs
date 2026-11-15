@@ -52,7 +52,11 @@ fn mastering_and_eq_do_not_export_until_explicit_export() {
     let ctx = egui::Context::default();
     let cancel = Arc::new(AtomicBool::new(false));
     batch(
-        vec![(0, input.clone())],
+        vec![super::BatchInput {
+            index: 0,
+            path: input.clone(),
+            audio: None,
+        }],
         settings.clone(),
         false,
         tx.clone(),

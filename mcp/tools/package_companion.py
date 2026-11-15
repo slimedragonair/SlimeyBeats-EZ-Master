@@ -56,7 +56,7 @@ def package(destination, server, desktop, label=None):
         "Included: local stdio MCP server, desktop build with session handoff, CC0 example,\n"
         "setup helper and dependency notices. The published v0.4.2 installer is unchanged.\n"
         "This preview includes desktop Studio, self-contained project handoff and\n"
-        "the optional VST3 worker. The MCP companion exposes 40 tools; start with\n"
+        "the optional VST3 worker. The MCP companion exposes 42 tools; start with\n"
         "get_capabilities and get_help. See the component --version commands.\n\n"
         "WAV works without codecs. Compressed imports, FLAC/MP3 exports and resampling\n"
         "need FFmpeg/ffprobe. In MCP, inspect get_optional_tool_status; only after owner\n"
@@ -69,6 +69,11 @@ def package(destination, server, desktop, label=None):
         "in the private user cache and then continue. Opening Studio or using native\n"
         "WAV/voice cleanup/repair does not install a stem engine. No AI model is bundled.\n"
         "Audio is processed locally. Your AI client controls metadata sent to its provider.\n"
+        "For support use prepare_support_report, show the full preview to the owner,\n"
+        "then save_support_report only after explicit review/save approval with\n"
+        "owner_review_confirmed=true. Tool arguments and report text may reach the AI client's\n"
+        "model provider before review or saving. Filtering cannot retract client input.\n"
+        "This companion does not upload files or post issues.\n"
         "One source and one heavy job at a time. Keep this folder while the client uses it.\n"
         "Your music remains yours. MIT software attribution applies to software copies.\n",
         encoding="utf-8")

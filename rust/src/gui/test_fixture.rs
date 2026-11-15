@@ -16,6 +16,8 @@ pub(super) fn app(ctx: &egui::Context) -> MasterCraftApp {
         base: studio.cache.as_ref().unwrap().path().join("test-runtime"),
     };
     MasterCraftApp {
+        recovery: super::recovery_state::RecoveryState::for_tests(),
+        support_report: Default::default(),
         updates: super::update_state::UpdateState::for_tests(),
         experience,
         preferences: None,
@@ -48,6 +50,8 @@ pub(super) fn app(ctx: &egui::Context) -> MasterCraftApp {
         volume: 0.5,
         match_levels: true,
         capture: None,
+        capture_session: false,
+        capture_keep_open: false,
         capture_settings_scroll: None,
         capture_workspace_scroll: None,
     }
@@ -89,6 +93,7 @@ pub(super) fn mastered(ctx: &egui::Context) -> MasterCraftApp {
         path: "fixture.wav".into(),
         status: "Preparing".into(),
         result: None,
+        recovered_source: None,
     });
     app.selected = Some(0);
     app.busy = true;

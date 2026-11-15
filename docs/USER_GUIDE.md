@@ -53,7 +53,7 @@ If either of these two preference files fails to load, an error is shown and tha
 
 The interface separately stores Basic/Advanced and tutorial choices in `interface-preferences.json`, beside a `tutorial-dismissed.marker` that protects completed/dismissed choices from older open windows. Interface-file recovery uses **Save current interface preferences** in Help. These files share the existing settings directory and contain no audio. [Interface storage and browser fallback](LEARNING_AND_HELP.md#remembered-choices).
 
-This saves preferences, not loaded audio, prepared previews, the queue or Studio projects. Use **Save project** and reopen its `session.studio.json` to continue Studio work; exporting audio remains explicit. Browser sessions still disappear on reload/close, and MCP keeps its explicit session/project workflow.
+Preference files still contain no audio. Hotfix3 adds separate local recovery copies for loaded audio, previews, the queue and pending controls; open **Help → Recovery** to inspect them or change autosave. **Save project** and `session.studio.json` remain explicit lasting Studio copies; exporting remains separate. Browser audio recovery is opt-in and bounded; without a completed point the tab session disappears on reload/close. MCP keeps its explicit session/project workflow and does not gain access to desktop recovery storage. **Help → Report a problem** previews a minimal report before sharing. [Recovery and report details](RECOVERY_AND_REPORTING.md).
 
 ## Suggested EQ and the graph
 

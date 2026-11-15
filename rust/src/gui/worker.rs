@@ -78,8 +78,14 @@ pub fn suggest_eq(
         ctx.request_repaint();
     });
 }
+pub struct BatchInput {
+    pub index: usize,
+    pub path: PathBuf,
+    pub audio: Option<Arc<Audio>>,
+}
+
 pub fn batch(
-    files: Vec<(usize, PathBuf)>,
+    files: Vec<BatchInput>,
     settings: Settings,
     analyze_only: bool,
     tx: Sender<Event>,
@@ -88,11 +94,12 @@ pub fn batch(
     root: PathBuf,
 ) {
     std::thread::spawn(move || {
-        let first = files.first().map(|(index, _)| *index).unwrap_or(0);
+        let first = files.first().map(|input| input.index).unwrap_or(0);
         if let Err(error) = super::tool_setup::for_inputs(
             files
                 .iter()
-                .map(|(_, path)| path.as_path())
+                .filter(|input| input.audio.is_none())
+                .map(|input| input.path.as_path())
                 .chain(settings.reference.as_deref()),
             cancel.clone(),
             &|fraction, message| {
@@ -100,9 +107,9 @@ pub fn batch(
                 ctx.request_repaint();
             },
         ) {
-            for (index, _) in &files {
+            for input in &files {
                 let _ = tx.send(Event::Failed(
-                    *index,
+                    input.index,
                     format!("Codec preparation: {error:#}"),
                 ));
             }
@@ -121,7 +128,12 @@ pub fn batch(
                     .map(|f| analysis::analyze(&audio::load(f)?, p))
                     .transpose()
             });
-        for (index, file) in files {
+        for BatchInput {
+            index,
+            path: file,
+            audio: recovered,
+        } in files
+        {
             if cancel.load(Ordering::Relaxed) {
                 break;
             }
@@ -130,7 +142,10 @@ pub fn batch(
                 let r = reference
                     .as_ref()
                     .map_err(|e| anyhow::anyhow!("Reference: {e:#}"))?;
-                let before = Arc::new(audio::load(&file)?);
+                let before = match recovered {
+                    Some(audio) => audio,
+                    None => Arc::new(audio::load(&file)?),
+                };
                 if analyze_only {
                     return Ok(TrackResult {
                         analysis: analysis::analyze(&before, p)?,

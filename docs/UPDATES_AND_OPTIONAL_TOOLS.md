@@ -8,7 +8,7 @@ Open **Help → Updates & tools → Check for updates**. A small **Update availa
 
 Choose **Download update** and continue working. Progress and Cancel are available; the installer is checked before it becomes ready and checked again before opening. **Install update…** opens the existing Windows Setup. Save/export your audio and save Studio projects first, then confirm opening Setup. The app closes after Setup starts successfully. Setup remembers the registered installation folder and preserves settings, profiles, projects and exports; its Finish page can launch the updated app. Close other app windows and active MCP connections before Setup copies files.
 
-Portable/source copies receive an explicit notice: Setup installs or updates the registered Windows copy, rather than replacing the portable folder. Download the portable ZIP from the release page to stay portable. Linux currently remains a source-build update route; the app never downloads a Windows installer on Linux. Browser users receive the hosted update after its deployment and a reload; download audio before reloading because browser sessions remain in tab memory.
+Portable/source copies receive an explicit notice: Setup installs or updates the registered Windows copy, rather than replacing the portable folder. Download the portable ZIP from the release page to stay portable. Linux currently remains a source-build update route; the app never downloads a Windows installer on Linux. Browser users receive the hosted update after its deployment and a reload; export important audio before reloading; browser recovery is optional and only its completed points survive within the documented storage limits.
 
 ## Use a tool without manual dependency hunting
 
@@ -42,3 +42,6 @@ Build with `python rust/tools/build_release.py --out <fresh-folder> --label Hotf
 Fork publishers must review and change the compiled repository/URL policy in `rust/src/app_update/release.rs` and the manual release URL in `mod.rs`, alongside their documentation links. The repository-link configuration helper does not change this trusted download destination.
 
 Codecs and model weights retain their own upstream licenses. The application's software license and audio-output ownership policy are unchanged. Consult candidate-specific release validation; archive tests, synthetic audio and headless UI checks do not establish physical-device listening or universal plugin compatibility.
+
+
+Hotfix3 adds [autosave/recovery and reviewed local support reports](RECOVERY_AND_REPORTING.md); installing an update still requires an explicit saved-work handoff.

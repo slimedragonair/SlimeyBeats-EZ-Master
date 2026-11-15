@@ -32,6 +32,8 @@ jobs:
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
       - name: Verify MCP over stdio
         run: python ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+      - name: Verify private support reports over stdio
+        run: python ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Verify Unicode connection setup in Windows PowerShell 5.1
         run: powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File ../mcp/tools/verify_connect_config.ps1 -Server ../mcp/server/target/release/slimeybeats-mcp.exe -Evidence '${{ runner.temp }}/SlimeyBeats-UTF8-config'
       - name: Verify Studio DSP routes and model-cache handling
@@ -78,6 +80,8 @@ jobs:
       - run: cargo build --locked --release --bins
       - name: Verify Linux exports, XDG paths and native GUI captures
         run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks'
+      - name: Verify private GUI crash recovery and report captures
+        run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_recovery.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks/recovery'
       - name: Check headless CLI without desktop features
         run: cargo check --locked --no-default-features --bin slimeybeats-ez-master-cli
       - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
@@ -86,6 +90,8 @@ jobs:
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
       - name: Verify MCP over stdio and six codecs
         run: python3 ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
+      - name: Verify private support reports over stdio
+        run: python3 ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Verify Studio DSP routes and model-cache handling
         run: |
           python3 tools/test_stem_model_install.py

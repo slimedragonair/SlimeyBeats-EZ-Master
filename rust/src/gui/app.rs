@@ -23,6 +23,8 @@ pub struct Track {
     pub path: PathBuf,
     pub status: String,
     pub result: Option<Arc<TrackResult>>,
+    /// Recovered immutable input remains usable if its original file moved.
+    pub recovered_source: Option<Arc<audio::Audio>>,
 }
 #[derive(Clone, Copy, PartialEq)]
 pub(super) enum JobKind {
@@ -32,6 +34,8 @@ pub(super) enum JobKind {
     Suggest,
 }
 pub struct MasterCraftApp {
+    pub(super) recovery: super::recovery_state::RecoveryState,
+    pub(super) support_report: super::support_report_state::SupportReportState,
     pub(super) updates: super::update_state::UpdateState,
     pub(super) experience: super::user_experience::UserExperience,
     pub(super) preferences: Option<super::desktop_preferences::PreferencePersistence>,
@@ -64,6 +68,8 @@ pub struct MasterCraftApp {
     pub volume: f32,
     pub match_levels: bool,
     pub(super) capture: Option<super::ui_capture::UiCapture>,
+    pub(super) capture_session: bool,
+    pub(super) capture_keep_open: bool,
     pub(super) capture_settings_scroll: Option<f32>,
     pub(super) capture_workspace_scroll: Option<f32>,
 }
@@ -117,6 +123,11 @@ impl MasterCraftApp {
             desktop_valid,
         ));
         let mut app = Self {
+            recovery: super::recovery_state::RecoveryState::load(
+                crate::paths::recovery_root(),
+                crate::paths::settings_file().with_file_name("recovery-preferences.json"),
+            ),
+            support_report: Default::default(),
             updates: super::update_state::UpdateState::load(
                 crate::paths::settings_file().with_file_name("update-preferences.json"),
             ),
@@ -153,6 +164,8 @@ impl MasterCraftApp {
             volume: desktop.volume(),
             match_levels: desktop.match_levels(),
             capture: None,
+            capture_session: false,
+            capture_keep_open: false,
             capture_settings_scroll: None,
             capture_workspace_scroll: None,
         };
@@ -163,8 +176,23 @@ impl MasterCraftApp {
         app
     }
     pub fn capture_ui_once(&mut self, destination: PathBuf, failed: Arc<AtomicBool>) {
+        self.capture_session = true;
         self.experience.suppress_automatic_offer();
         self.capture = Some(super::ui_capture::UiCapture::new(destination, failed));
+    }
+    #[doc(hidden)]
+    pub fn configure_recovery_capture(
+        &mut self,
+        root: PathBuf,
+        wait: bool,
+        restore: bool,
+        keep_open: bool,
+    ) {
+        self.recovery.shutdown(false);
+        self.recovery = super::recovery_state::RecoveryState::diagnostic(root);
+        self.recovery.capture_wait = wait;
+        self.recovery.diagnostic_restore = restore;
+        self.capture_keep_open = keep_open;
     }
     pub fn capture_learning_at(&mut self, view: &str) {
         use super::user_experience::HelpPage;
@@ -174,6 +202,15 @@ impl MasterCraftApp {
             "terms" => self.experience.help_page = Some(HelpPage::Terms),
             "mcp" => self.experience.help_page = Some(HelpPage::Assistant),
             "updates" => self.experience.help_page = Some(HelpPage::Updates),
+            "report" => self.experience.help_page = Some(HelpPage::ReportProblem),
+            "report-preview" => {
+                self.experience.help_page = Some(HelpPage::ReportProblem);
+                self.support_report.title = "Example: export stops before saving".into();
+                self.support_report.details="1. Load the example WAV.\n2. Prepare a master.\n3. Choose Export.\nExpected: a saved WAV. Observed: an error message.\nThis is a demonstration report; no recording is attached.".into();
+                let context = super::support_report_state::context(self);
+                self.support_report.build(context);
+            }
+            "recovery" => self.experience.help_page = Some(HelpPage::Recovery),
             _ => self.experience.help_page = Some(HelpPage::Start),
         }
         self.experience.request_dialog_focus = true;
@@ -202,6 +239,7 @@ impl MasterCraftApp {
                     path: file,
                     status: "Ready".into(),
                     result: None,
+                    recovered_source: None,
                 });
             }
         }
@@ -262,7 +300,11 @@ impl MasterCraftApp {
             .tracks
             .iter()
             .enumerate()
-            .map(|(i, t)| (i, t.path.clone()))
+            .map(|(i, t)| worker::BatchInput {
+                index: i,
+                path: t.path.clone(),
+                audio: t.recovered_source.clone(),
+            })
             .collect();
         worker::batch(
             files,

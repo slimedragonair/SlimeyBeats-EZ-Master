@@ -42,11 +42,14 @@ def verify(server, fixture, codecs):
         assert configuration["mcpServers"]["slimeybeats"]["command"]
         client = Client(command)
         try:
+            identity = client.initialized["result"]["serverInfo"]
+            assert identity["name"] == "slimeybeats-mcp", identity
+            assert identity["version"] == subprocess.check_output([str(server), "--version"], text=True).strip().split()[-1], identity
             if codecs:
                 prepared = client.run("prepare_optional_tool", {"tool": "audio_codecs", "allow_download": True})
                 assert prepared["verification"] == "encode_probe_decode_checked"
             tools = client.request("tools/list", {})["result"]["tools"]
-            assert len(tools) == 40, len(tools)
+            assert len(tools) == 42, len(tools)
             assert all("inputSchema" in tool and "annotations" in tool for tool in tools)
             caps = client.call("get_capabilities")
             assert caps["concurrent_audio_jobs"] == 1

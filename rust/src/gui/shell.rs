@@ -9,6 +9,7 @@ const OUTER_INSET: egui::Vec2 = vec2(14., 12.);
 
 impl eframe::App for MasterCraftApp {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        self.finish_recovery();
         self.persist_preferences(true, false);
         self.experience.persist(true, false);
     }
@@ -22,7 +23,7 @@ impl MasterCraftApp {
         self.updates.poll();
         self.updates.startup(
             ui.ctx(),
-            !self.busy && !self.studio.busy() && self.capture.is_none(),
+            !self.busy && !self.studio.busy() && !self.capture_session,
         );
         if self.updates.close_after_launch {
             self.persist_preferences(true, false);
@@ -51,21 +52,35 @@ impl MasterCraftApp {
         self.poll();
         let ctx = ui.ctx().clone();
         self.studio.poll(&ctx);
+        self.tick_recovery(&ctx);
+        if super::recovery_dialog::blocking(self, ui, &ctx) {
+            return;
+        }
         self.enforce_playback_owner();
-        self.experience
-            .offer_when_idle(!self.busy && !self.studio.busy() && self.capture.is_none());
+        self.experience.offer_when_idle(
+            !self.busy && !self.studio.busy() && !self.capture_session && !self.recovery.offer,
+        );
         if ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::F1)) {
-            self.experience
-                .open_help(super::user_experience::HelpPage::Start, &ctx);
+            let recovery = self.recovery.offer;
+            self.recovery.offer = false;
+            self.experience.open_help(
+                if recovery {
+                    super::user_experience::HelpPage::Recovery
+                } else {
+                    super::user_experience::HelpPage::Start
+                },
+                &ctx,
+            );
         }
         if !self.experience.has_modal()
+            && !self.recovery.offer
             && !self.busy
             && !self.studio.busy()
             && ctx.input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::O))
         {
             self.pick_files();
         }
-        if !self.busy && !self.studio.busy() {
+        if !self.busy && !self.studio.busy() && !self.recovery.offer {
             let files = ctx.input(|i| {
                 i.raw
                     .dropped_files
@@ -116,7 +131,11 @@ impl MasterCraftApp {
                     if modifiers.is_none())
             })
         });
-        if plain_space && !ctx.egui_wants_keyboard_input() && !self.experience.has_modal() {
+        if plain_space
+            && !ctx.egui_wants_keyboard_input()
+            && !self.experience.has_modal()
+            && !self.recovery.offer
+        {
             self.enforce_playback_owner();
             if self.tab == 3 {
                 if self.studio.current.is_some() {
@@ -215,9 +234,24 @@ impl MasterCraftApp {
         self.sync_live_eq(&ctx);
         self.autosave_preferences(&ctx);
         super::learning_ui::show(self, &ctx);
-        let ready = !self.busy && !self.eq_dirty && !self.studio.busy();
+        super::recovery_dialog::startup(self, &ctx);
+        let recovery_ready = (!self.recovery.capture_wait
+            || self.recovery.saved_key == super::recovery_key::key(self).ok()
+                && self.recovery.last_saved.is_some())
+            && (!self.recovery.diagnostic_restore || self.recovery.restore_completed);
+        let ready = !self.busy
+            && !self.eq_dirty
+            && !self.studio.busy()
+            && !self.recovery.restoring
+            && (recovery_ready || self.recovery.error.is_some());
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {
+                recovery_saved: self.recovery.last_saved.is_some(),
+                recovery_enabled: self.recovery.preferences.enabled,
+                recovery_error: self.recovery.error.clone(),
+                recovery_points: self.recovery.listing.checkpoints.len(),
+                recovery_restored: self.recovery.restore_completed,
+                support_preview_ready: self.support_report.preview.is_some(),
                 update_build_revision: crate::app_update::identity::BUILD_REVISION,
                 update_check_enabled: self.updates.preferences.automatic,
                 update_error: self
@@ -264,7 +298,9 @@ impl MasterCraftApp {
                         self.error = Some(error);
                     }
                 }
-                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                if !self.capture_keep_open {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
             }
         }
         if self.busy
