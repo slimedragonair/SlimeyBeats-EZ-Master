@@ -105,7 +105,7 @@ fn prepared(
     let mut file = tempfile::Builder::new()
         .prefix("preview-")
         .suffix(".wav")
-        .tempfile_in(ctx.engine.cache.path())?;
+        .tempfile_in(ctx.engine.cache.path()?)?;
     wav_encoding::write_wav(&prepared.audio, file.as_file_mut(), "wav32f", false)?;
     file.flush()?;
     file.as_file().sync_all()?;

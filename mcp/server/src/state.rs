@@ -2,6 +2,7 @@ use crate::{
     arguments::Arguments,
     file_policy::FilePolicy,
     jobs::{ActiveJob, JobRecord},
+    session_cache::{self, SessionCache},
 };
 use anyhow::{Context, Result, ensure};
 use mastercraft::{
@@ -15,7 +16,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
     time::Duration,
 };
-use tempfile::{TempDir, TempPath};
+use tempfile::TempPath;
 
 pub struct Input {
     pub id: String,
@@ -78,7 +79,7 @@ pub struct Engine {
     pub policy: FilePolicy,
     pub max_decoded_bytes: usize,
     pub decode_timeout: Duration,
-    pub cache: TempDir,
+    pub cache: SessionCache,
     pub desktop: Option<PathBuf>,
     pub profiles: crate::profile_catalog::ProfileCatalog,
     pub stem_runtime: mastercraft::studio_native::runtime::RuntimePaths,
@@ -91,9 +92,7 @@ pub struct Engine {
 impl Engine {
     pub fn new(args: &Arguments) -> Result<Arc<Self>> {
         let policy = FilePolicy::new(&args.input_root, &args.output_root)?;
-        let cache = tempfile::Builder::new()
-            .prefix(".slimeybeats-mcp-")
-            .tempdir_in(&policy.output)?;
+        let cache = SessionCache::new(policy.output.clone());
         let desktop = if let Some(path) = &args.desktop_exe {
             ensure!(
                 path.is_file(),
@@ -117,13 +116,7 @@ impl Engine {
             out_dir: policy.output.clone(),
             ..Default::default()
         };
-        let connection_id = cache
-            .path()
-            .file_name()
-            .expect("private cache name")
-            .to_string_lossy()
-            .trim_start_matches(".slimeybeats-mcp-")
-            .to_string();
+        let connection_id = session_cache::connection_id();
         let plugin_roots = args
             .plugin_root
             .iter()

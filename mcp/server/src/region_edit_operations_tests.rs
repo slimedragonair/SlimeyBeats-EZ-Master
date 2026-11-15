@@ -232,7 +232,7 @@ fn history_restores_exact_banks_controls_original_and_preview_and_new_edit_clear
 fn cancelled_render_and_invalid_pcm_preserve_bank_and_temporary_files() {
     let workspace = Workspace::new();
     let before = workspace.engine.session().unwrap();
-    let entries = std::fs::read_dir(workspace.engine.cache.path())
+    let entries = std::fs::read_dir(workspace.engine.cache.path().unwrap())
         .unwrap()
         .count();
     let ctx = workspace.context("cancelled");
@@ -276,7 +276,7 @@ fn cancelled_render_and_invalid_pcm_preserve_bank_and_temporary_files() {
     );
     assert_eq!(workspace.engine.session().unwrap(), before);
     assert_eq!(
-        std::fs::read_dir(workspace.engine.cache.path())
+        std::fs::read_dir(workspace.engine.cache.path().unwrap())
             .unwrap()
             .count(),
         entries

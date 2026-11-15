@@ -13,6 +13,12 @@ the [stem timeline and time edits](STEM_EDITOR.md), desktop loop auditioning,
 [45-tool MCP companion](MCP.md). Source builds already contain these features;
 earlier installed binaries require the refreshed package.
 
+MCP discovery and read-only connections no longer allocate an empty scratch folder.
+Processing still uses temporary audio on the configured output volume, preserving
+atomic exports and keeping large previews off the system temp drive. Normal
+shutdown removes that connection's scratch; forced termination during processing
+can retain a cache. Other sessions' files are not swept on reconnect.
+
 The [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/)
 already includes the shared DSP, time edits, Doctor, local 320 kbps MP3,
 portable EQ presets and [session ZIP exports](WEB_EXPORTS.md). Browser loop

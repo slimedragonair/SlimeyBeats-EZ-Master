@@ -105,7 +105,7 @@ impl Companion {
         self.response((|| {let path=resolve(&self.engine,a.library,&a.path)?;let host=crate::optional_tools::plugin_host(&self.engine).context("Plugin host helper is missing")?;let id=a.audio_id.clone();
             self.engine.start("render_plugin",move|s|s.studio_audio(&id).map(|_|()),move|ctx| {
                 let target=ctx.snapshot.studio_audio(&a.audio_id)?;
-                let (audio,metadata)=host.render(&path,&a.class_id,&target.audio,&a.parameters,ctx.engine.cache.path(),ctx.cancel.clone())?;
+                let (audio,metadata)=host.render(&path,&a.class_id,&target.audio,&a.parameters,ctx.engine.cache.path()?,ctx.cancel.clone())?;
                 studio_operations::finish(&ctx,target,audio,json!({"operation":"vst3","input_audio_id":a.audio_id,"class_id":a.class_id,"parameters":a.parameters,"render":metadata}),vec!["Third-party effect ran in the isolated helper. This is crash/cancellation isolation, not an OS security sandbox. Audition before accepting.".into()],ctx.snapshot.studio.clone())
             })})())
     }
