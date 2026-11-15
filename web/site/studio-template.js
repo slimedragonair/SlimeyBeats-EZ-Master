@@ -10,7 +10,12 @@ ${bulkImportTemplate}
 <div class="edit-actions"><button id="s-undo" disabled>Undo</button><button id="s-redo" disabled>Redo</button><label class="edit-target">Process this source<select id="s-target"><option value="source">Original source</option><option value="preview">Current preview</option></select></label></div>
 <div class="edit-grid">
  <div class="edit-visual">
-  <div id="s-mix-page"><h3>Balance the parts</h3><p class="small">Gain, mute, solo and balance are live on B from the immutable stems. Update mix preview to commit before further edits or exporting. Live monitoring uses conservative sample headroom; the saved mix has the final true-peak guard.</p><div id="s-faders"></div><button id="s-mix" class="primary" disabled>Update mix preview</button></div>
+  <div id="s-mix-page">
+   <div id="s-stem-views" class="edit-actions" role="group" aria-label="Stem workspace" hidden><button id="s-view-mixer" class="selected" aria-pressed="true">Mixer</button><button id="s-view-timeline" aria-pressed="false">Time edits</button></div>
+   <div id="s-editor-view" hidden><div id="s-editor"></div></div>
+   <div id="s-mixer-view"><h3>Balance the parts</h3><p class="small">Gain, mute, solo and balance are live on B from the immutable stems. Update mix preview to commit before further edits or exporting. Live monitoring uses conservative sample headroom; the saved mix has the final true-peak guard.</p><div id="s-faders"></div></div>
+   <button id="s-mix" class="primary" disabled>Update mix preview</button>
+  </div>
   <div id="s-voice-page" hidden><h3>A clearer voice</h3><p>Use a voice recording or vocal stem. Cleanup reduces rumble, stationary noise and strong S sounds; it does not isolate speech from music.</p><div class="edit-fields">
    <label data-advanced title="High-pass filter removes low rumble. 0 switches it off; avoid cutting into a low voice.">Rumble removal / Hz<input id="s-highpass" type="number" min="0" max="300" value="75"></label>
    <label title="0–1 strength. Auto learning skips tonal/unreliable noise profiles; use a noise-only region for room tone.">Noise reduction<input id="s-noise" type="range" min="0" max="1" step="0.05" value="0.3"></label>

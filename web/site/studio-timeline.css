@@ -1,0 +1,92 @@
+/* Time edits share Studio's amethyst/teal tokens; Live mix stays in its faders. */
+#s-editor { min-width: 0; margin-bottom: 24px; }
+#s-editor[hidden], #s-editor [hidden] { display: none !important; }
+.s-timeline {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--violet);
+    border-radius: 6px;
+    background: #1b1424;
+}
+.s-time-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-bottom: 8px; }
+.s-time-heading h3 { margin: 0; font-size: 24px; color: var(--ink); }
+.s-time-badge { color: var(--teal); font-size: 12px; }
+.s-time-help, .s-time-readout, .s-time-reason { margin: 8px 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.s-time-readout { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.s-time-reason { color: #f3d1ae; }
+.s-time-reason:empty { display: none; }
+.s-time-stem, .s-time-fields label, .s-time-gain label { display: grid; min-width: 0; gap: 5px; color: var(--ink); }
+/* Keep the native select inline-level: WebKit can expose its selected text
+   beyond in-bounds DOM rectangles when the label or select blockifies it. */
+.s-time-stem { display: block; margin: 12px 0; }
+#s-editor-stem { display: inline-block; margin-top: 5px; }
+#s-editor select, #s-editor input { width: 100%; min-width: 0; max-width: 100%; }
+#s-editor select { text-overflow: ellipsis; }
+#s-editor input[type="number"] {
+    min-height: 44px;
+    padding: 8px 10px;
+    background: #15111c;
+    color: var(--ink);
+    border: 1px solid #80628f;
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+}
+#s-editor input[aria-invalid="true"] { border-color: #ffb3ca; }
+#s-editor button { min-height: 44px; white-space: normal; overflow-wrap: normal; }
+.s-time-navigation, .s-time-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.s-time-tools { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 12px 0; }
+.s-time-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.s-time-gain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, 1fr); align-items: end; gap: 10px; }
+.s-time-lanes {
+    position: relative;
+    min-width: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: #100c18;
+}
+.s-time-lanes:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+.s-time-ruler { position: sticky; top: 0; z-index: 2; height: 30px; background: #20182a; overflow: hidden; }
+.s-time-ruler canvas { height: 30px; }
+.s-time-lane { border-top: 1px solid var(--line); }
+#s-editor .s-time-lane-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 7px 9px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #21192b;
+    text-align: left;
+}
+.s-time-lane-name span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-time-lane-name small { flex-shrink: 0; color: var(--muted); font-size: 11px; max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#s-editor .s-time-lane[data-selected="true"] .s-time-lane-name { border-left: 3px solid var(--violet); color: var(--violet); background: #30203c; }
+#s-editor .s-time-lane-name:focus-visible { outline-offset: -3px; }
+.s-time-wave { position: relative; height: 56px; overflow: hidden; }
+.s-time-wave, .s-time-ruler { touch-action: pan-y pinch-zoom; cursor: crosshair; user-select: none; }
+.s-time-wave canvas, .s-time-ruler canvas { display: block; width: 100%; }
+.s-time-wave canvas { height: 56px; }
+.s-time-selection { position: absolute; top: 0; bottom: 0; min-width: 2px; border-left: 2px solid var(--violet); border-right: 2px solid var(--violet); background: #d49dff32; pointer-events: none; }
+.s-time-playhead { position: absolute; top: 0; bottom: 0; width: 2px; transform: translateX(-1px); background: #ecd4b8; pointer-events: none; }
+@media (max-width: 680px) {
+    .s-timeline { padding: 10px; }
+    .s-time-navigation, .s-time-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #s-editor button { padding: 8px; }
+    .s-time-fields { grid-template-columns: minmax(0, 1fr); }
+    .s-time-lanes { max-height: 286px; }
+}
+body.large-text .s-time-navigation,
+body.large-text .s-time-tools,
+body.large-text .s-time-gain { grid-template-columns: minmax(0, 1fr); }
+@media (prefers-reduced-motion: reduce) { #s-editor button { transition: none; } }

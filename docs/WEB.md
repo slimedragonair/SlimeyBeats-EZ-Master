@@ -1,5 +1,10 @@
 # Private browser preview
 
+**Browser editor development:** the [stem timeline and time-edit milestone](WEB_STEM_EDITOR.md)
+shares the desktop Rust processor for silence, fades, gain and reverse, while
+keeping aligned-stem limits, live faders, recovery and separate exports. Its guide
+records current validation and features still reserved for desktop.
+
 **Development preview:** [`current-work` is live for phone testing](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), including local 320 kbps MP3 export, portable EQ presets, mastering/Studio session ZIPs and bounded live EQ preparation. It shows its build ID and keeps separate local preferences/recovery. The main URL and installer retain their released versions. See [preview publication and validation](MOBILE_PREVIEW.md), [export workflows and limits](WEB_EXPORTS.md), and the [browser parity roadmap](BROWSER_PARITY_ROADMAP.md). Historical measurements below remain labeled separately.
 
 [Open SlimeyBeats in your browser](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/)

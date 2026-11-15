@@ -34,6 +34,7 @@ self.onmessage = async ({ data: m }) => {
             "voice",
             "repair",
             "replace",
+            "region",
             "history",
             "recover",
         ].includes(m.action);
@@ -116,6 +117,7 @@ self.onmessage = async ({ data: m }) => {
             case "voice":
             case "repair":
             case "replace":
+            case "region":
             case "history":
                 applyStudioEdit(candidate, m.action, m);
                 audio = true;

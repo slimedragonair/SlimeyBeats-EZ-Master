@@ -40,6 +40,12 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 **Next desktop editor milestone (development source):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP adds `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). These changes are on `current-work`; the current download above remains Hotfix3.
 
+**Browser editor parity (`current-work`):** Studio includes a stem timeline, precise time selection and the same shared Rust silence, fade, gain and reverse tools, with explicit preview commits, undo/redo and local recovery. Open **Stem mix → Time edits**; **Mixer** returns to live faders. [Browser editor workflow, tested scope and remaining checks](docs/WEB_STEM_EDITOR.md). The aligned-bank limits and separate export workflow remain.
+
+<img src="docs/images/web-stem-editor-phone.png" width="280" alt="Development browser Studio Time edits view with aligned stem waveforms and fit/zoom controls">
+
+**Time edits on a small screen.** Open **Studio → Stem mix → Time edits**, choose a part, select or type a range, and apply a tool explicitly. **Mixer** returns to live faders. [Full-size timeline](docs/images/web-stem-editor-phone.png) · [Time-edit tools](docs/images/web-stem-editor-tools.png). These actual development captures use generated audio in Chromium phone emulation; they are not physical-device acceptance.
+
 ![Development desktop stem timeline with four synthetic parts and a selected-stem inspector](docs/images/stem-editor-timeline.png)
 
 [Full-size development timeline](docs/images/stem-editor-timeline.png) · [Compact layout](docs/images/stem-editor-compact.png) · [Time-edit controls](docs/images/stem-editor-selection.jpg). These actual native captures use generated test tones.

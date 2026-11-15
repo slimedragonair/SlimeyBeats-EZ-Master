@@ -16,6 +16,7 @@ import { interleave } from "./dsp-client.js";
 import { time } from "./view.js";
 import { wireStudioFeedback } from "./studio-feedback.js";
 import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
+import { createStudioTimeline } from "./studio-timeline.js";
 import { changedRecovery } from "./recovery-bridge.js";
 import { captureStudioRecovery, prepareStudioRecovery, studioRecoverySize, restoreStudioFields } from "./studio-recovery.js";
 
@@ -49,9 +50,22 @@ export function createStudio({
         chart,
         dirty = false,
         pendingMix = false,
-        filename = "Studio";
+        filename = "Studio",
+        stemView = "mixer";
     const feedback = wireStudioFeedback(() => active);
     const previewStatus = wireStudioPreviewStatus();
+    const timeline = createStudioTimeline($("editor"), {
+        getState: () => ({ info, busy, pendingMix, active }),
+        getStems: () => playback.stems,
+        position: () => playback.position(),
+        seek: (seconds) => playback.seek(seconds),
+        apply: ({ kind, edit }) => job(
+            "Editing the selected stem region…",
+            () => mutate("region", { kind, edit }),
+            true,
+        ),
+        notice,
+    });
     function notice(text, error = false) {
         if (pendingMix && !error && text !== MIX_PENDING_NOTICE)
             text = `${text} ${MIX_PENDING_NOTICE}`;
@@ -64,9 +78,20 @@ export function createStudio({
         if (!active) return;
         waveform($("wave"), playback);
         chart = spectrum($("spectrum-canvas"), image, selection());
+        timeline.draw();
     }
     function sync() {
         document.getElementById("studio-tools").dataset.loaded = String(info.loaded);
+        const hasStems = info.stems.length > 0;
+        $("stem-views").hidden = !hasStems;
+        $("editor-view").hidden = !hasStems || stemView !== "timeline";
+        $("mixer-view").hidden = hasStems && stemView === "timeline";
+        for (const view of ["mixer", "timeline"]) {
+            const button = $("view-" + view);
+            button.disabled = busy || !hasStems;
+            button.classList.toggle("selected", stemView === view);
+            button.setAttribute("aria-pressed", String(stemView === view));
+        }
         for (const input of document.querySelectorAll(
             "#studio-tools input, #studio-tools select",
         ))
@@ -102,6 +127,7 @@ export function createStudio({
             ? PENDING_MIX
             : "Settings changed. Run the tool to hear them. Export saves the existing preview.";
         previewStatus(pendingMix, playback.monitorMix);
+        timeline.sync();
     }
     function requireUpdatedMix() {
         if (!pendingMix) return true;
@@ -167,6 +193,7 @@ export function createStudio({
         return true;
     }
     function publish(result, buffers, reset, label) {
+        if (reset) stemView = "mixer";
         playback.setAudio(buffers, reset);
         info = result.info;
         filename = label;
@@ -203,6 +230,7 @@ export function createStudio({
             }),
         );
         mixFaders(controls, mixChanged, info.channels, info.stem_names);
+        timeline.sync({ reset });
         if (reset) {
             document.querySelector(".edit-import").open = false;
             $("end").value = Math.min(1, info.duration_seconds);
@@ -271,7 +299,10 @@ export function createStudio({
         }, true);
     strengthReadouts();
     for (const event of ["input", "change"])
-        document.getElementById("studio-tools").addEventListener(event, changedRecovery);
+        document.getElementById("studio-tools").addEventListener(event, (event) => {
+            // Timeline navigation is transient; applied edits mark recovery in job().
+            if (!event.target.closest("#s-editor")) changedRecovery();
+        });
     const importer = wireStemImport({
         client,
         playback,
@@ -357,6 +388,8 @@ export function createStudio({
         image = null;
         dirty = false;
         pendingMix = false;
+        timeline.reset();
+        stemView = "mixer";
         defaults = null;
         stemInputs();
         document.querySelector(".edit-import").open = false;
@@ -373,6 +406,13 @@ export function createStudio({
                 $(name + "-page").hidden = name !== key;
                 $("tab-" + name).classList.toggle("selected", name === key);
             }
+            draw();
+        };
+    for (const view of ["mixer", "timeline"])
+        $("view-" + view).onclick = () => {
+            if (busy || !info.stems.length) return;
+            stemView = view;
+            sync();
             draw();
         };
     for (const id of ["voice-page", "repair-page"])
@@ -395,6 +435,7 @@ export function createStudio({
     );
     new ResizeObserver(draw).observe($("wave"));
     new ResizeObserver(draw).observe($("spectrum-canvas"));
+    new ResizeObserver(draw).observe($("editor"));
     let tick = 0,
         frame = 0;
     function animate() {

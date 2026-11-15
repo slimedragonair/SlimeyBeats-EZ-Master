@@ -80,6 +80,12 @@ jobs:
           python3 web/tools/verify_studio_browser.py --out '${{ runner.temp }}/browser-checks/studio-chromium'
           python3 web/tools/verify_studio_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-firefox'
           python3 web/tools/verify_studio_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-webkit'
+      - name: Verify browser stem timeline and shared time edits
+        run: |
+          node --test web/tools/timeline_state.test.mjs
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_region_edit_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/stem-editor-$browser"
+          done
       - name: Verify Studio replacement and decoded input bounds
         run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
       - name: Verify audible live stems and exclusive playback in three engines

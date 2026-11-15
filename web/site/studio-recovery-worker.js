@@ -5,6 +5,7 @@ export function applyStudioEdit(candidate, action, values) {
         case "voice": return candidate.voice(values.target, JSON.stringify(values.settings));
         case "repair": return candidate.repair(values.target, JSON.stringify(values.selection));
         case "replace": return candidate.replace_stem(values.kind);
+        case "region": return candidate.edit_region(values.kind, JSON.stringify(values.edit));
         case "history": return candidate.history(values.redo);
         default: throw new Error("Unsupported recovery edit.");
     }
@@ -15,6 +16,7 @@ function edit(action, m) {
         case "voice": return { action, target: m.target, settings: m.settings };
         case "repair": return { action, target: m.target, selection: m.selection };
         case "replace": return { action, kind: m.kind };
+        case "region": return { action, kind: m.kind, edit: m.edit };
         case "history": return { action, redo: m.redo };
         default: throw new Error("Unsupported Studio edit.");
     }

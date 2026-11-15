@@ -1,4 +1,7 @@
 //! Browser Studio uses the same DSP as desktop; model/plugin runtimes remain native.
+#[path = "studio_region_edit.rs"]
+mod region_edit;
+
 use crate::{failure, wav_output};
 use anyhow::{Context, Result, ensure};
 use mastercraft::{

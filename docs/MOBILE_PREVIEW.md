@@ -32,6 +32,9 @@ Before this infrastructure workflow is merged into the default branch, the `work
 - `web/site/preview-channel.js`, `preview-info.js`, `preview.css`: storage channel and readable build identity.
 - `verify_mobile_preview.py`: actual import/master/live EQ/MP3/report/ZIP workflow at phone widths, locally or over HTTPS.
 - `verify_preview_storage.py`: real browser storage, cross-tab and root/preview isolation checks.
+- `verify_region_edit_browser.py --worker-only`: generated-fixture time-edit engine,
+  proposal/history/recovery and ZIP checks before publication. The complete
+  timeline UI checks run separately in broad browser CI.
 
 The browser app's existing input, recovery and export limits still apply. No original recordings, private recovery points, tokens or local paths belong in the static artifact or build metadata.
 

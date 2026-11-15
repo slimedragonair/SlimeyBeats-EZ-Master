@@ -2,6 +2,11 @@
 
 This records development work on `feature/stem-editor-workspace`, based on desktop editor commit `4c0b2f7`. It is not a hosted deployment, installer acceptance or physical-phone qualification. All new fixtures are synthetic; no private recording was published or uploaded.
 
+These are the original export-candidate results. Development is now integrated
+on `current-work` with a separately checked [live preview](MOBILE_PREVIEW.md).
+Later browser timeline/time-edit results are in [WEB_STEM_EDITOR.md](WEB_STEM_EDITOR.md);
+neither later publication nor this earlier record establishes physical-phone acceptance.
+
 ## Baseline
 
 A fresh release WASM/static build passed the existing Chromium 143 mastering and 25-group Studio suites before implementation. The original worklet/direct-Rust comparison differed by at most approximately `1.15e-38`; matching settled PCM did not establish glitch-free parameter changes. The host binding baseline passed 12 tests.

@@ -1,6 +1,6 @@
 # Desktop stem editor development
 
-The `feature/stem-editor-workspace` source branch starts the next desktop editing milestone. The published **0.5.0-beta.3 Hotfix3 installer** and hosted browser retain their documented interface until this work is released. Desktop is the first target; browser/mobile parity follows practical, tested features.
+The desktop editing milestone began on `feature/stem-editor-workspace` and is now integrated on `current-work`. The published **0.5.0-beta.3 Hotfix3 installer** and main browser site retain their released interface. The separate [current-work web editor](WEB_STEM_EDITOR.md) now brings the timeline, selection and five time-edit tools to the browser, with its own validation scope. Desktop remains the first target for larger editing features.
 
 ## Timeline and selection
 
@@ -59,7 +59,7 @@ Future movable clips need a separate arrangement model referencing immutable ass
 
 ## Following milestones
 
-This establishes a waveform editor, not full Audacity or FL Studio parity. Planned later: source-backed trim/split, movable/duplicated clips, grouped time removal, markers, automation and bus routing. MIDI, instruments and a piano roll are outside this milestone. The browser retains its existing aligned-stem workflow.
+This establishes a waveform editor, not full Audacity or FL Studio parity. Planned later: source-backed trim/split, movable/duplicated clips, grouped time removal, markers, automation and bus routing. MIDI, instruments and a piano roll are outside this milestone. The [browser port](WEB_STEM_EDITOR.md) preserves aligned-stem invariants and adds selected time-edit tools; it does not yet include desktop loop auditioning or movable clips.
 
 Workflow research used the official [Audacity timeline](https://manual.audacityteam.org/man/timeline.html), [selection](https://manual.audacityteam.org/man/audacity_selection.html), [zoom](https://manual.audacityteam.org/man/zooming.html) and [track/clip](https://manual.audacityteam.org/man/audacity_tracks_and_clips.html) manuals, plus Image-Line's [Playlist](https://www.image-line.com/fl-studio-learning/fl-studio-online-manual/html/playlist.htm) and [Audio Clips](https://www.image-line.com/fl-studio-learning/fl-studio-online-manual/html/generators_audioclip.htm) references, accessed November 15, 2026. SlimeyBeats retains its own design and audio model.
 
@@ -75,7 +75,7 @@ The unmodified baseline passed **352 Windows native tests**, with two existing i
 | MCP Rust | **42 passed** (36 unit + 6 integration); actual stdio discovered **43 tools**. |
 | MCP region workflow | All five edits, unchanged other-stem PCM, controls, undo/redo and saved projects passed. Twenty invalid/stale requests retained Studio state. General protocol/report and four package checks also passed. |
 | Fresh-agent discovery | A history-free agent imported four synthetic parts and faded the vocals using discovery/help alone: **10 tool calls, zero errors**, with no final export, download or app launch. This qualifies one agent/transport workflow. |
-| Shared browser DSP compilation | Locked/offline WASM check passed. The new desktop timeline and controls have not been ported to the browser. |
+| Shared browser DSP compilation | At this native milestone, the locked/offline WASM check passed before UI porting. The subsequent browser timeline and time-edit qualification is recorded separately in [WEB_STEM_EDITOR.md](WEB_STEM_EDITOR.md). |
 | Final native captures and input check | Final release candidate captured at **1480×940 and 1100×720** with preview/playback preparation ready and no errors. Actual Windows input passed drag selection/reveal, Fade out, Undo/Redo, precise typed seconds with Enter-to-frame commit and loop toggling while paused. Original fixture hashes remained unchanged; the private app closed cleanly. Physical audibility was not tested. |
 
 `python rust/tools/verify_stem_editor.py --gui <built exe> --out <fresh private folder>` creates a synthetic four-part project and captures the actual native renderer at 1480×940 and 1100×720. It verifies load/preview/playback preparation and pixels; it does not prove pointer interactions, installation or physical audibility. Native hardware listening, Linux runtime and physical mobile checks are separate from this Windows milestone. Previous release validations in the main Studio guide retain their original build scope.
