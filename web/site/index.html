@@ -20,12 +20,14 @@
         <link rel="stylesheet" href="styles.css" />
         <link rel="stylesheet" href="responsive.css" />
         <link rel="stylesheet" href="studio.css" />
+        <link rel="stylesheet" href="studio-timeline.css" />
         <link rel="stylesheet" href="controls.css" />
         <link rel="stylesheet" href="learning.css" />
         <link rel="stylesheet" href="accessibility.css" />
         <link rel="stylesheet" href="workspace-layout.css" />
         <link rel="stylesheet" href="playback-layout.css" />
         <link rel="stylesheet" href="recovery.css" />
+        <link rel="stylesheet" href="preview.css" />
     </head>
     <body class="basic-controls">
         <div class="app-shell">
@@ -69,6 +71,23 @@
                 </div>
             </header>
             <a class="skip-link" href="#workspace-controls">Skip to studio controls</a>
+            <section id="preview-banner" class="preview-banner" aria-labelledby="preview-label" hidden>
+                <div class="preview-summary">
+                    <strong id="preview-label">current-work preview</strong>
+                    <span id="preview-identity" role="status" aria-live="polite">Build identity unavailable</span>
+                </div>
+                <details id="preview-details" class="preview-details">
+                    <summary>Build details</summary>
+                    <p>Preview choices and local recovery are separate from the main site. Audio stays on your device.</p>
+                    <dl>
+                        <dt>Branch</dt><dd>current-work</dd>
+                        <dt>Preview commit</dt><dd id="preview-commit">Unavailable</dd>
+                        <dt>Built</dt><dd><time id="preview-built">Unavailable</time></dd>
+                        <dt>Main site commit</dt><dd id="preview-main-commit">Unavailable</dd>
+                    </dl>
+                    <a id="preview-run" target="_blank" rel="noopener noreferrer" hidden>View build run</a>
+                </details>
+            </section>
             <section id="recovery-offer" aria-label="Saved recovery available" hidden>
                 <p>A local recovery point is available. Review saved points to choose whether to restore. Nothing was restored automatically.</p>
                 <button id="recovery-offer-open">Review recovery points</button>
@@ -326,9 +345,14 @@
                         <div class="section-heading">
                             <h2>Processing report</h2>
                             <button id="save-report" disabled>
-                                ↓ Save JSON
+                                ↓ Save report JSON
                             </button>
                         </div>
+                        <div class="edit-actions" aria-label="Portable session downloads">
+                            <button id="save-eq" disabled title="Save seven EQ bands, loudness hold and output gain as a desktop-compatible preset. No audio is included.">Save EQ preset</button>
+                            <button id="save-session" disabled title="Download the current rendered master, analysis, EQ preset and settings in one ZIP. Your original audio is not included.">Download session ZIP</button>
+                        </div>
+                        <p class="small">Session ZIP uses the chosen export format. It contains the rendered master and portable settings; local recovery restores an editing workspace.</p>
                         <p id="report-empty" class="muted">
                             Master your track to see the changes, measurements,
                             and safety notes.
@@ -498,13 +522,13 @@
                     </p>
                     </div>
                     <div class="eyebrow divider">Export quality</div>
-                    <label class="sr-only" for="format">WAV format</label
+                    <label class="sr-only" for="format">Export format</label
                     ><select id="format">
                         <option value="wav24">WAV · 24-bit PCM</option>
                         <option value="wav16">WAV · 16-bit PCM</option>
                         <option value="wav32f">
                             WAV · 32-bit float
-                        </option></select
+                        </option><option value="mp3">MP3 · 320 kbps</option></select
                     ><label class="check" data-advanced
                         ><input id="dither" type="checkbox" checked /> Dither
                         integer exports
@@ -517,8 +541,8 @@
                         </button></label
                     >
                     <p class="small">
-                        Export uses the decoded sample rate. Browser decoding
-                        may resample your input.
+                        Export uses the decoded sample rate. MP3 is lossy and can add short padding;
+                        use WAV for aligned stems and exact loops. Browser decoding may resample your input.
                     </p>
                 </aside>
             </main>
@@ -622,6 +646,7 @@
             locally.</noscript
         >
         <script type="module" src="support.js"></script>
-        <script type="module" src="app.js"></script>
+        <script type="module" src="preview-info.js"></script>
+        <script type="module" src="bootstrap.js"></script>
     </body>
 </html>

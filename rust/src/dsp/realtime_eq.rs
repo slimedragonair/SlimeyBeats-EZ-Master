@@ -7,10 +7,20 @@ use std::f64::consts::PI;
 
 const MIN_WARM_SECONDS: f64 = 0.170;
 const MAX_WARM_SECONDS: f64 = 1.5;
+// Catch up with live input without replaying the entire history in one callback.
+// At the maximum history length this adds at most 100 ms before the crossfade.
+const WARM_FRAMES_PER_SAMPLE: usize = 16;
+
+struct FilterWarmup {
+    chain: EqChain,
+    cursor: usize,
+    remaining: usize,
+}
 
 pub struct RealtimeEq {
     current: EqChain,
     next: Option<EqChain>,
+    warming: Option<FilterWarmup>,
     pending: Option<EqParameters>,
     history: Vec<Frame>,
     written: usize,
@@ -27,6 +37,7 @@ impl RealtimeEq {
     pub fn reset(&mut self, parameters: EqParameters) {
         self.current = EqChain::new(parameters);
         self.next = None;
+        self.warming = None;
         self.pending = None;
         self.written = 0;
         self.filled = 0;
@@ -39,6 +50,7 @@ impl RealtimeEq {
         Self {
             current: EqChain::new(parameters),
             next: None,
+            warming: None,
             pending: None,
             history: vec![[0.; 2]; (MAX_WARM_SECONDS * sr as f64).ceil() as usize],
             written: 0,
@@ -58,6 +70,7 @@ impl RealtimeEq {
     pub fn parameters(&self) -> EqParameters {
         self.pending
             .or_else(|| self.next.map(|c| c.parameters))
+            .or_else(|| self.warming.as_ref().map(|w| w.chain.parameters))
             .unwrap_or(self.current.parameters)
     }
     pub fn set_parameters(&mut self, parameters: EqParameters) {
@@ -76,7 +89,7 @@ impl RealtimeEq {
             .ceil() as usize
     }
     fn start_transition(&mut self) {
-        if self.next.is_some() {
+        if self.next.is_some() || self.warming.is_some() {
             return;
         }
         let Some(parameters) = self.pending.take() else {
@@ -86,7 +99,7 @@ impl RealtimeEq {
             return;
         }
         let same = parameters.filters_equal(&self.current.parameters);
-        let mut next = if same {
+        let next = if same {
             self.current.gain_change(parameters)
         } else {
             EqChain::new(parameters)
@@ -94,16 +107,6 @@ impl RealtimeEq {
         let tau = parameters
             .decay_seconds(self.sample_rate)
             .max(self.current.parameters.decay_seconds(self.sample_rate));
-        if !same {
-            let count = ((8. * tau).clamp(MIN_WARM_SECONDS, MAX_WARM_SECONDS)
-                * self.sample_rate as f64)
-                .ceil() as usize;
-            let count = count.min(self.filled);
-            for i in 0..count {
-                let slot = (self.written + self.history.len() - count + i) % self.history.len();
-                next.process(self.history[slot], self.channels);
-            }
-        }
         let seconds = if same {
             0.080
         } else {
@@ -111,11 +114,47 @@ impl RealtimeEq {
         };
         self.fade_length = (seconds * self.sample_rate as f64).ceil().max(1.) as usize;
         self.fade_position = 0;
-        self.next = Some(next);
+        let count = if same {
+            0
+        } else {
+            (((8. * tau).clamp(MIN_WARM_SECONDS, MAX_WARM_SECONDS) * self.sample_rate as f64).ceil()
+                as usize)
+                .min(self.filled)
+        };
+        if count == 0 {
+            self.next = Some(next);
+        } else {
+            self.warming = Some(FilterWarmup {
+                chain: next,
+                cursor: (self.written + self.history.len() - count) % self.history.len(),
+                remaining: count,
+            });
+        }
+    }
+    fn prepare_transition(&mut self) {
+        let Some(mut warmup) = self.warming.take() else {
+            return;
+        };
+        for _ in 0..warmup.remaining.min(WARM_FRAMES_PER_SAMPLE) {
+            warmup
+                .chain
+                .process(self.history[warmup.cursor], self.channels);
+            warmup.cursor = (warmup.cursor + 1) % self.history.len();
+            warmup.remaining -= 1;
+        }
+        if warmup.remaining == 0 {
+            self.next = Some(warmup.chain);
+        } else {
+            // The current input is appended below; include it before fading in
+            // the prepared chain so its state remains aligned with the source.
+            warmup.remaining += 1;
+            self.warming = Some(warmup);
+        }
     }
     #[inline]
     pub fn process(&mut self, input: Frame) -> Frame {
         self.start_transition();
+        self.prepare_transition();
         let a = self.current.process(input, self.channels);
         let mut active = self.current.parameters.active();
         let output = if let Some(next) = &mut self.next {
@@ -143,3 +182,7 @@ impl RealtimeEq {
         [guarded[0] * self.post_gain, guarded[1] * self.post_gain]
     }
 }
+
+#[cfg(test)]
+#[path = "realtime_eq_warmup_tests.rs"]
+mod warmup_tests;

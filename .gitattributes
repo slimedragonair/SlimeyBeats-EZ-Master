@@ -9,3 +9,10 @@
 *.ico binary
 *.wav binary
 *.mp3 binary
+
+# Preserve pinned third-party source/notices byte for byte, including upstream
+# whitespace. Their provenance hashes are checked independently.
+web/site/audio/encoders/source/** -text -whitespace
+web/site/audio/encoders/*.txt -text -whitespace
+web/site/audio/encoders/*.wasm -text
+web/site/audio/encoders/*.tar.gz -text

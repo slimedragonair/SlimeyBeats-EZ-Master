@@ -85,5 +85,5 @@ export function restoreMasterFields(settings, format) {
     $("dither").checked = settings.dither;
     $("gentler").classList.toggle("selected", settings.mode === "streaming_safe");
     $("louder").classList.toggle("selected", settings.mode === "loud");
-    if (["wav16", "wav24", "wav32f"].includes(format)) $("format").value = format;
+    if (["wav16", "wav24", "wav32f", "mp3"].includes(format)) $("format").value = format;
 }

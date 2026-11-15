@@ -1,5 +1,7 @@
+import { storageKey } from "./preview-channel.js";
+
 // Only interface choices belong here. Optional audio recovery uses its own IndexedDB store.
-export const UI_PREFERENCES_KEY = "slimeybeats.interface-preferences";
+export const UI_PREFERENCES_KEY = storageKey("slimeybeats.interface-preferences");
 export const UI_TERMINAL_KEY = `${UI_PREFERENCES_KEY}.tutorial-dismissed`;
 const STATUSES = new Set(["unseen", "started", "completed", "declined"]);
 const STATUS_ORDER = { unseen: 0, started: 1, declined: 2, completed: 3 };

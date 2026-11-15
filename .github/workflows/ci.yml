@@ -1,7 +1,7 @@
 name: Native checks
 on:
   push:
-    branches: [main]
+    branches: [main, current-work]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -52,6 +52,7 @@ jobs:
           python ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_unbounded_stems.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+          python ../mcp/tools/verify_doctor.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Build and check isolated VST3 worker
         run: |
           cargo fmt --manifest-path ../plugins/host/Cargo.toml -- --check
@@ -108,6 +109,7 @@ jobs:
           python3 ../mcp/tools/verify_nine_stems.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_unbounded_stems.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
+          python3 ../mcp/tools/verify_doctor.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Build and check isolated VST3 worker
         run: |
           cargo fmt --manifest-path ../plugins/host/Cargo.toml -- --check

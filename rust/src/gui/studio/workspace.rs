@@ -7,6 +7,7 @@ use eframe::egui::{self, RichText};
 
 /// Returns true when the user explicitly sends the prepared mix to mastering.
 pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advanced: bool) -> bool {
+    studio.sync_doctor_input();
     if studio.spectrogram.is_none() {
         studio.reveal_spectrogram = false;
     }
@@ -40,11 +41,26 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             (Page::Plugins, "Plugins"),
         ] {
             if ui
-                .add(crystal_button::secondary(name).selected(studio.page == page))
+                .add(
+                    crystal_button::secondary(name)
+                        .selected(studio.page == page && !super::doctor_controls::active(studio)),
+                )
                 .clicked()
             {
                 studio.page = page;
+                studio.doctor.visible = false;
             }
+        }
+        if ui
+            .add(
+                crystal_button::secondary(if compact { "Doctor" } else { "Stem Doctor" })
+                    .selected(super::doctor_controls::active(studio)),
+            )
+            .on_hover_text("Stem Doctor · scan the selected audio, inspect findings and preview supported repairs")
+            .clicked()
+        {
+            studio.page = Page::Repair;
+            studio.doctor.visible = true;
         }
     };
     let history = |studio: &mut Studio, ui: &mut egui::Ui| -> bool {
@@ -85,12 +101,18 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             ui.horizontal_wrapped(|ui| {
                 tabs(studio, ui);
                 promote = history(studio, ui);
+                if studio.page == Page::Stems {
+                    super::editor_toolbar::view_selector(studio, ui, true);
+                }
             });
         });
     } else {
         ui.horizontal_wrapped(|ui| tabs(studio, ui));
         ui.horizontal_wrapped(|ui| {
             promote = history(studio, ui);
+            if studio.page == Page::Stems {
+                super::editor_toolbar::view_selector(studio, ui, false);
+            }
         });
     }
     if let Some(error) = studio.error.clone() {
@@ -115,8 +137,15 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             analysis.metrics.integrated_lufs, analysis.metrics.true_peak_dbtp, analysis.sample_rate
         ));
     }
+    if studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none() {
+        super::editor_toolbar::show(studio, ui);
+        if studio.editor.timeline {
+            super::editor_timeline::show(studio, ui, compact);
+            return promote;
+        }
+    }
     let workspace_height = ui.available_height().max(0.);
-    egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page)).max_height(workspace_height).show(ui,|ui| {
+    egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page, super::doctor_controls::active(studio))).max_height(workspace_height).show(ui,|ui| {
         match studio.page {
             Page::Stems=>{
                 if studio.bulk_import.is_some() {
@@ -143,6 +172,9 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                     super::tool_inputs::target(studio, ui);
                     super::voice_controls::show(studio, ui, advanced);
                 });
+            },
+            Page::Repair if super::doctor_controls::active(studio) => {
+                super::doctor_controls::show(studio, ui);
             },
             Page::Repair=>{
                 let available = !studio.busy();

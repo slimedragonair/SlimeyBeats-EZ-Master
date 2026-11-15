@@ -46,7 +46,9 @@ export class StudioPlayback {
             if (bytes > MAX_STEM_BYTES)
                 throw new Error("Live stems exceed 128 MiB decoded PCM");
             const previous = this.stems?.get(stem.kind);
-            if (previous?.identity === stem.identity) stems.set(stem.kind, previous);
+            // A fresh recovery worker can allocate different audio at the same
+            // WASM address. Explicit replacement PCM always takes precedence.
+            if (previous?.identity === stem.identity && stem.samples === undefined) stems.set(stem.kind, previous);
             else {
                 if (!stem.samples) throw new Error(`Missing live stem PCM: ${stem.kind}`);
                 const buffer = toBuffer(this.context(), stem.samples, result.info.channels, result.info.sample_rate);

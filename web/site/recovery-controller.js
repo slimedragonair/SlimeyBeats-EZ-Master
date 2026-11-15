@@ -1,14 +1,15 @@
 import { RecoveryStore, storageMessage } from "./recovery-store.js";
 import { RECOVERY_VERSION, recoveryFile, readRecoveryFile } from "./recovery-format.js";
+import { storageKey } from "./preview-channel.js";
 const idleMessage = "Autosave is off. New edits stay in tab memory. Previously saved recovery points remain until you delete them; manual recovery downloads are your choice.";
 export function createRecovery({ capture, prepare, hasWork, busy, onChange = () => {}, store = new RecoveryStore() }) {
     const owner = crypto.randomUUID();
     let policy, fault = "", message = idleMessage, version = 0, sequence = 0, timer, saving = false, restoring = false, suspended = false;
     let releaseLock, disposed = false;
     // No expiry/heartbeat is treated as evidence that another tab has died.
-    if (navigator.locks) navigator.locks.request(`slimeybeats-recovery:${owner}`, () =>
+    if (navigator.locks) navigator.locks.request(storageKey(`slimeybeats-recovery:${owner}`), () =>
         disposed ? undefined : new Promise((resolve) => { releaseLock = resolve; })).catch(() => {});
-    const channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("slimeybeats-recovery-policy") : null;
+    const channel = typeof BroadcastChannel === "function" ? new BroadcastChannel(storageKey("slimeybeats-recovery-policy")) : null;
     const emit = () => onChange();
     async function refresh() {
         try {
@@ -76,7 +77,7 @@ export function createRecovery({ capture, prepare, hasWork, busy, onChange = () 
             const observed = version;
             const pointOwner = id.split(":")[0];
             if (navigator.locks && pointOwner !== owner)
-                return navigator.locks.request(`slimeybeats-recovery:${pointOwner}`, { ifAvailable: true }, async (lock) => {
+                return navigator.locks.request(storageKey(`slimeybeats-recovery:${pointOwner}`), { ifAvailable: true }, async (lock) => {
                     if (!lock) throw new Error("That session is open in another tab. Close it before restoring. Its lock was not changed.");
                     return restore(await store.read(id), observed);
                 });

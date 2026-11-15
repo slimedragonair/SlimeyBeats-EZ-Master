@@ -473,11 +473,18 @@ fn scrolling_a_hundred_part_bank_reaches_the_last_part_and_keeps_export_visible(
     for _ in 0..6 {
         output = frame(&ctx, &mut studio, false, size, 290., vec![]).0;
     }
-    let pointer = text(&output, "Part 001")
-        .unwrap()
-        .shape
-        .visual_bounding_rect()
-        .center();
+    let pointer = output
+        .shapes
+        .iter()
+        .find_map(|shape| match &shape.shape {
+            egui::Shape::Text(label) if label.galley.text().contains("Part 001") => {
+                let bounds = label.visual_bounding_rect();
+                (bounds.right() < size.x - 290. && shape.clip_rect.contains_rect(bounds))
+                    .then_some(bounds.center())
+            }
+            _ => None,
+        })
+        .expect("The first part must be visible in the editing workspace");
     let mut reached_last = false;
     for _ in 0..80 {
         output = frame(
@@ -510,7 +517,19 @@ fn scrolling_a_hundred_part_bank_reaches_the_last_part_and_keeps_export_visible(
     }
     assert!(
         reached_last,
-        "The final stem must be reachable by scrolling the fader list"
+        "The final stem must be reachable by scrolling the editor: {:?}",
+        output
+            .shapes
+            .iter()
+            .filter_map(|shape| match &shape.shape {
+                egui::Shape::Text(label) if label.galley.text().starts_with("Part ") => Some((
+                    label.galley.text().chars().take(10).collect::<String>(),
+                    label.visual_bounding_rect(),
+                    shape.clip_rect
+                )),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
     );
     assert!(!studio.busy());
     assert!(!studio.mix_dirty);

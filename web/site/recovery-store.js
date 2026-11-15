@@ -1,7 +1,8 @@
 import { validateSnapshot, snapshotSize } from "./recovery-format.js";
 import { encodeRecoveryPayload, decodeRecoveryPayload } from "./recovery-payload.js";
 import { retentionPlan } from "./recovery-retention.js";
-export const RECOVERY_DB = "slimeybeats.opt-in-recovery";
+import { storageKey } from "./preview-channel.js";
+export const RECOVERY_DB = storageKey("slimeybeats.opt-in-recovery");
 const request = (r) => new Promise((resolve, reject) => {
     r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
 });

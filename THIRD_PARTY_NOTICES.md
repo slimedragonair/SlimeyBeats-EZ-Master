@@ -12,6 +12,8 @@ The runtime does not bundle the legacy Python virtual environment, PySide6/Qt or
 
 The static browser build includes its own `THIRD-PARTY.json` and dependency `licenses/`, generated from the locked `web/dsp` Cargo graph. WebAssembly bindings use wasm-bindgen and the browser clock uses web-time, under their original licenses. The browser build does not bundle FFmpeg, external fonts, or analytics. The optional example recording keeps its CC0 credits. Original software/artwork and audio-output ownership follow the same terms as the native app.
 
+The browser MP3 export development adds a separate, pinned **LAME 3.100** WebAssembly encoder from **wasm-media-encoders 0.7.0**. This is outside the Cargo inventory: its LAME LGPL notices, wrapper MIT notice, exact source archive, build inputs and provenance/hash manifest are retained together under [`web/site/audio/encoders`](web/site/audio/encoders/README.md) and copied into the static build. Preserve those third-party terms separately from the app's MIT license. The encoder is a replaceable local WASM asset, loaded only on MP3 export; no external CDN or FFmpeg runtime is used. Native codec packaging is unchanged.
+
 ## Optional Studio components
 
 The MCP companion and isolated VST3 worker include separate locked Cargo inventories in `MCP-dependencies/` and `Plugin-dependencies/`. VST3 bindings use the `vst3` crate under its upstream MIT OR Apache-2.0 terms. User-installed audio effects retain their own licenses; the app does not distribute or relicense those effects.

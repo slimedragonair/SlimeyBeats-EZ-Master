@@ -1,4 +1,5 @@
 import { bulkImportTemplate } from "./studio-import-template.js";
+import { doctorTemplate, doctorWaveOverlay } from "./studio-doctor-template.js";
 export const studioTemplate = `
 <div class="edit-heading"><div><span class="eyebrow teal">Private audio editing</span><h2>Your Studio workspace</h2></div><button id="s-close">Close Studio</button></div>
 <div id="s-status" class="edit-notice" role="status" aria-live="polite">Choose audio.</div>
@@ -6,11 +7,16 @@ export const studioTemplate = `
 <p class="muted">Import aligned stems, rebalance, clean a voice, or repair a precise region. Neural extraction and VST3 hosting are desktop features. Browser Studio keeps one workspace, with a 128 MiB combined decoded-audio limit.</p>
 ${bulkImportTemplate}
 <details class="edit-import"><summary>Import your own aligned stems</summary><p class="small">Choose at least two files with matching rate, channels and length. Custom stem set starts with common instruments; add rows as needed and leave unused slots empty. Numbered parts can hold any instrument or song layer. The 128 MiB decoded-audio limit is shared by all stems.</p><label>Import layout<select id="s-mode"><option value="two">2 stems</option><option value="four">4 stems</option><option value="multi">Custom stems</option></select></label><div id="s-stem-files" class="edit-file-grid"></div><div class="edit-actions"><button id="s-add-part" hidden>Add another part</button><button id="s-import" class="primary">Import aligned stems</button></div></details>
-<nav class="edit-actions" aria-label="Editing tools"><button id="s-tab-mix" class="selected">Stem mix</button><button id="s-tab-voice">Voice cleanup</button><button id="s-tab-repair">Spectral repair</button></nav>
+<nav class="edit-actions" aria-label="Editing tools"><button id="s-tab-mix" class="selected">Stem mix</button><button id="s-tab-voice">Voice cleanup</button><button id="s-tab-repair">Spectral repair</button><button id="s-tab-doctor">Stem Doctor</button></nav>
 <div class="edit-actions"><button id="s-undo" disabled>Undo</button><button id="s-redo" disabled>Redo</button><label class="edit-target">Process this source<select id="s-target"><option value="source">Original source</option><option value="preview">Current preview</option></select></label></div>
 <div class="edit-grid">
  <div class="edit-visual">
-  <div id="s-mix-page"><h3>Balance the parts</h3><p class="small">Gain, mute, solo and balance are live on B from the immutable stems. Update mix preview to commit before further edits or exporting. Live monitoring uses conservative sample headroom; the saved mix has the final true-peak guard.</p><div id="s-faders"></div><button id="s-mix" class="primary" disabled>Update mix preview</button></div>
+  <div id="s-mix-page">
+   <div id="s-stem-views" class="edit-actions" role="group" aria-label="Stem workspace" hidden><button id="s-view-mixer" class="selected" aria-pressed="true">Mixer</button><button id="s-view-timeline" aria-pressed="false">Time edits</button></div>
+   <div id="s-editor-view" hidden><div id="s-editor"></div></div>
+   <div id="s-mixer-view"><h3>Balance the parts</h3><p class="small">Gain, mute, solo and balance are live on B from the immutable stems. Update mix preview to commit before further edits or exporting. Live monitoring uses conservative sample headroom; the saved mix has the final true-peak guard.</p><div id="s-faders"></div></div>
+   <button id="s-mix" class="primary" disabled>Update mix preview</button>
+  </div>
   <div id="s-voice-page" hidden><h3>A clearer voice</h3><p>Use a voice recording or vocal stem. Cleanup reduces rumble, stationary noise and strong S sounds; it does not isolate speech from music.</p><div class="edit-fields">
    <label data-advanced title="High-pass filter removes low rumble. 0 switches it off; avoid cutting into a low voice.">Rumble removal / Hz<input id="s-highpass" type="number" min="0" max="300" value="75"></label>
    <label title="0–1 strength. Auto learning skips tonal/unreliable noise profiles; use a noise-only region for room tone.">Noise reduction<input id="s-noise" type="range" min="0" max="1" step="0.05" value="0.3"></label>
@@ -22,13 +28,18 @@ ${bulkImportTemplate}
   <div id="s-repair-page" hidden><h3>Refine a precise moment</h3><button id="s-spectrum" disabled>Build spectrogram</button><p class="small">Drag a rectangle, or enter exact seconds and Hz. Bright energy is not automatically a defect.</p><p class="small">Time / seconds · Frequency / Hz · sampled mean-channel power, dBFS per bin. Dark: quiet · violet: detail · teal: stronger energy.</p><canvas id="s-spectrum-canvas" width="640" height="260" aria-label="Time-frequency spectrogram and selected repair region"></canvas><div class="edit-fields">
    <label>Start / s<input id="s-start" type="number" min="0" step="0.01" value="0"></label><label>End / s<input id="s-end" type="number" min="0" step="0.01" value="1"></label><label>Low / Hz<input id="s-low" type="number" min="0" step="10" value="2000"></label><label>High / Hz<input id="s-high" type="number" min="0" step="10" value="8000"></label><label title="Negative dB turns down the selection; 0 is an exact bypass.">Reduction / dB<input id="s-reduction" type="number" min="-60" max="0" value="-12"></label><label title="Heal estimates surrounding magnitudes; it cannot recreate missing words/instruments.">Repair mode<select id="s-repair-mode"><option value="attenuate">Attenuate</option><option value="heal">Heal from surroundings</option></select></label>
   </div><button id="s-repair" class="primary" disabled>Preview spectral repair</button></div>
+ ${doctorTemplate}
  </div>
- <aside class="edit-save"><h3 id="s-preview-heading">Current preview</h3><p id="s-info" class="small">No Studio audio loaded</p><p id="s-pending" class="edit-warning" hidden>Settings changed. Run the tool to hear them. Export saves the existing preview.</p><ul id="s-notes" class="small"></ul><label>Export format<select id="s-format"><option value="wav24">24-bit WAV</option><option value="wav16">16-bit WAV</option><option value="wav32f">32-bit float WAV</option></select></label><button id="s-export" class="primary wide" disabled>Export current preview</button><button id="s-apply-stem" class="wide" disabled>Apply edit to selected stem</button><button id="s-export-stems" class="wide" disabled>Export raw stem ZIP</button><button id="s-promote" class="wide" disabled>Use preview for mastering</button><p class="small">Preview first. Export only when ready. Your listening volume never changes the saved samples.</p></aside>
+ <aside class="edit-save"><h3 id="s-preview-heading">Current preview</h3><p id="s-info" class="small">No Studio audio loaded</p><p id="s-pending" class="edit-warning" hidden>Settings changed. Run the tool to hear them. Export saves the existing preview.</p><ul id="s-notes" class="small"></ul>
+  <label>Export format<select id="s-format"><option value="wav24">24-bit WAV</option><option value="wav16">16-bit WAV</option><option value="wav32f">32-bit float WAV</option><option value="mp3">MP3 · 320 kbps</option></select></label>
+  <button id="s-export" class="primary wide" disabled>Export current preview</button><button id="s-apply-stem" class="wide" disabled>Apply edit to selected stem</button><button id="s-export-stems" class="wide" disabled>Export raw stems (WAV ZIP)</button>
+  <button id="s-export-session" class="wide" disabled title="Selected-format preview, available aligned WAV stems, analysis and committed settings.">Download session ZIP</button>
+  <button id="s-promote" class="wide" disabled>Use preview for mastering</button><p class="small">Preview first. Your listening volume never changes saved samples.</p><p class="small">Session ZIP includes the selected-format preview, aligned WAV stems when available, analysis and committed settings. The full source mix and undo history are not added. Use local recovery to restore a workspace.</p></aside>
 </div>
 <details id="s-playback-details" class="playback-details">
  <summary>Waveforms, volume &amp; seeking</summary>
  <div class="edit-wave-legend" aria-label="Waveform lanes"><span>Before · upper waveform</span><span>Saved preview · lower waveform</span></div>
- <canvas id="s-wave" width="640" height="100" aria-label="Before and preview waveform"></canvas>
+ ${doctorWaveOverlay}
  <div class="edit-detail-controls"><label>Volume<input id="s-volume" type="range" min="0" max="1" step="0.01" value="0.7"></label><time id="s-clock">0:00 / 0:00</time></div>
  <label class="edit-seek">Position<input id="s-seek" type="range" min="0" max="1" step="0.01" value="0" disabled aria-label="Studio playback position"></label>
 </details>

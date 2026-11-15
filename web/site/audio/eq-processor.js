@@ -20,14 +20,9 @@ class SlimeyEq extends AudioWorkletProcessor {
                 this.port.close();
                 return;
             }
-            try {
-                const delta = this.eq.set_settings(
-                    JSON.stringify(data.settings),
-                );
-                this.port.postMessage({ revision: data.revision, delta });
-            } catch (error) {
-                this.port.postMessage({ error: String(error) });
-            }
+            // Pointer bursts can queue many messages between audio blocks. Only
+            // the newest complete snapshot affects the next block's samples.
+            this.pendingSettings = data;
         };
         this.port.postMessage({
             ready: true,
@@ -42,6 +37,17 @@ class SlimeyEq extends AudioWorkletProcessor {
     }
     process(inputs, outputs) {
         if (this.stopped) return false;
+        if (this.pendingSettings) {
+            const data = this.pendingSettings;
+            this.pendingSettings = null;
+            try {
+                const delta = this.eq.set_settings(JSON.stringify(data.settings));
+                this.port.postMessage({ revision: data.revision, delta });
+            } catch (error) {
+                this.port.postMessage({ error: String(error) });
+                return false;
+            }
+        }
         const source = inputs[0],
             dest = outputs[0],
             frames = dest[0]?.length || 0;

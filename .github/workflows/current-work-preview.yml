@@ -1,0 +1,136 @@
+name: Current work mobile preview
+on:
+  push:
+    branches: [current-work]
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Browser preview]
+    branches: [main]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+# Queue publication rather than interrupting an active Pages deployment.
+concurrency:
+  group: pages-publication
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: >-
+      github.repository == 'slimedragonair/SlimeyBeats-EZ-Master' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      commit: ${{ steps.identity.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: current-work
+          persist-credentials: false
+      - name: Identify the source being built
+        id: identity
+        run: |
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+          echo "rust=$(rustc --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            web/dsp/target
+          key: ${{ runner.os }}-mobile-preview-${{ steps.identity.outputs.rust }}-${{ hashFiles('rust/Cargo.lock', 'web/dsp/Cargo.lock') }}
+      - name: Install matching WebAssembly bindings tool
+        run: |
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
+          echo '9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f  /tmp/wasm-bindgen.tar.gz' | sha256sum --check
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          echo '/tmp/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl' >> "$GITHUB_PATH"
+      - name: Check publishing helpers and build private browser app
+        run: |
+          python3 -m unittest discover -s web/tools -p 'test_*.py'
+          python3 web/tools/build.py
+      - name: Preserve published main and compose the branch preview
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_COMMIT: ${{ steps.identity.outputs.commit }}
+          PREVIEW_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/preview-checks"
+          python3 web/tools/compose_pages_preview.py --preview-site web/dist --out pages-root --repository "$GITHUB_REPOSITORY" --commit "$PREVIEW_COMMIT" --run-url "$PREVIEW_RUN" --report "$RUNNER_TEMP/preview-checks/pages-composition.json" --baseline-out "$RUNNER_TEMP/published-main-baseline"
+      - name: Install mobile smoke-test browser
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_preview'
+          echo 'PULSE_SINK=slimeybeats_preview' >> "$GITHUB_ENV"
+          python3 -m pip install playwright==1.57.0
+          python3 -m playwright install --with-deps chromium
+      - name: Test the actual preview subdirectory before publishing
+        env:
+          PREVIEW_COMMIT: ${{ steps.identity.outputs.commit }}
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory pages-root > "$RUNNER_TEMP/preview-http.log" 2>&1 &
+          preview_server=$!
+          trap 'kill "$preview_server"' EXIT
+          python3 web/tools/verify_mobile_preview.py --url http://127.0.0.1:8765/current-work/ --commit "$PREVIEW_COMMIT" --out "$RUNNER_TEMP/preview-checks/mobile"
+          python3 web/tools/verify_region_edit_browser.py --site web/dist --worker-only --out "$RUNNER_TEMP/preview-checks/stem-edit-engine"
+          python3 web/tools/verify_doctor_browser.py --site web/dist --out "$RUNNER_TEMP/preview-checks/doctor"
+          python3 web/tools/verify_preview_storage.py --site web/dist --main-site pages-root --out "$RUNNER_TEMP/preview-checks/storage"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: published-main-baseline
+          path: ${{ runner.temp }}/published-main-baseline
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: current-work-preview-checks
+          path: ${{ runner.temp }}/preview-checks
+          if-no-files-found: warn
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          name: current-work-pages
+          path: pages-root
+  deploy:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: current-work-preview-checks
+          path: ${{ runner.temp }}/preview-checks
+      - name: Refuse stale source or changed main publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 web/tools/compose_pages_preview.py --repository "$GITHUB_REPOSITORY" --verify-report "$RUNNER_TEMP/preview-checks/pages-composition.json"
+      - name: Publish stable root and current-work preview together
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: current-work-pages
+      - name: Verify public preview and unchanged stable files
+        run: python3 web/tools/verify_pages_publication.py --report "$RUNNER_TEMP/preview-checks/pages-composition.json"
+      - name: Show the phone testing link
+        run: |
+          echo '## Current-work mobile preview' >> "$GITHUB_STEP_SUMMARY"
+          echo 'https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Development preview; broad browser/native validation runs separately.' >> "$GITHUB_STEP_SUMMARY"

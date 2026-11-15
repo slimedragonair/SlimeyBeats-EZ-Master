@@ -108,7 +108,7 @@ impl Companion {
     }
 
     #[tool(
-        description = "Apply a prepared direct stem edit (voice cleanup/repair/plugin) back to that stem, then render the whole mix. Requires current preview and stem-set IDs. The preview must come directly from this stem; apply each edit before chaining another. Other stems remain unchanged; undo restores the prior bank. Poll for new IDs.",
+        description = "Apply a prepared direct stem edit (voice cleanup, Stem Doctor, spectral repair or plugin) back to that stem, then render the whole mix. Requires current preview and stem-set IDs. The preview must come directly from this stem; apply each edit before chaining another. Other stems remain unchanged; undo restores the prior bank. Poll for new IDs.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn apply_preview_to_stem(

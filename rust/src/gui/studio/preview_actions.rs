@@ -33,11 +33,15 @@ pub(super) fn dock(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) 
             if ui.add_enabled(!studio.busy(), crystal_button::primary(label)).on_hover_text("Prepare and measure the current live fader, mute, solo and balance settings for saving or further processing. Listening updates live without this step. This does not export.").clicked() { studio.render_mix(ctx); }
         }
         let action = match studio.page {
+            Page::Repair if super::doctor_controls::active(studio) => None,
             Page::Voice => Some(("Preview voice cleanup", Studio::clean_voice as fn(&mut Studio, &egui::Context))),
             Page::Repair => Some(("Preview spectral repair", Studio::repair_audio as fn(&mut Studio, &egui::Context))),
             Page::Plugins => studio.plugin_probe.as_ref().filter(|probe| probe.plugins.iter().any(|info| info.class.id == studio.plugin_class && info.error.is_none())).map(|_| ("Preview plugin effect", Studio::render_plugin as fn(&mut Studio, &egui::Context))),
             Page::Stems => None,
         };
+        if super::doctor_controls::active(studio) {
+            super::doctor_controls::actions(studio, ui, ctx);
+        }
         let edit_reason = edit_unavailable(studio);
         if let Some((label, prepare)) = action
             && ui.add_enabled(edit_reason.is_none(), crystal_button::primary(label)).on_hover_text("Prepare audio for A/B listening using the visible tool settings. This does not save a delivery file.").clicked() { prepare(studio, ctx); }

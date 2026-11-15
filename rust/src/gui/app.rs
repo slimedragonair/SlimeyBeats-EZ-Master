@@ -83,17 +83,39 @@ impl MasterCraftApp {
         auto_master: bool,
         initial: Option<Settings>,
     ) -> Self {
+        Self::with_preferences_root(cc, files, auto_master, initial, None)
+    }
+    /// Renderer diagnostics use private preferences and recovery before the first frame.
+    #[doc(hidden)]
+    pub fn for_doctor_capture(
+        cc: &eframe::CreationContext<'_>,
+        files: Vec<PathBuf>,
+        private_root: PathBuf,
+    ) -> Self {
+        Self::with_preferences_root(cc, files, false, None, Some(private_root))
+    }
+    fn with_preferences_root(
+        cc: &eframe::CreationContext<'_>,
+        files: Vec<PathBuf>,
+        auto_master: bool,
+        initial: Option<Settings>,
+        private_root: Option<PathBuf>,
+    ) -> Self {
         theme::apply(&cc.egui_ctx);
         let root = crate::paths::app_root();
-        let settings_path = crate::paths::settings_file();
+        let settings_path = private_root
+            .as_ref()
+            .map_or_else(crate::paths::settings_file, |root| {
+                root.join("preferences/rust-settings.json")
+            });
         let (mut settings, mut error) =
             super::desktop_preferences::load_mastering_settings(&settings_path, initial);
         if settings.out_dir == *"output" {
-            settings.out_dir = root.join("output");
+            settings.out_dir = private_root.as_ref().unwrap_or(&root).join("output");
         }
         let (tx, rx) = mpsc::channel();
         let settings_valid = error.is_none();
-        let desktop_path = crate::paths::desktop_preferences_file();
+        let desktop_path = settings_path.with_file_name("desktop-preferences.json");
         let (mut desktop, desktop_valid) = if desktop_path.exists() {
             match super::desktop_preferences::DesktopPreferences::load(&desktop_path) {
                 Ok(value) => (value, true),
@@ -115,7 +137,7 @@ impl MasterCraftApp {
         let mut studio = super::studio::Studio::new(settings.out_dir.clone());
         desktop.apply(&mut studio);
         let preferences = Some(super::desktop_preferences::PreferencePersistence::new(
-            settings_path,
+            settings_path.clone(),
             &settings,
             settings_valid,
             desktop_path,
@@ -124,15 +146,18 @@ impl MasterCraftApp {
         ));
         let mut app = Self {
             recovery: super::recovery_state::RecoveryState::load(
-                crate::paths::recovery_root(),
-                crate::paths::settings_file().with_file_name("recovery-preferences.json"),
+                private_root
+                    .as_ref()
+                    .map(|root| root.join("recovery"))
+                    .or_else(crate::paths::recovery_root),
+                settings_path.with_file_name("recovery-preferences.json"),
             ),
             support_report: Default::default(),
             updates: super::update_state::UpdateState::load(
-                crate::paths::settings_file().with_file_name("update-preferences.json"),
+                settings_path.with_file_name("update-preferences.json"),
             ),
             experience: super::user_experience::UserExperience::load(
-                crate::paths::interface_preferences_file(),
+                settings_path.with_file_name("interface-preferences.json"),
             ),
             preferences,
             studio,
@@ -179,6 +204,17 @@ impl MasterCraftApp {
         self.capture_session = true;
         self.experience.suppress_automatic_offer();
         self.capture = Some(super::ui_capture::UiCapture::new(destination, failed));
+    }
+    #[doc(hidden)]
+    pub fn configure_doctor_capture(&mut self, ctx: &egui::Context) -> anyhow::Result<()> {
+        let capture = self
+            .capture
+            .as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Doctor capture requires an active UI capture"))?;
+        capture.require_doctor_scan();
+        self.tab = 3;
+        super::studio::doctor_capture::request(ctx);
+        Ok(())
     }
     #[doc(hidden)]
     pub fn configure_recovery_capture(

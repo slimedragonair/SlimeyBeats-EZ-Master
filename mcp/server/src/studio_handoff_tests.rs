@@ -164,3 +164,74 @@ fn unaligned_bank_is_rejected_before_persistence() {
         .bank_snapshot = Some(bank(origin, audio(4000)));
     rejects_without_persisting(ctx, "stem bank is not aligned");
 }
+
+#[test]
+fn region_mix_project_reopens_with_original_edited_stem_comparison_and_live_controls() {
+    use crate::{region_edit_operations, region_edit_test_support::Workspace};
+    use mastercraft::studio::region_edit::{RegionEdit, RegionOperation};
+    let workspace = Workspace::new();
+    let comparison = workspace
+        .engine
+        .lock()
+        .unwrap()
+        .session
+        .studio
+        .current
+        .as_ref()
+        .unwrap()
+        .audio
+        .clone();
+    workspace.commit(
+        region_edit_operations::render(
+            workspace.context("region-project"),
+            workspace.bank.id.clone(),
+            StemKind::part(64).unwrap(),
+            RegionEdit {
+                start_seconds: 0.05,
+                end_seconds: 0.15,
+                operation: RegionOperation::Silence,
+            },
+        )
+        .unwrap(),
+    );
+    let expected = snapshot(&workspace.context("snapshot")).unwrap();
+    let saved = save(workspace.context("save"), false).unwrap();
+    let path = workspace
+        .engine
+        .policy
+        .output
+        .join(saved.result["project_path"].as_str().unwrap());
+    let restored = session::StudioDocument::load(&path).unwrap();
+    assert_eq!(restored.view, "stems");
+    assert_eq!(restored.source_name, workspace.bank.source_name);
+    assert_eq!(restored.source.samples, workspace.bank.original_mix.samples);
+    assert_eq!(restored.before.samples, comparison.samples);
+    assert_eq!(restored.preview.samples, expected.preview.samples);
+    assert_eq!(restored.notes, expected.notes);
+    assert_eq!(
+        serde_json::to_value(&restored.mix).unwrap(),
+        serde_json::to_value(&workspace.bank.controls).unwrap()
+    );
+    let stems = restored.stems.unwrap();
+    assert_eq!(
+        stems.display_name(StemKind::part(64).unwrap()),
+        "Backing vocal take"
+    );
+    for stem in &stems.tracks {
+        let actual = &stem.audio;
+        let expected = &expected
+            .stems
+            .as_ref()
+            .unwrap()
+            .track(stem.kind)
+            .unwrap()
+            .audio;
+        assert_eq!(actual.samples, expected.samples);
+        assert_eq!(
+            (actual.sample_rate, actual.channels, actual.frames()),
+            (8000, 2, 1600)
+        );
+    }
+    let remixed = mastercraft::studio::stem_mix::render(&stems, &restored.mix, &|| false).unwrap();
+    assert_eq!(remixed.samples, restored.preview.samples);
+}

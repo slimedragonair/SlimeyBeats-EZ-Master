@@ -2,6 +2,7 @@ import init, {
     BrowserStudio,
     BrowserStemArchive,
     plan_stem_files,
+    measure_encoded_audio,
 } from "./pkg/dsp.js";
 import { StudioRecoveryRecipe, applyStudioEdit } from "./studio-recovery-worker.js";
 const recovery = new StudioRecoveryRecipe(BrowserStudio);
@@ -32,7 +33,9 @@ self.onmessage = async ({ data: m }) => {
             "mix",
             "voice",
             "repair",
+            "doctor",
             "replace",
+            "region",
             "history",
             "recover",
         ].includes(m.action);
@@ -114,7 +117,9 @@ self.onmessage = async ({ data: m }) => {
             case "mix":
             case "voice":
             case "repair":
+            case "doctor":
             case "replace":
+            case "region":
             case "history":
                 applyStudioEdit(candidate, m.action, m);
                 audio = true;
@@ -124,6 +129,12 @@ self.onmessage = async ({ data: m }) => {
                 break;
             case "analyze":
                 result = JSON.parse(studio.analyze(m.target));
+                break;
+            case "doctor-scan":
+                result = JSON.parse(studio.scan_issues(m.target));
+                break;
+            case "measure-encoded":
+                result = JSON.parse(measure_encoded_audio(m.samples, m.rate, m.channels, m.profile || "neutral"));
                 break;
             case "export":
                 result = { bytes: studio.export(m.format) };

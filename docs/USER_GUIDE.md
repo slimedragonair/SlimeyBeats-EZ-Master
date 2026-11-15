@@ -55,6 +55,10 @@ The interface separately stores Basic/Advanced and tutorial choices in `interfac
 
 Preference files still contain no audio. Hotfix3 adds separate local recovery copies for loaded audio, previews, the queue and pending controls; open **Help → Recovery** to inspect them or change autosave. **Save project** and `session.studio.json` remain explicit lasting Studio copies; exporting remains separate. Browser audio recovery is opt-in and bounded; without a completed point the tab session disappears on reload/close. MCP keeps its explicit session/project workflow and does not gain access to desktop recovery storage. **Help → Report a problem** previews a minimal report before sharing. [Recovery and report details](RECOVERY_AND_REPORTING.md).
 
+## Desktop stem timeline (development branch)
+
+The next editor milestone adds **Timeline / Mixer** views in Studio. Choose a stem, drag its waveform or enter a start/end time, then audition with **Loop selection**. **Silence**, **Fade in/out**, and the optional gain/reverse actions prepare undoable edits without shifting other parts. Faders stay live; commit pending controls with **Update mix preview** before a time edit. **Save project** retains edited bank audio, and Export stays separate. See [the editor guide](STEM_EDITOR.md) for current source/release scope and limitations.
+
 ## Suggested EQ and the graph
 
 **Suggest EQ** creates a separate editable proposal. When it is ready, **Apply curve** copies it into the seven-band editor. Identical decoded samples, profile and build/platform yield repeatable proposals. The suggestion is a limited rule-based starting point, not a learned mastering model.

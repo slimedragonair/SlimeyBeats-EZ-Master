@@ -14,7 +14,9 @@ SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Li
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing**
 
-[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3-Setup.exe) · [Open browser preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+[Download desktop preview — Windows](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix3-Setup.exe) · [Open web app — WAV & MP3](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
+
+**Web update — November 15:** the main web app includes local **320 kbps MP3 export**, session ZIPs, portable EQ presets, stem timeline/time edits and **Stem Doctor** issue scans with optional repair previews. Open the web app above; no installation or audio upload is needed. To save MP3, prepare a master, choose **MP3 · 320 kbps** under **Export quality**, then **Export MP3**. In Studio, choose MP3 under **Export format**, then **Export current preview**. [Browser guide](docs/WEB.md) · [Export details](docs/WEB_EXPORTS.md).
 
 **Studio Preview 0.5.0-beta.3** includes the guided desktop interface, Studio, the **0.2.0-beta.3 MCP companion** and the isolated VST3 worker. Import aligned stems from multiple files or a Suno/stem ZIP with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save projects. Optional local separation produces two/four stems. Browser Studio **0.3.0-beta.3** shares Rust DSP for imported-stem editing. Preview installs separately from stable. [Release notes and downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) · [Studio guide](docs/STUDIO.md).
 
@@ -35,6 +37,32 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 **Installer note:** these Windows builds are unsigned, so Windows may show an unknown-publisher prompt. See the [installation guide](docs/INSTALLATION.md).
 
 
+
+**Active testing branch: [`current-work`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/current-work).** Work is pushed there in small checkpoints. [Open its live mobile preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), check the displayed build ID, and expand Build details for the workflow. The preview has separate local recovery/preferences; the released app remains at the main URL. Native/browser CI runs separately on each push. [Preview workflow, privacy and qualification limits](docs/MOBILE_PREVIEW.md).
+
+**Desktop editor milestone (source builds):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP adds `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). These changes are available in the repository source; the current desktop download above remains Hotfix3.
+
+**Browser editor parity (main web app):** Studio includes a stem timeline, precise time selection and the same shared Rust silence, fade, gain and reverse tools, with explicit preview commits, undo/redo and local recovery. Open **Stem mix → Time edits**; **Mixer** returns to live faders. [Browser editor workflow, tested scope and remaining checks](docs/WEB_STEM_EDITOR.md). The aligned-bank limits and separate export workflow remain.
+
+**Issue Detector and Stem Doctor (main web app and source builds):** Studio now offers read-only, timestamped clipping/quiet-gap/possible-ending/low-mid checks, explained findings and explicitly requested repair previews. Scanning never trims or changes audio. Desktop, browser and the development MCP share the same Rust implementation; the MCP adds `scan_audio_issues` and `preview_stem_doctor` (**45 development tools**). [Workflow, limits and validation status](docs/STEM_DOCTOR.md). The installer above remains Hotfix3.
+
+![Development desktop Stem Doctor with timestamped findings, waveform markers and explicit repair preview controls](docs/images/doctor-desktop.png)
+
+[Full-size desktop Doctor](docs/images/doctor-desktop.png). This actual development capture uses generated test audio; scans and repair previews are separate actions.
+
+<img src="docs/images/doctor-web-findings.png" width="280" alt="Browser Stem Doctor explaining a timestamped clipping candidate with precise frame duration">
+
+**Inspect, then preview.** Open **Studio → Stem Doctor**, select a saved target and scan. Review the evidence, preview a supported fix, compare and undo before exporting. Compact desktop calls the tab **Doctor**. [Full-size findings](docs/images/doctor-web-findings.png) · [Repair controls](docs/images/doctor-web-repair.png). These actual hosted-browser captures use generated audio and touch emulation; physical-phone listening remains separate.
+
+**Browser recovery fix:** restored stems now replace older playback buffers, keeping audition and export on the same audio. Unchanged live stems still reuse their buffers. [Regression and recovery scope](docs/WEB_STEM_EDITOR.md#restored-playback-must-match-restored-audio).
+
+<img src="docs/images/web-stem-editor-phone.png" width="280" alt="Development browser Studio Time edits view with aligned stem waveforms and fit/zoom controls">
+
+**Time edits on a small screen.** Open **Studio → Stem mix → Time edits**, choose a part, select or type a range, and apply a tool explicitly. **Mixer** returns to live faders. [Full-size timeline](docs/images/web-stem-editor-phone.png) · [Time-edit tools](docs/images/web-stem-editor-tools.png). These actual development captures use generated audio in Chromium phone emulation; they are not physical-device acceptance.
+
+![Development desktop stem timeline with four synthetic parts and a selected-stem inspector](docs/images/stem-editor-timeline.png)
+
+[Full-size development timeline](docs/images/stem-editor-timeline.png) · [Compact layout](docs/images/stem-editor-compact.png) · [Time-edit controls](docs/images/stem-editor-selection.jpg). These actual native captures use generated test tones.
 
 ## Start simple, go deeper
 
@@ -141,7 +169,7 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 | Processing | Local; full tracks are held in memory. Optional recovery makes separate local copies. |
 | Installer data | Settings and exports are kept on your computer and preserved by uninstall |
 
-The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. The [browser preview](docs/WEB.md) processes audio locally with Rust/WebAssembly, including real-time EQ and WAV export. It has a responsive phone layout; physical iPhone and Android devices still need qualification. Native Android/iOS apps are future work.
+The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. The [browser preview](docs/WEB.md) processes audio locally with Rust/WebAssembly, including real-time EQ and WAV/MP3 export. It has a responsive phone layout; physical iPhone and Android devices still need qualification. Native Android/iOS apps are future work.
 
 Linux source builds have passed Ubuntu 24.04 x86_64 CI and a separate maintainer-reported Linux-server check. On that server, **all 79 tests and lint checks passed**, mastering and all six export formats were verified, and the GUI passed launch, audio import, mastering and EQ-control checks. Desktop and application-menu launchers were installed. **No application source changes were needed.** See the [Linux validation guide](docs/LINUX.md#additional-linux-server-check).
 
@@ -151,7 +179,13 @@ The server reported **Dummy Output**, with no headphones or speakers connected, 
 
 The **desktop app is the flagship workstation**. The browser remains a private, accessible companion, with web/mobile feature coverage expanding as device limits allow. Advanced tools will target desktop first.
 
-Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV. The browser mastering page supports **up to 15 minutes per mono/stereo track**, with separate **384 MiB decoded PCM and source-file limits**. Studio has a separate **128 MiB combined decoded-input limit**; the beta.3 removal of the part-count ceiling does not raise it. Available device memory can impose a lower practical limit. It uses a 48 kHz decoded sample rate and exports 16/24-bit PCM or 32-bit float WAV. The app keeps one active mix plus an optional reference; importing another mix replaces the previous one. The desktop app supports longer files, source-rate handling, batch queues and compressed exports. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
+**Available in the main web app:** local **320 kbps MP3 export**, desktop-compatible **EQ preset JSON**, and **session ZIP downloads** for mastering and Studio. ZIPs combine the current rendered audio, available imported stems and versioned analysis/settings; full source/reference tracks and undo history are not automatically added. Live EQ now spreads filter preparation across processing blocks and coalesces slider bursts. [Workflow, limits and architecture](docs/WEB_EXPORTS.md) · [Tester-requested roadmap, easiest to hardest](docs/BROWSER_PARITY_ROADMAP.md). [Open the updated web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/). The isolated [current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) remains available for testing future changes. The published desktop installer remains Hotfix3.
+
+![Development browser report with MP3 export, EQ preset and session ZIP downloads](docs/images/web-session-downloads.png)
+
+Actual development capture with synthetic test audio. [Validation and remaining device/timing limits](docs/WEB_EXPORT_VALIDATION.md). MP3 is lossy and adds codec padding; keep WAV for exact loops, aligned stems and tracks at the 15-minute reimport boundary.
+
+Open the [private browser studio](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) without installing anything. Audio stays in your tab: Analyze → Master → live EQ → Export WAV or MP3. The browser mastering page supports **up to 15 minutes per mono/stereo track**, with separate **384 MiB decoded PCM and source-file limits**. Studio has a separate **128 MiB combined decoded-input limit**; the beta.3 removal of the part-count ceiling does not raise it. Available device memory can impose a lower practical limit. It uses a 48 kHz decoded sample rate and exports 16/24-bit PCM or 32-bit float WAV, or local 320 kbps MP3. The app keeps one active mix plus an optional reference; importing another mix replaces the previous one. The desktop app supports longer files, source-rate handling, batch queues and additional export formats. See [privacy, compatibility, limits and build instructions](docs/WEB.md).
 
 ![Current browser Basic overview with a prepared master, separate Export and pinned comparison controls](docs/images/web-basic-overview.png)
 

@@ -85,6 +85,7 @@ fn compact_four_part_controls_fit_without_sacrificing_names_or_adding_audio_chan
     let ctx = egui::Context::default();
     theme::apply(&ctx);
     let mut studio = fixture(4);
+    studio.editor.timeline = false;
     studio.mix.tracks[0].gain_db = -3.12506789;
     let before = serde_json::to_value(&studio.mix).unwrap();
     let size = egui::vec2(1100., 720.);
@@ -115,6 +116,87 @@ fn compact_four_part_controls_fit_without_sacrificing_names_or_adding_audio_chan
     assert_eq!(serde_json::to_value(&studio.mix).unwrap(), before);
     assert_eq!(studio.volume, 0.);
     assert!(!studio.mix_dirty && !studio.busy());
+}
+
+#[test]
+fn compact_doctor_navigation_stays_on_one_row_and_returns_to_four_visible_faders() {
+    for scale in [1., 1.25] {
+        let ctx = egui::Context::default();
+        ctx.set_pixels_per_point(scale);
+        theme::apply(&ctx);
+        let mut studio = fixture(4);
+        studio.editor.timeline = false;
+        let before = serde_json::to_value(&studio.mix).unwrap();
+        let mut output = frame(
+            &ctx,
+            &mut studio,
+            false,
+            egui::vec2(1100., 720.),
+            332.,
+            vec![],
+        )
+        .0;
+        for _ in 0..7 {
+            output = frame(
+                &ctx,
+                &mut studio,
+                false,
+                egui::vec2(1100., 720.),
+                332.,
+                vec![],
+            )
+            .0;
+        }
+        let top = visible(&output, "Stems")[0]
+            .shape
+            .visual_bounding_rect()
+            .top();
+        for label in [
+            "Stems",
+            "Voice",
+            "Repair",
+            "Plugins",
+            "Doctor",
+            "Undo",
+            "Redo",
+            "To master",
+            "Timeline",
+            "Mixer",
+        ] {
+            let controls = visible(&output, label);
+            assert_eq!(controls.len(), 1, "Missing compact navigation: {label}");
+            assert!(
+                (controls[0].shape.visual_bounding_rect().top() - top).abs() <= 2.,
+                "Compact navigation wrapped: {label}"
+            );
+        }
+        output = activate_compact(&ctx, &mut studio, &output, "Doctor");
+        assert!(super::doctor_controls::active(&studio));
+        assert_eq!(visible(&output, "Stem Doctor").len(), 1);
+        output = activate_compact(&ctx, &mut studio, &output, "Stems");
+        assert!(!super::doctor_controls::active(&studio));
+        for index in 1..=4 {
+            let row = text(&output, &format!("Part {index:03}")).expect("Missing part row");
+            assert!(
+                row.clip_rect
+                    .contains_rect(row.shape.visual_bounding_rect()),
+                "Part {index} clipped after Doctor navigation"
+            );
+        }
+        assert_eq!(visible(&output, "Mute").len(), 4);
+        assert_eq!(visible(&output, "Solo").len(), 4);
+        for label in [
+            "Play",
+            "Stop",
+            "A · Before",
+            "B · Preview",
+            "Export current preview",
+        ] {
+            assert_eq!(visible(&output, label).len(), 1, "Navigation hid {label}");
+        }
+        assert_eq!(serde_json::to_value(&studio.mix).unwrap(), before);
+        assert!(!studio.mix_dirty && !studio.busy() && studio.undo.is_empty());
+    }
 }
 
 #[test]
@@ -180,6 +262,7 @@ fn native_stem_sliders_and_numeric_editors_name_the_actual_part_gain_and_units()
     theme::apply(&ctx);
     ctx.enable_accesskit();
     let mut studio = fixture(4);
+    studio.editor.timeline = false;
     let names: Vec<_> = studio
         .bank
         .as_ref()
@@ -307,6 +390,7 @@ fn compact_comparison_and_part_plots_are_explicit_and_do_not_hide_playback_or_ch
     theme::apply(&ctx);
     ctx.all_styles_mut(|style| style.animation_time = 0.);
     let mut studio = fixture(4);
+    studio.editor.timeline = false;
     let before = serde_json::to_value(&studio.mix).unwrap();
     let mut output = frame(
         &ctx,

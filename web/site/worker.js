@@ -1,4 +1,4 @@
-import init, { Session, defaults, response } from "./pkg/dsp.js";
+import init, { Session, defaults, response, measure_encoded_audio } from "./pkg/dsp.js";
 let session;
 const ready = init();
 self.onmessage = async ({ data: m }) => {
@@ -41,6 +41,9 @@ self.onmessage = async ({ data: m }) => {
                 break;
             case "response":
                 result = response(m.settings, m.rate);
+                break;
+            case "measure-encoded":
+                result = JSON.parse(measure_encoded_audio(m.samples, m.rate, m.channels, m.profile || "neutral"));
                 break;
             case "export":
                 result = {

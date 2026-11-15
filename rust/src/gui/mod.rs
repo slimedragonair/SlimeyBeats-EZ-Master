@@ -25,6 +25,7 @@ mod mastering_controls;
 mod mastering_preview_state;
 mod mcp_setup;
 mod overview;
+mod playback_loop;
 mod playback_owner;
 mod playback_tap;
 mod player;

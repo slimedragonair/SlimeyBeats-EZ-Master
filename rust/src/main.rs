@@ -34,6 +34,10 @@ struct Arguments {
     studio_four_stems: bool,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
+    /// Load and scan synthetic diagnostic audio before capturing the Doctor page.
+    #[arg(long, hide = true, requires_all = ["capture_ui", "recovery_data", "files"],
+        conflicts_with_all = ["session", "studio_session", "auto_master", "studio_action", "capture_learning", "capture_restore_recovery", "capture_wait_recovery", "capture_stay_open", "capture_save_settings"])]
+    capture_doctor: bool,
     /// Diagnostic runs isolate persistent recovery from normal app data.
     #[arg(long, hide = true, requires = "capture_ui")]
     recovery_data: Option<PathBuf>,
@@ -96,13 +100,17 @@ fn main() -> eframe::Result {
             .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
     let capture_failed = Arc::new(AtomicBool::new(false));
     let capture_result = capture_failed.clone();
+    let mut viewport = eframe::egui::ViewportBuilder::default()
+        .with_inner_size(size)
+        .with_min_inner_size([1100., 720.])
+        .with_icon(mastercraft::gui::window_icon());
+    if args.capture_doctor {
+        viewport = viewport.with_active(false);
+    }
     let result = eframe::run_native(
         mastercraft::branding::APP_NAME,
         eframe::NativeOptions {
-            viewport: eframe::egui::ViewportBuilder::default()
-                .with_inner_size(size)
-                .with_min_inner_size([1100., 720.])
-                .with_icon(mastercraft::gui::window_icon()),
+            viewport,
             renderer: eframe::Renderer::Glow,
             ..Default::default()
         },
@@ -113,13 +121,24 @@ fn main() -> eframe::Result {
             } else {
                 files
             };
-            let mut app = mastercraft::gui::MasterCraftApp::with_initial_settings(
-                cc,
-                queue_files,
-                args.auto_master,
-                initial,
-            );
-            app.tab = if studio_archive {
+            let mut app = if args.capture_doctor {
+                mastercraft::gui::MasterCraftApp::for_doctor_capture(
+                    cc,
+                    queue_files,
+                    args.recovery_data
+                        .as_ref()
+                        .expect("Clap requires a private capture data directory")
+                        .clone(),
+                )
+            } else {
+                mastercraft::gui::MasterCraftApp::with_initial_settings(
+                    cc,
+                    queue_files,
+                    args.auto_master,
+                    initial,
+                )
+            };
+            app.tab = if studio_archive || args.capture_doctor {
                 3
             } else {
                 match args.view.as_str() {
@@ -173,9 +192,16 @@ fn main() -> eframe::Result {
             if let Some(destination) = args.capture_ui {
                 app.capture_ui_once(destination, capture_result);
             }
+            if args.capture_doctor {
+                app.configure_doctor_capture(&cc.egui_ctx)?;
+            }
             if let Some(root) = args.recovery_data {
                 app.configure_recovery_capture(
-                    root,
+                    if args.capture_doctor {
+                        root.join("recovery")
+                    } else {
+                        root
+                    },
                     args.capture_wait_recovery,
                     args.capture_restore_recovery,
                     args.capture_stay_open,
@@ -197,4 +223,44 @@ fn main() -> eframe::Result {
         std::process::exit(1);
     }
     result
+}
+
+#[cfg(test)]
+mod capture_argument_tests {
+    use super::*;
+
+    #[test]
+    fn doctor_capture_requires_a_destination_private_data_and_audio() {
+        for arguments in [
+            vec!["app", "--capture-doctor"],
+            vec![
+                "app",
+                "--capture-doctor",
+                "--capture-ui",
+                "shot.png",
+                "input.wav",
+            ],
+            vec![
+                "app",
+                "--capture-doctor",
+                "--capture-ui",
+                "shot.png",
+                "--recovery-data",
+                "private",
+            ],
+        ] {
+            assert!(Arguments::try_parse_from(arguments).is_err());
+        }
+        let arguments = [
+            "app",
+            "input.wav",
+            "--capture-doctor",
+            "--capture-ui",
+            "shot.png",
+            "--recovery-data",
+            "private",
+        ];
+        assert!(Arguments::try_parse_from(arguments).unwrap().capture_doctor);
+        assert!(Arguments::try_parse_from(arguments.into_iter().chain(["--auto-master"])).is_err());
+    }
 }

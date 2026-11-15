@@ -168,6 +168,17 @@
 .edit-wave-legend span:last-child {
     color: var(--teal);
 }
+#s-playback-details .edit-detail-controls > label {
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+}
+#s-volume {
+    flex: 0 1 160px;
+    width: 160px;
+    min-width: 0;
+    max-width: 100%;
+}
 .edit-target {
     display: flex;
     align-items: center;
@@ -379,3 +390,32 @@
     min-width: 3em;
     font-variant-numeric: tabular-nums;
 }
+
+/* Doctor markers use the existing waveform; the list supplies full labels. */
+#studio-tools { --doctor-clipping: #ffb3ca; --doctor-silence: #a9c7ff; --doctor-ending: #f3d1ae; --doctor-low-mids: #bda3ff; }
+.doctor-target { color: var(--teal); overflow-wrap: anywhere; }
+.doctor-issues { padding: 0; list-style: none; display: grid; gap: 12px; }
+.doctor-issue { min-width: 0; border-left: 3px solid var(--doctor-color); padding: 8px 12px; background: #1e1528; }
+.doctor-issue > button { width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; min-height: 44px; }
+.doctor-issue p { margin: 8px 0; }
+.doctor-issue summary, #s-doctor-measurements summary { cursor: pointer; padding: 8px 0; }
+#s-doctor-page pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.85em; max-width: 100%; }
+.doctor-repair { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.doctor-repair label { display: flex; flex-wrap: wrap; gap: 12px; }
+.doctor-repair input { display: block; width: min(100%, 320px); margin: 12px 0; }
+.doctor-wave-surface { position: relative; min-width: 0; }
+.doctor-markers { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.doctor-marker { position: absolute; top: 2px; bottom: 2px; pointer-events: auto; min-width: 24px; min-height: 24px; padding: 0; border: 0; border-left: 3px solid var(--doctor-color); border-radius: 0; background: transparent; opacity: 0.7; }
+.doctor-marker::before { content: ""; display: block; position: absolute; left: -3px; top: 0; width: 10px; height: 10px; background: var(--doctor-color); }
+.doctor-marker.selected, .doctor-marker:hover, .doctor-marker:focus-visible { opacity: 1; background: #ffffff15; outline: 2px solid var(--doctor-color); outline-offset: -2px; }
+#s-doctor-page .edit-actions > button { max-width: 100%; white-space: normal; flex-shrink: 1; overflow-wrap: anywhere; }
+#s-doctor-fix { max-width: 100%; white-space: normal; }
+#s-doctor-marker-label { overflow-wrap: anywhere; }
+.doctor-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0; list-style: none; font-size: 0.875rem; }
+.doctor-legend[hidden] { display: none; }
+.doctor-legend li { display: inline-flex; gap: 6px; align-items: center; }
+.doctor-legend li::before { content: ""; width: 10px; height: 10px; border-left: 3px solid var(--doctor-color); flex-shrink: 0; }
+.doctor-key-clipping { --doctor-color: var(--doctor-clipping); }
+.doctor-key-silence { --doctor-color: var(--doctor-silence); }
+.doctor-key-ending { --doctor-color: var(--doctor-ending); }
+.doctor-key-low-mids { --doctor-color: var(--doctor-low-mids); }
