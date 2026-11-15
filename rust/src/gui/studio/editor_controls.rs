@@ -9,6 +9,8 @@ use crate::{
 };
 use eframe::egui;
 
+const TIME_EDIT_ITEM_SPACING: f32 = 3.;
+
 pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advanced: bool) {
     let Some(bank) = studio.bank.clone() else {
         return;
@@ -83,7 +85,10 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, 
     let audio = &bank.tracks[0].audio;
     let duration = audio.duration();
     let mut selection_changed = false;
-    egui::Grid::new("editor-selection-fields")
+    // Keep the exact range and first edit actions together in a short sidebar.
+    let previous_spacing = ui.spacing().item_spacing.y;
+    ui.spacing_mut().item_spacing.y = TIME_EDIT_ITEM_SPACING;
+    let selection_fields = egui::Grid::new("editor-selection-fields")
         .num_columns(2)
         .show(ui, |ui| {
             for (label, value) in [
@@ -105,7 +110,8 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, 
                     .changed();
                 ui.end_row();
             }
-        });
+        })
+        .response;
     if selection_changed {
         let (start, end) = (studio.editor.draft_start, studio.editor.draft_end);
         if start < end {
@@ -123,7 +129,7 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, 
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().button_padding.x = 4.;
         ui.spacing_mut().item_spacing.x = 4.;
-        if ui.small_button("Select all time").clicked() {
+        if ui.small_button("Select all").clicked() {
             studio
                 .editor
                 .select_time(0., duration, audio.sample_rate, audio.frames());
@@ -175,7 +181,11 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, 
         actions.response
     });
     if std::mem::take(&mut studio.editor.reveal_edits) {
-        edit_actions.inner.scroll_to_me(Some(egui::Align::Max));
+        ui.scroll_to_rect(
+            selection_fields.rect.union(edit_actions.inner.rect),
+            Some(egui::Align::Min),
+        );
     }
     ui.small("Edits prepare a mix preview and can be undone. Export saves it separately. Original files stay unchanged.");
+    ui.spacing_mut().item_spacing.y = previous_spacing;
 }

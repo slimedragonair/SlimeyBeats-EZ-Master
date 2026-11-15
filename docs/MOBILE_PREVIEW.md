@@ -34,3 +34,13 @@ Before this infrastructure workflow is merged into the default branch, the `work
 - `verify_preview_storage.py`: real browser storage, cross-tab and root/preview isolation checks.
 
 The browser app's existing input, recovery and export limits still apply. No original recordings, private recovery points, tokens or local paths belong in the static artifact or build metadata.
+
+## First live validation — November 15, 2026
+
+The first public build, `ba1687c`, passed its [GitHub publishing workflow](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/actions/runs/43711943707). Its runtime was `a426d2a82f48600c`; later build IDs appear on the page.
+
+Chromium 143, Firefox 144 and Linux WebKit 26 each passed eight checks against the actual HTTPS URL: build identity/runtime consistency, 320/390px layout, touch import/master/live EQ/play/stop, MP3/report/session ZIP downloads and same-origin static GET-only requests. These are desktop engines with phone-sized viewports, not physical iPhone/Android or hardware listening qualification.
+
+All 372 stable files retained their original hashes in the composed artifact. Public verification checked five critical stable files and four preview files after deployment. Nine storage/identity groups verified independent root/preview policies, terminal markers, exact saved recovery data, cross-tab events and locks. The publishing/cache/hash helpers passed 24 tests, including expired-baseline fallback and rejection of stale or unrelated snapshots. Actual long-idle snapshot expiry remains an operational condition covered by fixtures rather than waiting 90 days.
+
+Two earlier broad-CI failures were investigated separately: the live EQ probe now waits for enough actual post-settle PCM rather than assuming a timer delivered it; the native compact time-edit inspector needed to keep its fields and actions together with Linux font metrics. These fixes do not turn preview smoke checks into full native/browser qualification. Read each commit's separate CI results.

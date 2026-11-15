@@ -37,4 +37,4 @@ Existing Chromium mastering/Studio suites passed on the integrated export candid
 - Full-capacity 512 MiB ZIP memory stress and encoder source rebuild/relink were not run. Existing input, Studio and recovery budgets are unchanged.
 - Portable ZIPs do not restore an editing workspace, provide neural separation or create missing stems. Native VST3 and the desktop timeline/time edits remain desktop features.
 
-The new verifiers are wired into browser CI. A local pass does not claim that remote CI, merge, Pages deployment or public installer publication happened. See [export architecture/workflow](WEB_EXPORTS.md) and the [remaining parity roadmap](BROWSER_PARITY_ROADMAP.md).
+The checks above describe the original development qualification and do not by themselves claim a deployment. Later on November 15, the separate [current-work mobile preview](MOBILE_PREVIEW.md#first-live-validation--november-15-2026) was published and tested against HTTPS in Chromium, Firefox and Linux WebKit. The main app and installer were not promoted. See [export architecture/workflow](WEB_EXPORTS.md) and the [remaining parity roadmap](BROWSER_PARITY_ROADMAP.md).

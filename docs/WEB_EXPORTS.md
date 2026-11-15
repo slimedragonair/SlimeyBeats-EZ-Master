@@ -1,6 +1,6 @@
 # Browser export and preview development
 
-This work is on `feature/stem-editor-workspace`, following the desktop timeline milestone. It is **development source**, not a claim that the hosted site or Hotfix3 installer has been updated. No version bump or release is part of this change.
+This work is available in the [`current-work` live development preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), following the desktop timeline milestone. The main website and Hotfix3 installer retain their released versions. No app version bump or installer release is part of this change. See [preview publication, separate storage and validation](MOBILE_PREVIEW.md).
 
 ## Save what you are hearing
 

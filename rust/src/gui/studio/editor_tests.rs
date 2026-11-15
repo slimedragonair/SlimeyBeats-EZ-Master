@@ -330,6 +330,39 @@ fn compact_time_inspector_keeps_fractional_fields_and_actions_inside_the_sidebar
     for width in [290., 332.] {
         let ctx = egui::Context::default();
         theme::apply(&ctx);
+        // Allow Windows to exercise the installed Linux faces without bundling fonts.
+        #[cfg(windows)]
+        if let Some(folder) = std::env::var_os("SLIMEYBEATS_TEST_LINUX_FONT_DIR") {
+            let folder = std::path::PathBuf::from(folder);
+            let mut fonts = egui::FontDefinitions::default();
+            for (name, file) in [
+                ("system-ui", "DejaVuSans.ttf"),
+                ("system-display", "DejaVuSerif.ttf"),
+            ] {
+                fonts.font_data.insert(
+                    name.into(),
+                    egui::FontData::from_owned(
+                        std::fs::read(folder.join(file)).expect("Installed Linux test font"),
+                    )
+                    .into(),
+                );
+            }
+            fonts
+                .families
+                .get_mut(&egui::FontFamily::Proportional)
+                .unwrap()
+                .insert(0, "system-ui".into());
+            let mut display = vec!["system-display".into()];
+            display.extend(
+                fonts.families[&egui::FontFamily::Proportional]
+                    .iter()
+                    .cloned(),
+            );
+            fonts
+                .families
+                .insert(egui::FontFamily::Name(theme::DISPLAY_FONT.into()), display);
+            ctx.set_fonts(fonts);
+        }
         ctx.all_styles_mut(|style| {
             style.animation_time = 0.;
             style.scroll_animation = egui::style::ScrollAnimation::none();
@@ -373,6 +406,8 @@ fn compact_time_inspector_keeps_fractional_fields_and_actions_inside_the_sidebar
         for label in [
             "Start",
             "End",
+            "Select all",
+            "Clear selection",
             "Loop selection",
             "Silence",
             "Fade in",
@@ -387,8 +422,16 @@ fn compact_time_inspector_keeps_fractional_fields_and_actions_inside_the_sidebar
                         .iter()
                         .filter_map(|shape| match &shape.shape {
                             egui::Shape::Text(text)
-                                if ["Start", "End", "Silence", "Fade out"]
-                                    .contains(&text.galley.text()) =>
+                                if [
+                                    "Start",
+                                    "End",
+                                    "Select all",
+                                    "Clear selection",
+                                    "Loop selection",
+                                    "Silence",
+                                    "Fade out"
+                                ]
+                                .contains(&text.galley.text()) =>
                                 Some((
                                     text.galley.text(),
                                     text.visual_bounding_rect(),
@@ -407,6 +450,19 @@ fn compact_time_inspector_keeps_fractional_fields_and_actions_inside_the_sidebar
                 "Clipped {label}"
             );
         }
+        assert_eq!(
+            text(&output, "Select all")
+                .unwrap()
+                .shape
+                .visual_bounding_rect()
+                .top(),
+            text(&output, "Clear selection")
+                .unwrap()
+                .shape
+                .visual_bounding_rect()
+                .top(),
+            "Selection actions wrapped into another row at {width}"
+        );
         assert!(!studio.busy() && !studio.mix_dirty);
     }
 }
