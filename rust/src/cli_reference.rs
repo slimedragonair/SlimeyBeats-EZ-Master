@@ -92,6 +92,13 @@ fn validate(value: &Analysis) -> Result<()> {
             && within(spectrum.sibilance_spike_fraction, 0., 1.),
         "Invalid reference spectrum"
     );
+    ensure!(
+        spectrum
+            .high_frequency
+            .as_ref()
+            .is_none_or(|summary| summary.valid(value.sample_rate, value.duration_s)),
+        "Invalid reference high-frequency evidence"
+    );
     Ok(())
 }
 

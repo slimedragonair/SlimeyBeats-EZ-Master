@@ -4,6 +4,7 @@ import json
 import math
 
 from .errors import ApiError
+from .high_frequency import summary as high_frequency_summary
 
 MAX_REFERENCE_BYTES = 16384
 DB_FIELDS = ("integrated_lufs", "true_peak_dbtp", "sample_peak_dbfs", "lra_lu",
@@ -55,7 +56,7 @@ def project_reference(value, config):
                              clipped_samples=integer(metrics["clipped_samples"], 0, math.ceil(samples)))
         spectrum = value["spectrum"]
         fields(spectrum, ("freqs", "db", "cutoff_hz", "quiet_hf_flatness", "noise_candidate",
-                          "sibilance_spike_fraction", "octave_power"))
+                          "sibilance_spike_fraction", "octave_power"), ("high_frequency",))
         freqs = vector(spectrum["freqs"], 240, 0, rate / 2)
         if freqs[0] <= 0 or any(a >= b for a, b in zip(freqs, freqs[1:])):
             raise ValueError("Invalid reference frequencies")
@@ -69,6 +70,8 @@ def project_reference(value, config):
             "sibilance_spike_fraction": number(spectrum["sibilance_spike_fraction"], 0, 1),
             "octave_power": vector(spectrum["octave_power"], 10, 0, 1e12),
         }
+        if "high_frequency" in spectrum:
+            clean_spectrum["high_frequency"] = high_frequency_summary(spectrum["high_frequency"], rate, duration)
         valid = value["valid"]
         if not isinstance(valid, list) or len(valid) != 10 or any(type(item) is not bool for item in valid):
             raise ValueError("Invalid reference bands")

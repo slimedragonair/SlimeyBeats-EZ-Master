@@ -28,6 +28,7 @@ import { packageSession } from "./session-export-client.js";
 import { serverProcessing } from "./hybrid/main-controls.js";
 import { RemoteMastering } from "./hybrid/remote-mastering.js";
 import { uploadWav } from "./hybrid/pcm-transfer.js";
+import { wireEqSuggestions } from "./eq-suggestions.js";
 
 let settings,
     defaults,
@@ -48,7 +49,8 @@ let settings,
     jobRevision = 0,
     curveTimer,
     visibility,
-    jobFeedback;
+    jobFeedback,
+    eqSuggestions;
 let exportAbort;
 const player = createPlayerRouter(syncControls, (error) => {
     status(error.message, true);
@@ -123,6 +125,7 @@ function masterSignature() {
 }
 function syncControls() {
     visibility?.refresh();
+    eqSuggestions?.sync();
     const locked = busy || restoring;
     const loaded = Boolean(player.original),
         mastered = Boolean(player.master),
@@ -215,6 +218,7 @@ function eqChanged() {
     if (!settings) return;
     visibility?.refresh();
     revision++;
+    eqSuggestions?.sync();
     changedRecovery();
     player.updateSettings(settings, revision);
     clearTimeout(curveTimer);
@@ -237,6 +241,7 @@ function eqChanged() {
         );
 }
 function clearMaster() {
+    eqSuggestions?.clear();
     player.pause();
     player.master = null;
     player.analysis = null;
@@ -612,18 +617,23 @@ $("reset-eq").onclick = () => {
     buildBands(settings, eqChanged, player.ctx?.sampleRate || 48000);
     eqChanged();
 };
-$("suggest").onclick = () =>
-    job(async (ensureCurrent) => {
+eqSuggestions = wireEqSuggestions({
+    button: $("suggest"), note: $("eq-note"),
+    details: $("eq-suggestion-details"), explanation: $("eq-suggestion-notes"),
+    getContext: () => ({ source: player.master || player.original, original: player.original,
+        trackRevision, eqRevision: revision, profile: settings?.profile }),
+    request: async ensureCurrent => {
         if (serverProcessing.enabled || player.isRemote) await ensureRemoteSource(ensureCurrent);
-        const result = serverProcessing.enabled || player.isRemote ? await remoteMastering.suggest(settings)
-            : await dsp.call("suggest", { settings: JSON.stringify(settings) });
-        ensureCurrent();
-        settings.manual_eq = result;
+        return serverProcessing.enabled || player.isRemote ? await remoteMastering.suggest(settings)
+            : await dsp.call("suggest_detailed", { settings: JSON.stringify(settings) });
+    },
+    apply: bands => {
+        settings.manual_eq = bands;
         buildBands(settings, eqChanged, player.ctx?.sampleRate || 48000);
         eqChanged();
-        $("eq-note").textContent =
-            "Suggested curve applied: modest, repeatable adjustments based on this audio and a light tonal-profile influence. Reset or tweak freely.";
-    });
+    },
+    runJob: job, onStatus: status,
+});
 for (const id of [
     "profile",
     "blend-profile",

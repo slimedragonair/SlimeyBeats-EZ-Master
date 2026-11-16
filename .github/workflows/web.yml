@@ -31,7 +31,7 @@ jobs:
           cargo fmt --manifest-path web/dsp/Cargo.toml -- --check
           cargo clippy --locked --manifest-path web/dsp/Cargo.toml --target wasm32-unknown-unknown -- -D warnings
           cargo test --locked --manifest-path web/dsp/Cargo.toml --lib
-          node --test web/site/master-recovery-identity.test.mjs
+          node --test web/site/master-recovery-identity.test.mjs web/site/eq-suggestions.test.mjs
           python3 -m unittest discover -s web/tools -p 'test_*.py'
       - name: Build static site and license inventory
         run: python3 web/tools/build.py
@@ -77,6 +77,7 @@ jobs:
           for browser in chromium firefox webkit; do
             python3 web/tools/verify_bootstrap_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/bootstrap-$browser"
             python3 web/tools/verify_eq_preview.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-$browser.json"
+            python3 web/tools/verify_eq_suggestions.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-suggestions-$browser"
             python3 web/tools/verify_mp3_export.py --integration --browser "$browser" --out "${{ runner.temp }}/browser-checks/mp3-$browser"
             python3 web/tools/verify_session_export.py --browser "$browser"
             python3 web/tools/verify_export_workflows.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/exports-$browser"

@@ -257,6 +257,7 @@ pub fn analysis_summary(analysis: &Analysis) -> Value {
     json!({"duration_seconds":analysis.duration_s,"sample_rate":analysis.sample_rate,"channels":analysis.channels,
         "measurements":analysis.metrics,"issues":issues,"band_centers_hz":mastercraft::profiles::BANDS,
         "deviation_db":deviations,"valid_bands":analysis.valid,"suggested_profile":analysis.suggested_profile,
+        "high_frequency":analysis.spectrum.high_frequency,
         "interpretation":{"severity":"Heuristic indicator from 0 to 100, not a percentage of damage or a quality score. Higher means a stronger detector flag. Different detectors use different scales; do not add/compare them as a common score. Zero means no positive flag, not a diagnosed problem.","valid_bands":"False means unreliable at this rate or above the detected bandwidth cutoff. Its deviation is null; do not infer a tonal defect there.","deviation_db":"Difference from the selected profile after level alignment, in dB. Positive is more energy than that curve, not automatically too much.","listening":"A provisional measurement-based change still needs listening. Tools do not return audio bytes."},
         "note":"Tonal profiles and suggested corrections are heuristics. Audition the result; these measurements are not a universal quality score."})
 }

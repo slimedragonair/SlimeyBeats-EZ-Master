@@ -99,6 +99,19 @@ class CompanionPackageTests(unittest.TestCase):
             self.assertIn(text, readme)
         self.assertNotIn("require separately installed ffmpeg", readme)
 
+    def test_shared_eq_integration_guide_ships_through_real_documentation_projection(self):
+        from release_packaging.documentation_payload import copy_documentation, offline_guide
+        repository = Path(__file__).resolve().parents[2]
+        guide = "docs/EQ_SUGGESTION_INTEGRATION.md"
+        expected = offline_guide((repository / guide).read_text(encoding="utf-8"))
+        with patch.object(package_companion, "copy_documentation",
+                          lambda unused, target: copy_documentation(repository, target)):
+            result = self.package("EQGuide")
+        folder = Path(result["folder"])
+        self.assertEqual((folder / guide).read_text(encoding="utf-8"), expected)
+        with zipfile.ZipFile(result["zip"]) as bundle:
+            self.assertEqual(bundle.read(folder.name + "/" + guide), (folder / guide).read_bytes())
+
 
 if __name__ == "__main__":
     unittest.main()

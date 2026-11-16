@@ -26,8 +26,14 @@ pub struct TrackResult {
     pub analysis: Analysis,
     pub report: Option<Report>,
 }
+pub struct SuggestedEq {
+    pub source: Arc<Audio>,
+    pub profile: String,
+    pub bands: Vec<crate::config::EqBand>,
+    pub note: String,
+}
 pub enum Event {
-    Suggestion(usize, Vec<crate::config::EqBand>, String),
+    Suggestion(usize, SuggestedEq),
     SuggestionUnavailable(String),
     Progress(usize, f32, String),
     Ready(usize, Arc<TrackResult>),
@@ -52,25 +58,38 @@ pub fn suggest_eq(
                 &settings.profile,
                 &crate::paths::app_root().join("profiles"),
             )?;
-            let source = result.raw.as_deref().unwrap_or(&result.before);
-            let measured = analysis::analyze(source, &p)?;
-            let bands = crate::dsp::eq_suggestion::suggest(&measured, &p)?;
+            let source = result.raw.as_ref().unwrap_or(&result.before).clone();
+            let measured = analysis::analyze(&source, &p)?;
+            let proposal = crate::dsp::eq_suggestion::proposal(&measured, &p)?;
+            let summary = match &proposal.high_frequency {
+                Some(highs) if highs.excess_candidate => format!(
+                    "Possible excess at {:.0}–{:.1} kHz. Proposed Air cut: {:.2} dB. Heuristic; compare by ear.",
+                    highs.band_low_hz / 1000.,
+                    highs.band_high_hz / 1000.,
+                    proposal.bands[6].gain
+                ),
+                Some(_) => "Gentle tone proposal; no extra upper-treble cut was identified.".into(),
+                None => "Gentle tone proposal; the extra upper-treble check is unavailable.".into(),
+            };
             ensure!(!cancel.load(Ordering::Relaxed), "Cancelled");
-            Ok((
-                bands,
-                format!(
-                    "Proposed from {} · {} starting point · 25% profile influence · limits ±2.5 dB per band (+1 dB bass/air boost) · apply to hear it live",
+            Ok(SuggestedEq {
+                source,
+                profile: settings.profile.clone(),
+                bands: proposal.bands,
+                note: format!(
+                    "{summary}\nProposed from {} · {} starting point. {}",
                     if result.raw.is_some() {
                         "automatic master"
                     } else {
                         "original"
                     },
-                    p["display_name"].as_str().unwrap_or("Custom")
+                    p["display_name"].as_str().unwrap_or("Custom"),
+                    proposal.notes.join(" ")
                 ),
-            ))
+            })
         })();
         let event = match work {
-            Ok((bands, note)) => Event::Suggestion(index, bands, note),
+            Ok(proposal) => Event::Suggestion(index, proposal),
             Err(e) => Event::SuggestionUnavailable(format!("{e:#}")),
         };
         let _ = tx.send(event);

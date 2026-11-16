@@ -155,7 +155,7 @@ fn bound_combined_high_cut(bands: &mut [EqBand], sample_rate: u32) {
         if minimum >= -MAX_COMBINED_HIGH_CUT_DB - 1e-6 {
             break;
         }
-        for band in bands.iter_mut().filter(|band| band.gain < 0.) {
+        for band in bands.iter_mut().filter(|band| band.on && band.gain < 0.) {
             band.gain = (band.gain * 0.85 / QUANTUM_DB).ceil() * QUANTUM_DB;
         }
     }
@@ -235,5 +235,75 @@ mod tests {
         a.valid.fill(true);
         a.measured_db[2] = f64::NAN;
         assert!(suggest(&a, &p).is_err());
+    }
+
+    #[test]
+    fn overlapping_custom_bands_force_high_cut_rescaling_without_erasing_corrections() {
+        let response = |bands: &[EqBand], rate, frequency| {
+            bands
+                .iter()
+                .filter(|band| band.on)
+                .map(|band| {
+                    super::super::biquad::from_band(band, rate).response_db(frequency, rate)
+                })
+                .sum::<f64>()
+        };
+        for rate in [32_000, 44_100, 48_000, 96_000] {
+            let mut bands = default_eq();
+            bands[0].gain = 0.75;
+            bands[1].gain = 0.;
+            for (band, frequency) in bands[2..6]
+                .iter_mut()
+                .zip([10_000., 11_500., 13_000., 15_000.])
+            {
+                band.kind = "bell".into();
+                band.freq = frequency;
+                band.q = 1.3;
+                band.gain = -2.5;
+            }
+            bands[6].gain = -2.5;
+            let before = bands.clone();
+            let upper = 20_000_f64.min(rate as f64 * 0.49);
+            let frequencies: Vec<_> = (0..=8192)
+                .map(|i| 10_000. * (upper / 10_000.).powf(i as f64 / 8192.))
+                .collect();
+            let unbounded = frequencies
+                .iter()
+                .map(|&frequency| response(&bands, rate, frequency))
+                .fold(0_f64, f64::min);
+            assert!(
+                unbounded < -6.,
+                "{rate}: negative control did not exceed the cap: {unbounded}"
+            );
+
+            bound_combined_high_cut(&mut bands, rate);
+
+            assert!(
+                bands[2].gain > before[2].gain,
+                "{rate}: rescaling branch did not run"
+            );
+            assert_eq!(bands[0].gain, before[0].gain);
+            assert_eq!(bands[1].gain, before[1].gain);
+            for (actual, previous) in bands[2..].iter().zip(&before[2..]) {
+                assert!(
+                    actual.gain < 0. && actual.gain >= previous.gain,
+                    "{rate}: {actual:?}"
+                );
+                assert_eq!(actual.freq, previous.freq);
+                assert_eq!(actual.q, previous.q);
+                assert_eq!(actual.kind, previous.kind);
+                assert_eq!(actual.on, previous.on);
+            }
+            let mut deepest = 0_f64;
+            for frequency in frequencies {
+                let gain = response(&bands, rate, frequency);
+                assert!(gain >= -3.0001, "{rate}/{frequency} Hz: {gain} dB");
+                deepest = deepest.min(gain);
+            }
+            assert!(
+                deepest < -1.,
+                "{rate}: guard erased the correction: {deepest}"
+            );
+        }
     }
 }

@@ -15,6 +15,7 @@ GUIDES = (
     'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md',
     'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
     'HOTFIX4.md', 'HYBRID_STUDIO.md', 'HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md',
+    'EQ_SUGGESTION_INTEGRATION.md',
 )
 # Keep screenshots explicit: only reviewed public captures belong in the source
 # package, never an arbitrary image or private report added to the checkout.

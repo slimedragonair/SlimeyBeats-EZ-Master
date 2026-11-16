@@ -125,12 +125,8 @@ def collect_outputs(command, raw, config, runner):
     if raw.get("spectrogram") is not None:
         updates["spectrogram"] = spectrogram(raw["spectrogram"])
     if operation == "suggest":
-        from .project_settings import settings_projection
-        suggestion = raw.get("suggestion")
-        if not isinstance(suggestion, dict):
-            raise ProcessingError("Missing EQ suggestion")
-        validated = settings_projection({"manual_eq": suggestion.get("bands")})
-        updates["_command_result"] = {"bands": validated["manual_eq"]}
+        from .eq_suggestions import suggestion
+        updates["_command_result"] = suggestion(raw.get("suggestion"), clean_analysis)
     return assets, artifacts, selected_primary, updates
 
 

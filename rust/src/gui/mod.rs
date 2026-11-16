@@ -7,6 +7,8 @@ mod eq_curve;
 mod eq_jobs;
 mod eq_live_control;
 mod eq_panel;
+#[cfg(test)]
+mod eq_suggestion_tests;
 mod guide_content;
 mod help;
 mod help_center;

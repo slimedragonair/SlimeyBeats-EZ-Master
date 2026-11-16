@@ -1,6 +1,10 @@
 #[path = "external_master.rs"]
 mod external_master;
 
+#[cfg(test)]
+#[path = "session_suggestion_tests.rs"]
+mod suggestion_tests;
+
 use crate::{failure, import_limits, profile, settings, wav_output};
 use mastercraft::{
     analysis::{self, Analysis},
@@ -22,6 +26,14 @@ pub struct Session {
 }
 
 impl Session {
+    fn eq_proposal(&self, json: &str) -> anyhow::Result<eq_suggestion::EqSuggestion> {
+        let s = settings(json)?;
+        let p = profile(&s.profile)?;
+        let source = self.raw.as_ref().unwrap_or(&self.input);
+        let measurement = analysis::analyze(source, &p)?;
+        eq_suggestion::proposal(&measurement, &p)
+    }
+
     fn export_source(&self) -> anyhow::Result<&Audio> {
         let raw = self
             .raw
@@ -134,12 +146,18 @@ impl Session {
     }
 
     pub fn suggest(&self, json: &str) -> Result<String, JsValue> {
-        let s = settings(json).map_err(failure)?;
-        let p = profile(&s.profile).map_err(failure)?;
-        let source = self.raw.as_ref().unwrap_or(&self.input);
-        let measurement = analysis::analyze(source, &p).map_err(failure)?;
-        let bands = eq_suggestion::suggest(&measurement, &p).map_err(failure)?;
-        serde_json::to_string(&bands).map_err(failure)
+        let proposal = self.eq_proposal(json).map_err(failure)?;
+        serde_json::to_string(&proposal.bands).map_err(failure)
+    }
+
+    pub fn suggest_detailed(&self, json: &str) -> Result<String, JsValue> {
+        let proposal = self.eq_proposal(json).map_err(failure)?;
+        serde_json::to_string(&serde_json::json!({
+            "bands": proposal.bands,
+            "notes": proposal.notes,
+            "high_frequency": proposal.high_frequency,
+        }))
+        .map_err(failure)
     }
 
     pub fn export_wav(&mut self, json: &str, format: &str) -> Result<Vec<u8>, JsValue> {

@@ -80,10 +80,7 @@ pub struct Waveform {
     pub channel_peaks: Vec<f32>,
 }
 
-#[derive(Serialize)]
-pub struct Suggestion {
-    pub bands: Vec<mastercraft::config::EqBand>,
-}
+pub type Suggestion = mastercraft::dsp::eq_suggestion::EqSuggestion;
 
 pub fn waveform(audio: &Audio, bins: usize) -> Waveform {
     let bins = bins.min(audio.frames());
