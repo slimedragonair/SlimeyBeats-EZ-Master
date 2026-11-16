@@ -18,7 +18,7 @@ service and physical-device acceptance.
 | No full browser decode in server mode | Tests reject full-song `decodeAudioData`, media Blob/object-URL paths and heavy browser audio jobs; playback streams native media through authenticated Range requests |
 | Downloads | WAV, MP3 and session ZIP passed actual browser downloads and artifact hash checks; full-resolution server audio is distinct from the compressed listening preview |
 | MCP | Seven focused help tests and actual 45-tool stdio protocol verification passed; public remote processing is not exposed through the local companion |
-| Published local mode | Actual hosted build `276a8c8` / runtime `f1e9f9f53a9f4cc1` passed touch import, Master, live EQ, MP3/report/ZIP and 320/390 CSS-pixel layout checks, with only same-origin static GETs |
+| Published local mode | Final functional build **`1b580ca` / runtime `3882a4a1d0d5a7cf`** passed all eight hosted smoke groups: touch import, Master, live EQ, MP3/report/ZIP, 320/390-pixel layouts, matching runtime graph and only same-origin static GETs |
 | Engine guidance | Source candidate after that build passed native-backed import/Master, local/server label changes, retained streamed-source export guidance and 320/390-pixel layout without page errors |
 | Existing local work → server | Five actual-UI migration checks passed in each of Chromium 143, Firefox 144 and Linux WebKit 26: original/edit PCM, pending faders, required mix commit, native tools and original-based main Re-Master; old local worker and playback references were released |
 | Long public song | **Passed:** 150-second preflight and **18-minute, 48 kHz stereo MP3**, through actual published Pages/Funnel: import, Analyze, Master, captured stream/Stop and complete WAV/MP3/session ZIP downloads; originals retained exact geometry and all owned projects were removed |
@@ -33,6 +33,10 @@ preserves shared policy sources and supports Firefox 144, whose module Service
 Worker evaluation failed. Credentials remain in tab memory, including across
 native attachment downloads; two workspace listeners do not close each other's
 message ports.
+
+The first final hosted smoke encountered HTTP 503 for one decorative crest image
+and was recorded as failed. A subsequent direct asset request returned 200, and
+a fresh complete hosted smoke passed without ignoring errors or changing source.
 
 ## Actual deployed service
 
@@ -64,7 +68,8 @@ qualification observations, not isolated inference benchmarks or a latency SLA.
 
 ### Published browser and public transport
 
-One Chromium 143 page loaded actual published build `276a8c8` and kept one guest
+One installed **Google Chrome 156.0.8078.80** page loaded actual published build
+`276a8c8` and kept one guest
 for the 150-second preflight and 18-minute case. Neither static assets nor Funnel
 responses were simulated. The 18-minute MP3 was 8,640,428 bytes and decoded on
 the server to **51,840,000 stereo frames / 414,720,000 Float32 bytes**: beyond
