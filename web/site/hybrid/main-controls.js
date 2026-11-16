@@ -4,6 +4,7 @@ const listeners = new Set();
 let controller, reveal, mainFile, localFile, localLocked = false;
 const localSettingIds = ["analyze", "profile", "blend-profile", "blend", "custom-target", "target",
     "ceiling", "intensity", "safety", "gentler", "louder", "format", "dither", "suggest", "reference"];
+const hasUploadBytes = (file) => file && Number.isSafeInteger(file.size) && file.size > 0 && typeof file.slice === "function";
 
 export const serverProcessing = {
     get enabled() { return !!controller?.enabled; },
@@ -19,7 +20,13 @@ export const serverProcessing = {
     rememberLocalFile(file) {
         const changed = localFile !== file;
         localFile = file;
-        if (!this.enabled && changed) { mainFile = file; controller?.selectMainFile(file); }
+        if (!this.enabled && changed) {
+            // Recovery restores decoded PCM and a display name, not the original
+            // encoded File. Keep that name for local playback; require a real
+            // picker selection before adopting a source for server upload.
+            mainFile = hasUploadBytes(file) ? file : null;
+            controller?.selectMainFile(mainFile);
+        }
     },
     select(file) { mainFile = file; controller?.selectMainFile(file); },
     review() { if (this.enabled) reveal?.(); },

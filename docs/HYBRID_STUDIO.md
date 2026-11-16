@@ -60,6 +60,11 @@ not saved in preferences, recovery or URLs. Server options are separate from
 local EQ, references, mastering settings and Studio edits. There is no implicit
 replacement of local playback or automatic fallback between engines.
 
+Local recovery restores decoded audio and its display name, rather than the
+original encoded WAV/MP3 file. Recovered sessions stay editable/exportable
+locally. Reselect the original file explicitly before using server processing;
+the server switch does not convert a recovery point into an upload.
+
 ## Public beta connection
 
 The selected beta path is **Tailscale Funnel**, with a Tailscale-provided HTTPS
@@ -401,7 +406,7 @@ This follow-up supersedes the earlier milestone's pending-public-ingress status.
 | Check | Result and scope |
 | --- | --- |
 | Backend regressions | **61/61 passed on the actual Ubuntu host**; Windows passed 60 with one Unix-only resource test skipped. Includes public access, ownership, expiry, rate limits and native jobs. |
-| Browser module regressions | **71 passed**, including bounded JSON, explicit consent, outage preservation and local forgetting/reconnection for inaccessible jobs. |
+| Browser module regressions | **72 passed**, including bounded JSON, explicit consent, outage preservation, restored-audio/source separation and local forgetting/reconnection for inaccessible jobs. |
 | Real browser / public API | Chromium and Linux WebKit completed guest MP3 upload, processing, report/audio downloads and confirmed cleanup at 390 × 844. Candidate frontend assets used the GitHub preview origin; API requests went through the actual public Funnel with no interception. Local master/source stayed unchanged. |
 | Actual backend outage / restart | Chromium displayed **[Server down]**, preserved the remembered job/local master, and recovered through explicit expired-job forgetting and reconnection. No job was automatically replayed. Service readiness was checked separately after restart. |
 | Deployment source checks | 23 Cloudflare/helper, 11 optional relay and four Funnel-unit regressions passed. Optional Cloudflare/VPS examples are not deployed. |

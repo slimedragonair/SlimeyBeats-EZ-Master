@@ -7,6 +7,7 @@
 - Pin the beta's exact Tailscale Funnel HTTPS origin in endpoint policy and CSP. Prepare optional Oracle/reverse-SSH relay examples for later migration; preserve existing website/mail DNS and DNSSEC.
 - Bound availability/session JSON reads as well as artifact downloads, and qualify current source with guest-isolation, outage/recovery and restored-local-mode checks.
 - Add explicit local recovery for an expired or unavailable server job without reloading the page or losing local work; never report a forgotten job as deleted. Validate live Funnel WAV24/MP3/report transfers and cross-guest isolation.
+- Preserve local autosave restoration with server controls present: recovered audio/name metadata is not an encoded upload file. Require explicit file reselection for remote processing.
 
 - Keep browser mastering local by default; add a separate, consented server source, session-only access token and bounded chunk uploads.
 - Queue native Rust mastering on an authenticated private service; download WAV24/MP3 and a numeric analysis report, or cancel/delete temporary audio explicitly.

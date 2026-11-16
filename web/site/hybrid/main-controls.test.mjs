@@ -6,12 +6,31 @@ test("main selection survives a rejected local decode and later control refreshe
     const selected = [];
     const controller = { enabled: false, selectMainFile: (file) => selected.push(file) };
     serverProcessing.attach(controller, () => {});
-    const old = { name: "old.wav" }, longer = { name: "longer.mp3" };
+    const old = { name: "old.wav", size: 100, slice() {} }, longer = { name: "longer.mp3" };
     serverProcessing.rememberLocalFile(old);
     serverProcessing.select(longer);
     serverProcessing.rememberLocalFile(old);
     assert.equal(selected.at(-1), longer, "Old player refresh must not erase the new pending main file");
     serverProcessing.rememberLocalFile(null); assert.equal(selected.at(-1), null);
+});
+
+test("recovery metadata remains a local label and never becomes an upload source", () => {
+    const selected = [];
+    const controller = { enabled: false, selectMainFile: (file) => selected.push(file) };
+    serverProcessing.attach(controller, () => {});
+    const original = { name: "before.wav", size: 100, slice() {} };
+    serverProcessing.rememberLocalFile(original);
+    assert.equal(selected.at(-1), original);
+    for (const metadata of [{ name: "Recovered mix.wav" }, { name: "name-and-size.wav", size: 100 }]) {
+        serverProcessing.rememberLocalFile(metadata);
+        assert.equal(selected.at(-1), null, "Metadata cannot supply the encoded upload body");
+    }
+    const recoveredFile = { name: "Reselected.wav", size: 200, slice() {} };
+    serverProcessing.select(recoveredFile);
+    serverProcessing.rememberLocalFile({ name: "Recovered mix.wav" });
+    assert.equal(selected.at(-1), null, "A changed local recovery invalidates an older pending source");
+    serverProcessing.select(recoveredFile);
+    assert.equal(selected.at(-1), recoveredFile);
 });
 
 test("server-mode selections and review stay independent from local source metadata", () => {
