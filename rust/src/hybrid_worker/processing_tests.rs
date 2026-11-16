@@ -154,14 +154,18 @@ fn mix_controls_and_bank_dimensions_are_enforced_at_command_boundary() {
     assert!(
         audio
             .samples
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .all(|frame| frame[0].abs() < 1e-7)
     );
     assert!(
         audio
             .samples
-            .chunks_exact(2)
-            .zip(f.audio.samples.chunks_exact(2))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .zip(f.audio.samples.as_chunks::<2>().0.iter())
             .all(|(a, b)| a[1].to_bits() == b[1].to_bits())
     );
     req["mix"]["tracks"][1]["kind"] = json!("vocals");

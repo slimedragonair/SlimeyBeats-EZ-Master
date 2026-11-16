@@ -87,8 +87,10 @@ fn limits_and_wav_header_refuse_audio_before_large_allocation() {
         req["limits"] = limits;
         assert!(f.call(req).is_err());
     }
-    let mut limits = request::Limits::default();
-    limits.max_duration_seconds = f64::NAN;
+    let limits = request::Limits {
+        max_duration_seconds: f64::NAN,
+        ..request::Limits::default()
+    };
     assert!(limits.validate().is_err());
     let invalid = mastercraft::audio::Audio {
         samples: vec![f32::NAN],
