@@ -10,6 +10,19 @@ export async function installUiProbe() {
     const { StudioClient } = await import(resource("studio-client.js"));
     const { StudioPlayback } = await import(resource("studio-player.js"));
     const probe = window.regionUi = { calls: [], replies: [], errors: [] };
+    let replyHold;
+    probe.holdNextReply = action => {
+        assert(!replyHold, "Finish the previous held worker reply first");
+        const state = probe.heldReply = { action, requested: false, worker_replied: false, released: false, delivered: false };
+        let release;
+        const wait = new Promise(resolve => { release = resolve; });
+        replyHold = { state, wait, release };
+    };
+    probe.releaseHeldReply = () => {
+        assert(replyHold?.state.worker_replied, "No actual worker reply is held");
+        replyHold.state.released = true;
+        replyHold.release();
+    };
     probe.layout = () => {
         const shape = selector => {
             const el = document.querySelector(selector), rect = el.getBoundingClientRect(), style = getComputedStyle(el);
@@ -25,10 +38,20 @@ export async function installUiProbe() {
     const call = StudioClient.prototype.call, setAudio = StudioPlayback.prototype.setAudio;
     StudioClient.prototype.call = async function(action, values = {}, ...rest) {
         probe.client = this;
-        probe.calls.push({ action, ...(action === "region" ? { kind: values.kind, edit: structuredClone(values.edit) } : {}) });
+        const proposal = values.proposal === undefined ? {} : { proposal: values.proposal };
+        probe.calls.push({ action, ...proposal, ...(action === "region" ? { kind: values.kind, edit: structuredClone(values.edit) } : {}) });
+        const hold = replyHold?.state.action === action && !replyHold.state.requested ? replyHold : null;
+        if (hold) hold.state.requested = true;
         try {
             const result = await call.call(this, action, values, ...rest);
-            probe.replies.push({ action, ...(result?.proposal ? { proposal: result.proposal } : {}) });
+            probe.replies.push({ action, ...proposal, ...(result?.proposal ? { proposal: result.proposal } : {}) });
+            if (hold) {
+                hold.state.worker_replied = true;
+                hold.state.proposal = result.proposal;
+                await hold.wait;
+                hold.state.delivered = true;
+                replyHold = null;
+            }
             return result;
         } catch (error) { probe.errors.push({ action, error: String(error) }); throw error; }
     };
@@ -44,11 +67,20 @@ export async function installUiProbe() {
         return { info, bank: bank.files.map(f => ({ name: f.name, bytes: f.bytes })), preview };
     };
     probe.remember = async () => { probe.before = await probe.snapshot(); };
-    probe.unchanged = async () => {
+    probe.unchanged = async (strictInfo = false) => {
         const after = await probe.snapshot();
         equal(after.preview, probe.before.preview, "UI: retained preview");
         assert(after.bank.length === probe.before.bank.length, "UI: bank size changed");
         for (const file of after.bank) equal(file.bytes, probe.before.bank.find(f => f.name === file.name).bytes, `UI unchanged ${file.name}`);
+        if (strictInfo) assert(JSON.stringify(after.info) === JSON.stringify(probe.before.info),
+            "Cancellation changed committed metadata, mix controls or history availability");
+    };
+    probe.fingerprint = async () => {
+        const value = await probe.snapshot();
+        const hash = async bytes => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+            byte => byte.toString(16).padStart(2, "0")).join("");
+        return { info: value.info, preview_sha256: await hash(value.preview),
+            bank: await Promise.all(value.bank.map(async file => ({ name: file.name, sha256: await hash(file.bytes) }))) };
     };
     probe.checkEdit = async () => {
         const action = probe.calls.findLast(c => c.action === "region"), after = await probe.snapshot();

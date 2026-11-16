@@ -7,6 +7,7 @@ import zipfile
 
 from playwright.sync_api import expect
 from browser_capture import BrowserDiagnostics
+from region_edit_cancel_checks import verify_cancellation
 
 TOOLS = [('silence', 'silence'), ('fade-in', 'fade_in'), ('fade-out', 'fade_out'),
          ('reverse', 'reverse'), ('apply-gain', 'gain')]
@@ -163,12 +164,7 @@ def verify_ui(browser, context, page, base, out, diagnostics, browser_name, resu
     page.locator('#s-mix').click(); ready(page)
     checks.append('invalid numeric ranges/gain and pending mixer controls disable destructive region tools and preserve committed bank/preview')
 
-    page.evaluate('() => regionUi.remember()')
-    page.evaluate("() => { document.querySelector('#s-edit-reverse').click(); document.querySelector('#s-cancel').click(); }")
-    ready(page)
-    expect(page.locator('#s-status')).to_contain_text('Cancelled')
-    page.evaluate('() => regionUi.unchanged()')
-    assert page.evaluate('() => regionUi.calls.some(c => c.action === "discard")'), 'Cancelled edit was not discarded'
+    checks.extend(verify_cancellation(page, ready, result))
     page.locator('#s-edit-reverse').click(); ready(page)
     page.evaluate('() => regionUi.checkEdit()')
     page.locator('#s-format').select_option('wav32f')

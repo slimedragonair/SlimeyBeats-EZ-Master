@@ -2,6 +2,7 @@
 .hybrid-studio [hidden] { display: none !important; }
 .hybrid-switch { display: flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; cursor: pointer; font-size: .875rem; font-weight: 600; white-space: normal; }
 .hybrid-switch span { min-width: 0; }
+.hybrid-label-short { display: none; }
 .hybrid-switch input { appearance: none; width: 40px; height: 24px; margin: 0; border: 1px solid var(--muted); border-radius: 14px; background: var(--bg); flex-shrink: 0; }
 .hybrid-switch input::before { content: ""; display: block; width: 16px; height: 16px; margin: 3px; border-radius: 50%; background: var(--muted); }
 .hybrid-switch input:checked { background: var(--teal); border-color: var(--teal); }
@@ -29,3 +30,8 @@
     #server-studio-host { flex-basis: 100%; order: 2; z-index: 2; }
     .hybrid-info { position: fixed; top: auto; right: 20px; left: 20px; width: auto; }
 }
+/* Enlarged text needs the compact engine label at every viewport width. */
+body.large-text .masthead { row-gap: 4px; }
+body.large-text .hybrid-details summary { line-height: 1.25; }
+body.large-text .hybrid-label-long { display: none; }
+body.large-text .hybrid-label-short { display: inline; }

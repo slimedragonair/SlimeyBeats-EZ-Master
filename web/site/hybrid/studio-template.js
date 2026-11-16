@@ -1,8 +1,8 @@
 export const studioTemplate = `
 <section id="hybrid-studio" class="hybrid-studio" aria-label="Mastering engine">
   <label class="hybrid-switch" for="hybrid-enabled">
-    <input id="hybrid-enabled" type="checkbox" role="switch" aria-describedby="hybrid-mode-note" />
-    <span>Server processing</span>
+    <input id="hybrid-enabled" type="checkbox" role="switch" aria-label="Server processing" aria-describedby="hybrid-mode-note" />
+    <span><span class="hybrid-label-long">Server processing</span><span class="hybrid-label-short" aria-hidden="true">Server</span></span>
   </label>
   <span id="hybrid-availability" role="status" aria-live="polite" aria-atomic="true">Local</span>
   <details id="hybrid-details" class="hybrid-details">

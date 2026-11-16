@@ -46,6 +46,22 @@ and silence thresholds, and fail permanently silent or nonfinite output. All
 13 media checks passed in each engine with PulseAudio/two-core constraints; the
 18 full UI Chromium checks also passed. Production app code was unchanged.
 
+The publication suite also separated two cancellation cases that had previously
+shared an incorrect assertion. Cancelling before dispatch submits no edit;
+cancelling after a real worker proposal discards that exact proposal without
+committing it. Both preserve exact preview/bank hashes, metadata and history
+controls. All **23 region-editor checks passed in each of Chromium 143,
+Firefox 144 and Linux WebKit 26**. Only the test harness changed for cancellation.
+
+The enlarged-text layout exposed a real import-button visibility regression.
+The engine switch now uses the compact visible label **Server** at enlarged
+text sizes, retains the accessible name **Server processing**, and preserves
+44-pixel targets. Empty compact Studio pages omit their redundant heading.
+The unchanged learning suite passed **20 groups in each engine**, including
+320/390/430-pixel layouts and 1100-pixel desktop at 100% and 200% text.
+Issue Detector, Stem Doctor, live stems and decoded-input/replacement bounds
+also passed their remaining publication checks against the corrected site.
+
 ## Actual deployed service
 
 The deployed Linux worker SHA-256 is
