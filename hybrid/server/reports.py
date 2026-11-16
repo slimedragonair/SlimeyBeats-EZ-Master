@@ -26,7 +26,9 @@ def sanitize_report(raw_path, destination, request):
         if not isinstance(raw, dict) or not isinstance(raw.get("input"), dict) or not isinstance(raw.get("output"), dict):
             raise ValueError("Missing measurements")
         clean = {"api_version": 1, "profile": request.profile, "mode": request.mode,
-                 "format": request.format, **numeric_fields(raw, SUMMARY)}
+                 "format": request.format, "safety": request.safety, "intensity": request.intensity,
+                 "reference_supplied": request.reference_analysis is not None,
+                 **numeric_fields(raw, SUMMARY)}
         for key in ("input", "output"):
             clean[key] = {"metrics": numeric_fields(raw[key].get("metrics"), METRICS)}
         clean["limiter"] = numeric_fields(raw.get("limiter"), LIMITER)

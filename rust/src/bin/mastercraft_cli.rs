@@ -9,6 +9,8 @@ use std::{
 
 #[path = "../cli_arguments.rs"]
 mod cli_arguments;
+#[path = "../cli_reference.rs"]
+mod cli_reference;
 use cli_arguments::Arguments;
 fn main() {
     if let Err(e) = run() {
@@ -81,6 +83,10 @@ fn run() -> Result<()> {
         s.import_eq_preset(&path)?;
     }
     s.validate()?;
+    ensure!(
+        a.reference_analysis.is_none() || s.reference.is_none(),
+        "--reference-analysis cannot be combined with a reference WAV in settings"
+    );
     let mut files = BTreeSet::new();
     let mut missing = Vec::new();
     for input in &a.inputs {
@@ -139,11 +145,14 @@ fn run() -> Result<()> {
         return Ok(());
     }
     let profile = profiles::resolve(&s.profile, &root.join("profiles"))?;
-    let reference = s
-        .reference
-        .as_ref()
-        .map(|p| -> Result<_> { analysis::analyze(&audio::load(p)?, &profile) })
-        .transpose()?;
+    let reference = if let Some(path) = &a.reference_analysis {
+        Some(cli_reference::load(path)?)
+    } else {
+        s.reference
+            .as_ref()
+            .map(|p| -> Result<_> { analysis::analyze(&audio::load(p)?, &profile) })
+            .transpose()?
+    };
     let mut failures = missing.len();
     for name in &missing {
         eprintln!("FAILED: input not found: {name}");

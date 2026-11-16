@@ -60,8 +60,8 @@ export class ServerAvailability {
     reportFailure(error) {
         this.#cancel();
         const state = failureStatus(error);
-        const detail = state === "setup" ? "The server responded, but its API or connection setup is incompatible. Upload is unavailable; check advanced settings or use local processing."
-            : state === "access" ? "The server responded, but access was denied. Check advanced operator settings or retry guest access explicitly."
+        const detail = state === "setup" ? "The server responded, but its API or connection setup is incompatible. Retry later or turn the switch off to use local processing."
+            : state === "access" ? "The server responded, but access expired or was denied. Choose Retry to reconnect."
             : state === "busy" ? "The server is busy. Retry later; no audio is sent by reconnecting."
             : "Unable to reach the server. Check the connection and retry explicitly.";
         this.#publish(state, `${detail} Existing job references are kept in this tab.`);
@@ -85,8 +85,8 @@ export class ServerAvailability {
             else if (value.status === "disabled" && !this.operatorAccess) this.#publish("disabled", "The server is reachable, but public processing is disabled. No upload can start. Use local processing, or connect privately in advanced operator settings.");
             else this.#publish(value.guest_access || this.operatorAccess ? "online" : "access", value.guest_access || this.operatorAccess
                 ? this.operatorAccess && !value.guest_access
-                    ? "Private operator connection available. Public guest processing is disabled. Review the destination and policy before giving upload consent."
-                    : "Server responded to the availability check. Review the destination and policy before giving upload consent."
+                    ? "Private operator connection available. Choose Master to process the current track."
+                    : "Server available. Use the normal Master button; the result loads into the editor."
                 : "Guest access is unavailable. An operator can connect in advanced settings.");
         } catch (error) {
             if (generation === this.#generation) this.reportFailure(error);

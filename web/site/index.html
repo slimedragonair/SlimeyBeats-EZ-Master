@@ -65,6 +65,7 @@
                     alt=""
                 />
                 <div class="header-actions">
+                    <div id="server-studio-host"></div>
                     <span class="privacy-badge"><i></i> Local by default</span
                     ><button id="analyze" class="primary" disabled>
                         ◈ Analyze
@@ -79,7 +80,7 @@
                 </div>
                 <details id="preview-details" class="preview-details">
                     <summary>Build details</summary>
-                    <p>Preview choices and local recovery are separate from the main site. Local mastering keeps audio on your device. The optional Server studio uploads only with your explicit selection and consent.</p>
+                    <p>Preview choices and local recovery are separate from the main site. Local mastering keeps audio on your device. Turn on Server processing to use the same Master workflow on the server; the Master button sends the track and loads the result here.</p>
                     <dl>
                         <dt>Branch</dt><dd>current-work</dd>
                         <dt>Preview commit</dt><dd id="preview-commit">Unavailable</dd>
@@ -192,7 +193,6 @@
                             ↥ Export WAV
                         </button>
                     </div>
-                    <div id="server-studio-host"></div>
                     <div id="overview" class="page">
                         <div id="welcome" class="hero">
                             <img
@@ -377,7 +377,6 @@
                             <time id="clock">0:00 / 0:00</time>
                         </div>
                     </details>
-                    <p id="hybrid-playback-note" class="small" hidden></p>
                     <div class="playback primary-player" aria-label="Mastering playback">
                         <div class="transport-main primary-transport">
                             <button id="play" disabled>Play</button>

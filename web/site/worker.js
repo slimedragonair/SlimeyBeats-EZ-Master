@@ -18,12 +18,17 @@ self.onmessage = async ({ data: m }) => {
                 session.set_reference(m.samples, m.rate, m.channels);
                 result = true;
                 break;
+            case "reference-analysis":
+                result = JSON.parse(session.reference_analysis());
+                break;
             case "analyze":
                 result = JSON.parse(session.analyze(m.settings));
                 break;
+            case "adopt-master":
             case "master": {
-                result = JSON.parse(
-                    session.master(m.settings, (value, text) =>
+                result = JSON.parse(m.action === "adopt-master"
+                    ? session.adopt_master(m.samples, m.settings, m.metadata)
+                    : session.master(m.settings, (value, text) =>
                         self.postMessage({ id: m.id, progress: value, text }),
                     ),
                 );

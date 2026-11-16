@@ -59,11 +59,10 @@ jobs:
           python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
       - name: Verify Chromium
         run: python3 web/tools/verify_browser.py --out '${{ runner.temp }}/browser-checks/chromium'
-      - name: Build fixed hybrid worker and verify explicit remote jobs in three engines
+      - name: Build fixed hybrid worker and verify the shared editor in three engines
         run: |
           cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli
           for browser in chromium firefox webkit; do
-            python3 web/tools/verify_hybrid_browser.py --cli rust/target/release/slimeybeats-ez-master-cli --browser "$browser" --out "${{ runner.temp }}/browser-checks/hybrid-$browser"
             python3 web/tools/verify_hybrid_browser.py --guest --cli rust/target/release/slimeybeats-ez-master-cli --browser "$browser" --out "${{ runner.temp }}/browser-checks/hybrid-guest-$browser"
           done
       - name: Verify Firefox

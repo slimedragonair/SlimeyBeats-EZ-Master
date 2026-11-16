@@ -52,8 +52,8 @@ test("a reachable disabled API explains public processing is disabled, independe
 
 test("online health alone explains the explicit guest connection step; remembered jobs need their original credential", () => {
     const controller = { enabled: true, availability: { state: "online", detail: "Server responded." } };
-    assert.match(availabilityDetail({ connected: false }, controller), /Not connected.*Check & connect.*no audio/);
-    assert.doesNotMatch(availabilityDetail({ connected: true }, controller), /Check & connect/);
+    assert.match(availabilityDetail({ connected: false }, controller), /Not connected.*Retry.*no audio/);
+    assert.doesNotMatch(availabilityDetail({ connected: true }, controller), /Retry/);
     assert.match(availabilityDetail({ connected: false, job: {} }, controller), /original credential.*new guest token cannot recover/);
     controller.enabled = false;
     assert.equal(availabilityDetail({ connected: false }, controller), "Server responded.");

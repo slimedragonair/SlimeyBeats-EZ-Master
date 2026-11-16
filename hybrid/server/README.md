@@ -21,6 +21,70 @@ the operator's PATH. Keep CLI/codec packages under operator control. MP3 output
 also needs the native CLI's own FFmpeg discovery to work. Native work uses
 `--threads 4`; one processing worker runs at a time.
 
+## Normal Master settings and editable audio
+
+`POST /v1/jobs` keeps the v1 envelope (`filename`, `bytes`, `consent:true`) and
+accepts `profile`, `mode`, `target_lufs`, `ceiling_dbtp`, `intensity`, `safety`,
+`format`, and optional `reference_analysis`. Numeric ranges remain LUFS -40 to
+-5 (or null for the profile target), ceiling -12 to 0 dBTP, intensity 0 to 1.5.
+Modes are `streaming_safe` and `loud`; safety is a strict boolean, default true.
+The API does not accept arbitrary settings, paths, manual EQ, or export dither.
+
+Profiles are built-in IDs or at most two components such as
+`metal:0.6+edm:0.4`. Omitted weights are one. Weights must be finite, between
+zero and one, with a positive total; zero components are removed before native
+resolution. Profile aliases, filesystem paths and custom profiles are rejected.
+
+`reference_analysis` is null/omitted or the parsed full `Analysis` object returned
+by the browser session getter, not a JSON string or filename. The existing
+16 KiB limit applies to the entire job JSON body. Required fields are
+`duration_s`, `sample_rate`, `channels`, `metrics`, `spectrum`, `measured_db`,
+`deviation_db`, and `valid`. Optional `issues` and `suggested_profile` are
+discarded and replaced with empty issues and `neutral`; no reference free text
+is retained. Unknown reference fields are rejected. Metrics require all native
+fields: integrated LUFS, true/sample peak, LRA, RMS, crest, PLR, correlation,
+per-channel DC offset and clipped-sample count. Spectrum requires 240 increasing
+positive `freqs` and 240 `db` values, ten nonnegative `octave_power` values,
+nullable `cutoff_hz`, `quiet_hf_flatness`, boolean `noise_candidate`, and
+`sibilance_spike_fraction`. Tonal vectors and boolean validity flags have exactly
+ten entries. All numbers must be finite; dB data are bounded to +/-300,
+correlation to +/-1, fractions to 0..1 (flatness allows 1.000001 rounding), DC
+offset to +/-1e6, and octave powers to 0..1e12. Reference geometry obeys the
+operator's duration/decoded limits, 8..384 kHz and one/two channels, with at most
+1,800 seconds and 512 MiB decoded PCM. Cutoffs/frequencies cannot exceed Nyquist;
+clipped-sample counts cannot exceed the reference sample count.
+
+The worker creates exclusive private settings/reference JSON files inside the
+marked job directory, passes only generated paths to the native CLI, then
+removes them after the child is reaped. The CLI's new `--reference-analysis`
+option reads at most 16 KiB from a regular file, validates numeric/vector data,
+and feeds the existing reference DSP path. It conflicts with `--reference` and
+with a reference WAV in `--settings`; absence of analysis preserves WAV-reference
+and no-reference CLI behavior. Deploy the rebuilt CLI with the Python server;
+older binaries reject the new flag and produce a failed job rather than silently
+omitting reference matching.
+
+Formats are `wav24`, `mp3`, and `wav32f`. Float exchange uses source sample rate,
+channels and frame count, the default flat manual EQ, and disabled dither. The
+native float filename remains private; the public artifact is `master.wav` with
+`audio/wav`. The browser can apply manual EQ and final export locally. Reports
+include safe `safety`, `intensity`, and `reference_supplied` values; the latter
+means a validated reference was passed, not a promise that every track needed
+an audible correction. Raw report/configuration paths and stage free text stay
+private.
+
+Capabilities retain API version 1 and existing fields, append `wav32f` to
+`formats`, and add:
+
+```json
+{"features":{"profile_blends":true,"reference_analysis":true,"safety":true,"editable_master":true}}
+```
+
+The optional feature object allows older v1 consumers to ignore the extension.
+Auth, consent wire field, upload/audio limits, retention, and cleanup remain
+unchanged. The normal browser workflow may send the consent field internally
+when the user explicitly enables server processing and presses Master.
+
 ## Public browser sessions and availability
 
 The operator must explicitly set `SLIMEYBEATS_HYBRID_PUBLIC=1` to enable guests;
@@ -119,6 +183,9 @@ the owner secret and public feature flag, are stripped before any child runs.
   identities, token digests, bounded rate windows and the explicit proxy boundary.
 - `requests.py` accepts only the public mastering fields. Filenames select
   WAV/MP3 upload extensions and are discarded; they never become local paths.
+- `profile_blends.py` bounds built-in expressions; `reference_analysis.py`
+  projects validated reference measurements before job allocation.
+- `native_settings.py` writes only generated settings/reference paths privately.
 - `jobs.py` serializes state, exact append offsets, retained-job/upload
   reservations, queueing, cancellation, download leases, and expiry.
 - `storage.py` exclusively locks a private marked root. Restart removes only

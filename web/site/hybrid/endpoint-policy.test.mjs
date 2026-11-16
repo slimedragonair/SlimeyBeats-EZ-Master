@@ -30,14 +30,22 @@ test("one isolated deployment pin permits only its exact HTTPS origin, legacy AP
     assert.match(help, /exact origins/); assert.ok(!help.includes("*.ts.net"));
 });
 
-test("changing only the deployment pin supplies the real view's default, placeholder and address guidance", async () => {
-    const viewUrl = new URL("./studio-view.js", import.meta.url);
-    const viewSource = (await readFile(viewUrl, "utf8")).replace(/from (["'])(\.{1,2}\/[^"']+)\1/g, (_, quote, path) =>
-        `from ${JSON.stringify(path === "./endpoint-policy.js" ? configuredUrl : new URL(path, viewUrl).href)}`);
-    const { createStudioView } = await import(moduleUrl(viewSource));
-    const fields = new Map(["endpoint", "endpoint-note", "download-notice"].map((id) => [`#hybrid-${id}`, {}]));
-    createStudioView({ innerHTML: "", querySelector: (selector) => fields.get(selector) });
-    assert.equal(fields.get("#hybrid-endpoint").value, pinnedOrigin);
-    assert.equal(fields.get("#hybrid-endpoint").placeholder, pinnedOrigin);
-    assert.equal(fields.get("#hybrid-endpoint-note").textContent, policy.serverEndpointHelp());
+test("changing the deployment pin updates health and the visible processing destination", async () => {
+    async function configuredModule(name) {
+        const url = new URL(name, import.meta.url);
+        const value = (await readFile(url, "utf8")).replace(/from (["'])(\.{1,2}\/[^"']+)\1/g, (_, quote, path) =>
+            `from ${JSON.stringify(path === "./endpoint-policy.js" ? configuredUrl : new URL(path, url).href)}`);
+        return import(moduleUrl(value));
+    }
+    const { ServerAvailability } = await configuredModule("./server-availability.js");
+    const { createStudioView } = await configuredModule("./studio-view.js");
+    const availability = new ServerAvailability({ pageUrl: "https://studio.example/" });
+    const fields = new Map();
+    const view = createStudioView({ innerHTML: "", querySelector(selector) {
+        if (!fields.has(selector)) fields.set(selector, { dataset: {}, classList: { toggle() {} } });
+        return fields.get(selector);
+    } });
+    view.render({}, { enabled: true, availability });
+    assert.equal(availability.endpoint, pinnedOrigin);
+    assert.equal(fields.get("#hybrid-destination").textContent, `Server: ${pinnedOrigin}`);
 });

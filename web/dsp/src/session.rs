@@ -1,8 +1,11 @@
+#[path = "external_master.rs"]
+mod external_master;
+
 use crate::{failure, import_limits, profile, settings, wav_output};
 use mastercraft::{
     analysis::{self, Analysis},
     audio::Audio,
-    config::default_eq,
+    config::{Settings, default_eq},
     dsp::{eq_suggestion, manual_eq},
     engine,
     report::Report,
@@ -15,6 +18,14 @@ pub struct Session {
     reference: Option<Analysis>,
     raw: Option<Audio>,
     report: Option<Report>,
+}
+
+fn master_settings(json: &str) -> anyhow::Result<Settings> {
+    let mut s = settings(json)?;
+    // Both local and server masters remain the immutable pre-manual-EQ source.
+    s.manual_eq = default_eq();
+    s.eq_output_db = 0.;
+    Ok(s)
 }
 
 #[wasm_bindgen]
@@ -40,11 +51,11 @@ impl Session {
     ) -> Result<(), JsValue> {
         import_limits::validate(samples.len(), rate, channels).map_err(failure)?;
         let audio = Audio::new(samples, rate, channels as usize).map_err(failure)?;
+        // Reference revisions affect future masters; the editor owns stale-state
+        // guards while recovery and audition retain the current raw master.
         self.reference = Some(
             analysis::analyze(&audio, &profile("neutral").map_err(failure)?).map_err(failure)?,
         );
-        self.raw = None;
-        self.report = None;
         Ok(())
     }
 
@@ -55,12 +66,14 @@ impl Session {
         serde_json::to_string(&a).map_err(failure)
     }
 
+    pub fn reference_analysis(&self) -> Result<String, JsValue> {
+        serde_json::to_string(&self.reference).map_err(failure)
+    }
+
     pub fn master(&mut self, json: &str, progress: &js_sys::Function) -> Result<String, JsValue> {
-        let mut s = settings(json).map_err(failure)?;
+        let s = master_settings(json).map_err(failure)?;
         let p = profile(&s.profile).map_err(failure)?;
         // Always rebuild from the untouched original and retain a pre-manual-EQ source.
-        s.manual_eq = default_eq();
-        s.eq_output_db = 0.;
         let cb = |value: f32, text: &str| {
             let _ = progress.call2(&JsValue::NULL, &value.into(), &text.into());
         };

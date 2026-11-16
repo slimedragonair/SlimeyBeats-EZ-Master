@@ -5,6 +5,7 @@ import threading
 
 from .decoder import prepare_wav
 from .errors import ProcessingError
+from .native_settings import prepare_native_settings
 from .processes import ProcessRunner
 from .reports import sanitize_report
 from .storage import directory_bytes, is_link
@@ -55,15 +56,19 @@ class Worker(threading.Thread):
         out.mkdir()
         raw_report = job.directory / "raw-report.json"
         request = job.request
-        command = [config.cli, job.directory / "input.wav", "--out", out,
-                   "--format", request.format, "--profile", request.profile, "--mode", request.mode,
-                   "--ceiling", str(request.ceiling_dbtp), "--intensity", str(request.intensity),
+        arguments, private_paths = prepare_native_settings(job, out)
+        command = [config.cli, job.directory / "input.wav", *arguments,
                    "--threads", "4", "--report-json", raw_report]
-        if request.target_lufs is not None:
-            command.extend(["--lufs", str(request.target_lufs)])
-        self.runner.run(command, job, config.worker_timeout_seconds)
-        extension, content_type = ("wav", "audio/wav") if request.format == "wav24" else ("mp3", "audio/mpeg")
-        audio = out / ("input_master." + extension)
+        try:
+            self.runner.run(command, job, config.worker_timeout_seconds)
+        finally:
+            # Never remove files while a child might still be using them.
+            if not job.unreaped:
+                for path in private_paths:
+                    path.unlink()
+        extension, content_type = ("mp3", "audio/mpeg") if request.format == "mp3" else ("wav", "audio/wav")
+        stem = "input_master_32f" if request.format == "wav32f" else "input_master"
+        audio = out / (stem + "." + extension)
         if set(out.iterdir()) != {audio} or not audio.is_file() or audio.stat().st_size <= 0 or is_link(audio):
             raise ProcessingError("Unexpected native artifacts")
         report = out / "report.json"

@@ -2,6 +2,7 @@ import { serverEndpoint } from "./endpoint-policy.js";
 import { capabilities, snapshot } from "./protocol.js";
 import { ArtifactDownloadError, checkArtifactDownload, readArtifactDownload } from "./artifact-download.js";
 import { readBoundedJson, JsonResponseError, AUTHENTICATED_JSON_LIMIT_BYTES } from "./bounded-json.js";
+import { readMasterWav } from "./pcm-transfer.js";
 
 export class ServerClient {
     #token = "";
@@ -32,11 +33,11 @@ export class ServerClient {
         this.#requests.clear();
     }
     disconnect() { ++this.#epoch; this.cancelPending(); this.#token = ""; }
-    async #request(path, options, read) {
+    async #request(path, options, read, timeoutMs = 120000) {
         if (!this.#token) throw new Error("Connect with your owner or invite token first.");
         const controller = new AbortController();
         this.#requests.add(controller);
-        const timeout = setTimeout(() => controller.abort(), 120000);
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
         try {
             const response = await this.#fetch(`${this.endpoint}${path}`, {
                 ...options, headers: { ...options?.headers, Authorization: `Bearer ${this.#token}` },
@@ -81,6 +82,10 @@ export class ServerClient {
         checkArtifactDownload(artifact);
         return this.#request(`${this.#path(id)}/artifacts/${encodeURIComponent(artifact.id)}`,
             { method: "GET" }, (response) => readArtifactDownload(response, artifact));
+    }
+    async masterAudio(id, artifact, dimensions) {
+        return this.#request(`${this.#path(id)}/artifacts/${encodeURIComponent(artifact.id)}`,
+            { method: "GET" }, (response) => readMasterWav(response, artifact, dimensions), 900000);
     }
     #path(id) { return `/v1/jobs/${encodeURIComponent(id)}`; }
 }

@@ -38,6 +38,7 @@ let settings,
     referenceFile,
     masterBaseline,
     masterReference,
+    masterServerMetadata,
     masterKey = "",
     revision = 0,
     trackRevision = 0,
@@ -182,7 +183,6 @@ function syncControls() {
         $("session-state").textContent =
             "Master preview ready · Listen, tweak, then export";
     jobFeedback?.refresh();
-    serverProcessing.rememberLocalFile(currentFile);
     serverProcessing.renderMainControls({ locked });
 }
 async function job(action) {
@@ -242,6 +242,7 @@ function clearMaster() {
     masterKey = "";
     masterBaseline = null;
     masterReference = null;
+    masterServerMetadata = null;
     report = null;
     $("output-section").hidden = true;
     reportView(null);
@@ -282,8 +283,6 @@ async function loadWorker(buffer = player.original) {
 }
 async function loadFile(file) {
     if (!file) return;
-    serverProcessing.select(file);
-    if (serverProcessing.enabled) return;
     studio.pause();
     await job(async (ensureCurrent) => {
         status("Decoding your track locally…");
@@ -345,16 +344,25 @@ async function analyze() {
     });
 }
 async function master() {
-    if (serverProcessing.enabled) { serverProcessing.review(); return; }
-    await job(async () => {
+    await job(async (ensureCurrent) => {
         player.pause();
-        status("Mastering locally in the Rust worker…");
+        const remote = serverProcessing.enabled;
+        status(remote ? "Mastering on the server…" : "Mastering locally in the Rust worker…");
         const source = trackRevision,
             key = masterSignature();
         const baseline = structuredClone(settings);
-        const result = await dsp.call("master", {
-            settings: JSON.stringify(settings),
-        });
+        let result, serverMetadata = null, cleanupPending = false;
+        if (remote) {
+            const reference = await dsp.call("reference-analysis");
+            ensureCurrent();
+            const received = await serverProcessing.master(player.original, baseline, reference, dspProgress);
+            ensureCurrent();
+            serverMetadata = received.metadata;
+            cleanupPending = received.cleanupPending;
+            result = await dsp.call("adopt-master", { samples: received.samples,
+                settings: JSON.stringify(baseline), metadata: JSON.stringify(serverMetadata) }, [received.samples.buffer]);
+        } else result = await dsp.call("master", { settings: JSON.stringify(baseline) });
+        ensureCurrent();
         if (source !== trackRevision) return;
         const buffer = toBuffer(
             player.context(),
@@ -375,6 +383,9 @@ async function master() {
         masterKey = key;
         masterBaseline = baseline;
         masterReference = referenceFile;
+        // Persist only numeric measurements, never a server credential/job URL.
+        masterServerMetadata = remote ? Object.fromEntries(["target_lufs", "ceiling_dbtp", "processing_seconds",
+            "punch_loss_db", "safety_attempts", "limiter"].map((key) => [key, result.report[key]])) : null;
         player.select("master");
         metrics("input-metrics", analysis);
         metrics("output-metrics", report.output);
@@ -388,7 +399,7 @@ async function master() {
         reportView(report);
         eqChanged();
         status(
-            "Master ready. Play B to listen. Choose WAV or MP3, then Export when ready.",
+            `Master ready${remote ? " · processed on server" : ""}. Play B, tweak EQ, then Export WAV or MP3.${cleanupPending ? " Server cleanup is pending; retry deletion in the server info menu." : ""}`,
         );
     });
 }
@@ -641,6 +652,7 @@ $("save-report").onclick = () => {
 };
 $("cancel").onclick = async () => {
     exportAbort?.abort();
+    serverProcessing.cancel();
     restoring = true;
     jobRevision++;
     busy = false;
@@ -661,6 +673,7 @@ $("cancel").onclick = async () => {
     }
 };
 $("clear").onclick = () => {
+    serverProcessing.cancel();
     jobRevision++;
     dsp.cancel();
     trackRevision++;
@@ -717,6 +730,7 @@ connectRecovery({
         get preview() { return !!player.master; },
         estimate: () => masterRecoverySize(player, referenceFile, masterReference),
         capture: () => captureMasterRecovery({ player, settings, baseline: masterBaseline, signature: masterKey,
+            serverMetadata: masterServerMetadata,
             reference: referenceFile, baselineReference: masterReference, file: currentFile, format: $("format").value }),
         async prepare(value, current) {
             const staged = await prepareMasterRecovery(value, player, current, (value, text) => { if (current()) dspProgress(value, text); });
@@ -735,6 +749,7 @@ connectRecovery({
                             report.input.metrics.integrated_lufs, report.output.metrics.integrated_lufs);
                         masterBaseline = structuredClone(value.baseline || settings);
                         masterReference = value.baselineReference;
+                        masterServerMetadata = value.serverMetadata || null;
                         // Reference identities are document-local. Rebind only that field.
                         const signature = staged.signature;
                         signature.reference_revision = referenceRevision;

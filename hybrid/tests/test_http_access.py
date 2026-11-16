@@ -15,9 +15,11 @@ class HttpAccessTests(unittest.TestCase):
             self.assertEqual((status, value), (200, {"status": "up"}))
             status, headers, value = client.request("GET", "/v1/capabilities", origin=ORIGIN)
             self.assertEqual(status, 200)
-            self.assertEqual(set(value), {"api_version", "operations", "formats", "profiles", "limits", "privacy"})
+            self.assertEqual(set(value), {"api_version", "operations", "formats", "profiles", "limits", "privacy", "features"})
             self.assertEqual(value["api_version"], 1)
-            self.assertEqual(value["formats"], ["wav24", "mp3"])
+            self.assertEqual(value["formats"], ["wav24", "mp3", "wav32f"])
+            self.assertEqual(value["features"], {"profile_blends": True, "reference_analysis": True,
+                                                  "safety": True, "editable_master": True})
             self.assertEqual(value["operations"], ["master"])
             self.assertEqual(len(value["profiles"]), 16)
             self.assertTrue(all(set(profile) == {"id", "label"} for profile in value["profiles"]))
@@ -64,7 +66,7 @@ class HttpAccessTests(unittest.TestCase):
 
     def test_untrusted_fields_and_private_paths_are_rejected(self):
         with running_service() as (service, client):
-            fields = ({"profile": "custom:../../private"}, {"profile": "metal+edm"}, {"out": "/private"},
+            fields = ({"profile": "custom:../../private"}, {"profile": "metal+custom:edm"}, {"out": "/private"},
                       {"settings": "secret.json"}, {"filename": "../secret.wav"}, {"filename": "C:\\private.wav"},
                       {"filename": "https://host/x.mp3"}, {"filename": "x.m3u"}, {"consent": False},
                       {"intensity": True}, {"target_lufs": -1}, {"ceiling_dbtp": 1}, {"mode": "unsafe"},

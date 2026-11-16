@@ -64,7 +64,7 @@ test("explicit upload is bounded, exact-appending and followed by explicit run t
     assert.equal(session.job.state, "completed");
     assert.deepEqual(calls.filter((r) => r.method === "PUT").map((r) => [new URL(r.url).searchParams.get("offset"), r.body.size]), [["0", 3], ["3", 3], ["6", 2]]);
     assert.deepEqual(JSON.parse(calls.find((r) => r.url.endsWith("/jobs")).body), {
-        filename: "source.wav", bytes: 8, ...options, target_lufs: null, ceiling_dbtp: -1, intensity: 1, consent: true,
+        filename: "source.wav", bytes: 8, ...options, target_lufs: null, ceiling_dbtp: -1, intensity: 1, safety: true, reference_analysis: null, consent: true,
     });
     assert.equal(calls.filter((r) => r.url.endsWith("/run")).length, 1);
     assert.equal(session.canSubmit, false);

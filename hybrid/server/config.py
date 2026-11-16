@@ -127,7 +127,9 @@ class Config:
 
     def capabilities(self):
         return {
-            "api_version": 1, "operations": ["master"], "formats": ["wav24", "mp3"],
+            "api_version": 1, "operations": ["master"], "formats": ["wav24", "mp3", "wav32f"],
+            "features": {"profile_blends": True, "reference_analysis": True,
+                         "safety": True, "editable_master": True},
             "profiles": [{"id": key, "label": value} for key, value in PROFILES.items()],
             "limits": {name: getattr(self, name) for name in
                        ("max_upload_bytes", "chunk_bytes", "max_jobs", "retention_seconds",

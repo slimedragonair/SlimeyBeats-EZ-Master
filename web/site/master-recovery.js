@@ -8,6 +8,7 @@ export function captureMasterRecovery(state) {
     return { source: audioRecord(state.player.original), preview: audioRecord(state.player.master),
         settings: structuredClone(state.settings), baseline: structuredClone(state.baseline),
         signature: state.signature, reference: state.reference || null, baselineReference: state.baselineReference || null,
+        serverMetadata: state.player.master ? structuredClone(state.serverMetadata || null) : null,
         name: state.file?.name || "Recovered mix.wav", format: state.format };
 }
 export async function prepareMasterRecovery(value, player, current, progress) {
@@ -32,7 +33,11 @@ export async function prepareMasterRecovery(value, player, current, progress) {
             checkSettings(value.baseline, initial.settings);
             if (value.baselineReference) await loadReference(value.baselineReference);
             preview = await audioBuffer(player.context(), value.preview);
-            result = await client.call("master", { settings: JSON.stringify(value.baseline || settings) });
+            if (value.serverMetadata) {
+                const samples = interleave(preview);
+                result = await client.call("adopt-master", { samples, settings: JSON.stringify(value.baseline || settings),
+                    metadata: JSON.stringify(value.serverMetadata) }, [samples.buffer]);
+            } else result = await client.call("master", { settings: JSON.stringify(value.baseline || settings) });
             if (preview.sampleRate !== source.sampleRate || preview.numberOfChannels !== source.numberOfChannels ||
                 preview.length !== source.length || result.samples.length !== source.length * source.numberOfChannels)
                 throw new Error("Invalid recovery preview dimensions.");

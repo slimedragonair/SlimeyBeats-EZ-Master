@@ -134,10 +134,13 @@ export class ServerSession {
         this.unavailableJobStatus = 0;
         this.#notify(`${job.state}: ${job.message || "Server status received."}`);
     }
-    async submit({ profile, format, mode }) {
+    async submit({ profile, format, mode, target_lufs = null, ceiling_dbtp = -1, intensity = 1,
+        safety = true, reference_analysis = null }) {
         if (!this.canSubmit) return;
-        if (!this.caps.profiles.some((p) => p.id === profile) || !this.caps.formats.includes(format) ||
-            !["wav24", "mp3"].includes(format) || !["streaming_safe", "loud"].includes(mode)) {
+        const profiles = new Set(this.caps.profiles.map((p) => p.id));
+        if (typeof profile !== "string" || !profile.split("+").every((part) => profiles.has(part.split(":")[0])) ||
+            !this.caps.formats.includes(format) || !["wav24", "wav32f", "mp3"].includes(format) ||
+            !["streaming_safe", "loud"].includes(mode)) {
             this.#notify("Choose a profile, format and mode offered by this server.", true); return;
         }
         await this.#action("Preparing the explicit server upload…", async (current) => {
@@ -148,7 +151,7 @@ export class ServerSession {
                 let job;
                 try {
                     job = await this.client.create({ filename: file.name, bytes: file.size, profile, format, mode,
-                        target_lufs: null, ceiling_dbtp: -1, intensity: 1, consent: true });
+                        target_lufs, ceiling_dbtp, intensity, safety, reference_analysis, consent: true });
                 } catch (error) {
                     throw new Error(`${error.message} Job creation outcome is unknown. No file chunks were sent. Retrying may create another empty job; it will be subject to server retention.`, { cause: error });
                 }
@@ -198,6 +201,7 @@ export class ServerSession {
             this.#accept(job); await this.#poll(current);
         }, true);
     }
+    cancel() { this.#stop(); }
     async delete() {
         if (!this.sameServer || !this.job || this.busy === "Deleting server files…") return;
         this.#stop();

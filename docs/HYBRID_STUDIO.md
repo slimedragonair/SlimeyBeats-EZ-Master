@@ -1,10 +1,11 @@
 # Hybrid Studio beta preview
 
-The first slice adds explicitly requested server mastering to the existing local
-browser app. The browser remains the default engine for local work. Connecting
-does not authorize an upload; selecting a separate server input, accepting
-temporary processing and submitting a job do. Desktop, browser DSP and the local
-MCP companion keep their existing roles.
+The top **Server processing** switch changes the mastering engine while keeping
+the same editor. Leave it off for private local mastering. Turn it on, import
+normally, Analyze, press Master, compare A/B, tweak live EQ, then Export WAV,
+MP3 or a session ZIP. There is no second upload form or consent checkbox.
+Switching on checks availability; only Master sends audio. Desktop and the
+local MCP companion retain their existing roles.
 
 On November 15, 2026, the dedicated Linux service was connected through
 **Tailscale Funnel** and public guest access was enabled. Real public HTTPS
@@ -22,7 +23,7 @@ own jobs; it does not expose the owner token.
 | Area | First preview | Evidence boundary |
 | --- | --- | --- |
 | `hybrid/server/` | Modular Python standard-library HTTP service and native Rust CLI subprocess | Backend checks and real native-job evidence belong to the integration record. |
-| `web/site/hybrid/` | Opt-in connection, upload, job status and authenticated downloads | Browser integration and device checks are separate from deployment checks. |
+| `web/site/hybrid/` | Top switch, normal Master integration, streamed float audio and temporary job cleanup | Browser integration and device checks are separate from deployment checks. |
 | `hybrid/deploy/` | Reviewable systemd/environment/tunnel examples and read-only validation tools | Examples do not install software, create accounts or change a firewall/DNS record. |
 | Linux beta | Dedicated system service on loopback, reached through Funnel | Native jobs, public HTTPS transfers, guest isolation and deletion tested. |
 | Funnel HTTPS origin | Exact `slimeybeats-preview.tailf8de2d.ts.net` pin | No custom-domain DNS changes; bandwidth and provider availability limits apply. |
@@ -35,42 +36,51 @@ tokens to this HTTP service. Do not expose an MCP listener or the desktop app.
 
 ## Use the preview
 
-Use the **Use server processing** switch in `current-work`. Local processing is
-the default. Switching on checks availability without uploading audio. The
-labels distinguish an unreachable server, disabled service, busy service,
-missing access and an offline browser. Checks stop while the page is hidden.
+1. Open the `current-work` preview and turn on **Server processing** in the top bar.
+   Availability and guest access are checked automatically, without audio.
+2. Use the usual **Add audio** picker or drag/drop. The editor decodes the source
+   locally, preserving its normal duration and memory checks. **Analyze** stays local.
+3. Choose the usual tonal profile or blend, loudness target, ceiling, intensity,
+   safety option and optional reference. **Master** sends a float WAV of the
+   untouched decoded mix plus those settings. Only reference measurements are
+   sent; reference audio and the original filenames are not uploaded.
+4. The float server result loads into the existing player and report. Compare
+   **A / B**, use **Manual EQ** in real time, and **Re-master** from the original
+   whenever needed. **Export** and **Save session ZIP** use the same local paths
+   as a local master, including MP3 encoding and saved-file peak verification.
 
-Choose your WAV/MP3 using the main file picker, then choose **Review server
-master**. Review the server settings, destination, limits and temporary-storage
-policy, then consent and choose **Upload & master**. A server source bypasses
-local decoding; it never replaces or relabels an existing local player buffer.
-Local playback and local exports remain clearly identified as local.
+The switch stays separate from Studio tools, which currently remain local.
+A small info icon beside it shows the actual destination, retention and pending
+cleanup. Successful transfer is followed by a server-file deletion request.
+If cleanup fails, the master is kept and deletion can be retried in that info
+panel. Interrupted jobs retain their credential in this tab until deletion or
+expiry; an expiry alone does not confirm deletion.
 
-When public guest access is enabled, connection details and session credentials
-are handled automatically. **Advanced operator connection settings** retain
-explicit endpoint/token setup for private testing. File selection, availability
-checks and connection alone never upload audio. Download the prepared
-audio/report explicitly, then choose **Cancel & delete server files** when
-finished. Switching off preserves access to the existing job in this tab while
-stopping upload/status requests. Advanced Disconnect clears its credential;
-closing/reloading the tab forgets it. Neither action confirms server deletion.
+A down, busy, disabled or inaccessible server is labelled clearly. **Retry**
+checks/reconnects without sending audio. Failures never silently switch engines,
+replay mastering or clear the original/settings. Switching off keeps a received
+master editable and exportable. It is locked during processing; use the normal
+Cancel button first to stop a request.
 
-The token stays in this tab's memory. It is not a login/account system and is
-not saved in preferences, recovery or URLs. Server options are separate from
-local EQ, references, mastering settings and Studio edits. There is no implicit
-replacement of local playback or automatic fallback between engines.
+Tokens and job references stay only in tab memory, never preferences, recovery
+or URLs. Closing/reloading forgets that access and does not confirm deletion.
+Opt-in local recovery stores an already received server master as exact PCM
+with numeric processing metadata, so restoration, EQ and exports work offline.
+Recovery never reconnects or uploads. An explicit new Master action may send
+the recovered original when server mode is selected.
 
-Local recovery restores decoded audio and its display name, rather than the
-original encoded WAV/MP3 file. Recovered sessions stay editable/exportable
-locally. Reselect the original file explicitly before using server processing;
-the server switch does not convert a recovery point into an upload.
+The shared editor needs its local WASM/AudioWorklet engine even when mastering
+is remote. Server mode offloads mastering; it does not bypass the editor's
+**15-minute, mono/stereo, 384 MiB source/decoded-PCM limits**. Available device
+memory can impose a lower limit. This keeps the original and master aligned in
+A/B playback. Larger material still belongs in the desktop app for now.
 
 ## Public beta connection
 
 The selected beta path is **Tailscale Funnel**, with a Tailscale-provided HTTPS
 hostname and its non-configurable bandwidth limits. This requires no VPS.
 The API origin is `https://slimeybeats-preview.tailf8de2d.ts.net`.
-The public website remains the entry point; browser upload consent names the
+The public website remains the entry point; the switch info panel names the
 actual processing endpoint. The dedicated connector uses userspace networking,
 with DNS/routing changes and Tailscale SSH disabled. It exposes only the private
 mastering HTTP service, never the desktop MCP server. Actual account, endpoint,
@@ -99,53 +109,48 @@ A busy response is recoverable; wait before reconnecting. Sessions and audio
 expire within one hour, and service restarts invalidate guest sessions and
 remove temporary jobs. Download your results before leaving the page.
 
-<img src="images/hybrid-server-job.png" width="310" alt="Optional server mastering job with completed MP3, JSON analysis report, expiry and explicit deletion controls">
+The older standalone-job panel capture is historical; the current preview uses
+the top switch and ordinary editor. Current browser validation is recorded below.
+Physical phone listening remains a separate acceptance check.
 
-This actual Chromium capture uses generated test audio and the live public
-Funnel API. It is 390 px wide with a taller documentation viewport to show the
-whole job panel; interaction tests also used 390 × 844. The frontend candidate
-was served at the GitHub preview origin, with no API interception.
-[Full-size job panel](images/hybrid-server-job.png). Physical phone listening
-remains a separate acceptance check.
-
-The browser preview limits each downloaded artifact to **128 MiB**, checking
-both declared size and streamed bytes. Choose MP3 for longer material; a large
-WAV may be unavailable for browser download even when the server job succeeds.
-The upload, decoded-memory and duration limits are separate and appear before
-consent. Local mastering retains its own 15-minute guard.
+The editable master is streamed directly into one bounded float PCM allocation,
+with exact rate, channels and frame-count validation. Headers and trailing WAV
+metadata have a separate 64 KiB allowance. Malformed lengths, nonfinite samples,
+truncation and unsupported formats fail without replacing the current preview.
+This path uses the editor's decoded-PCM budget, not the legacy standalone
+artifact downloader's 128 MiB budget.
 
 ## Files and data flow
 
 | Files | Responsibility |
 | --- | --- |
-| `hybrid/server/config.py`, `requests.py` | Operator configuration, built-in profile/settings allowlist and consent validation |
+| `hybrid/server/config.py`, `requests.py` | Operator configuration, bounded built-in blends/settings/reference projection and job authorization |
 | `hybrid/server/audio_guard.py`, `decoder.py` | Validate WAV layout/frame budget; decode MP3 to a bounded, sanitized WAV |
 | `hybrid/server/processes.py`, `child.py` | Trusted subprocess launch, resource limits, timeout and descendant cleanup |
 | `hybrid/server/storage.py`, `reports.py` | Owned temporary storage and redacted report/artifact publication |
 | `hybrid/server/http_server.py`, `http_auth.py`, `jobs.py`, `worker.py` | Authentication/CORS, sequential upload state and one processing worker |
 | `hybrid/server/__main__.py`, `service.py` | Module entrypoint, server lifecycle and cleanup scheduling |
 | `rust/src/bin/mastercraft_cli.rs`, `rust/src/cli_arguments.rs` | Existing native mastering executable and CLI options |
-| `web/site/hybrid/` | Session-memory token, consent, chunked upload and asynchronous job client |
+| `web/site/hybrid/` | Session-memory token, explicit Master action, chunked PCM upload and streamed editable result |
 | `hybrid/deploy/validate_deployment.py` | Offline, inventory and HTTP-check command entrypoint |
 | `hybrid/deploy/deployment_scaffold.py`, `deployment_inventory.py`, `deployment_health.py` | Separate source, host-prerequisite and bounded network checks |
 
 ```text
-Local browser processing (default; no server upload)
-
-Explicit server submission
-  Browser on GitHub Pages -- HTTPS + bearer --> proposed api.slimedragon.net
-    --> optional invitation/Access edge gate --> cloudflared outbound tunnel
-      --> HTTP 127.0.0.1:8787 Python service
-        --> owned job directory --> validated/sanitized WAV
-          --> fixed native CLI --> output audio + redacted JSON report
-  Browser polls short job requests, then fetches artifacts with Authorization.
+Add audio / Analyze locally
+  Master with Server processing ON
+    --> float WAV + settings + optional reference measurements
+      --> exact Funnel HTTPS origin --> loopback HTTP service
+        --> private job --> bounded native Rust CLI
+      <-- float master + numeric report
+    --> local A/B player / live EQ / WAV or MP3 or ZIP export
+    --> confirmed server deletion (or visible cleanup retry)
 ```
 
-The tunnel branch is a later deployment step. Initial Linux acceptance talks
-directly to loopback. Python supplies HTTP/job supervision, not another DSP
-implementation. Native processing must use a fixed operator-configured
-executable with an argument list and no shell. Requests cannot select executables,
-paths, custom profile files, input URLs or arbitrary CLI flags.
+Python supervises HTTP/jobs rather than duplicating DSP. Native processing uses
+a fixed operator-configured executable, an argument list and no shell. Requests
+cannot select executables, paths, custom profile files, input URLs or arbitrary
+CLI flags. Built-in profile blends and validated reference measurements are
+converted into private native settings files and removed after processing.
 
 ## Preview contract
 
@@ -157,7 +162,7 @@ These are the intended first-preview defaults, checked by the deployment helper:
 | Bind address | `127.0.0.1:8787` |
 | Bearer token | Required environment value `SLIMEYBEATS_HYBRID_TOKEN`, at least 32 printable ASCII characters; generate a random value, not a memorable phrase |
 | Allowed browser origin | `SLIMEYBEATS_HYBRID_ORIGINS=https://slimedragonair.github.io` |
-| Operations and output | `master`; one of `wav24` or `mp3` per job |
+| Operations and output | `master`; one of `wav24`, `wav32f` or `mp3` per job; the editor uses `wav32f` |
 | Input | PCM/float RIFF WAV or MP3 only |
 | Upload body | At most 1 MiB per append request; 512 MiB total uploaded bytes |
 | Processing | One heavy worker; native CLI `--threads 4`; no host-wide thread-pool default |
@@ -168,7 +173,7 @@ These are the intended first-preview defaults, checked by the deployment helper:
 An origin has no URL path or trailing slash. Both the main app and
 `/SlimeyBeats-EZ-Master/current-work/` share the origin above. CORS is an exact
 allowlist with no credentialed-cookie mode; it is not an authentication mechanism.
-The browser API CSP target is `connect-src 'self' https://api.slimedragon.net`.
+The browser CSP pins self, the exact Funnel origin and the reserved legacy `api.slimedragon.net` origin.
 Do not broaden it to arbitrary HTTPS hosts, private addresses or wildcards. A
 loopback test page needs its own local test configuration; the public Pages
 build is not a direct route to a private LAN server.
@@ -183,7 +188,7 @@ replaying it. Do not wait for an entire master within a single HTTP response.
 The token stays in browser session memory and is discarded on disconnect/reload.
 Do not place it in static HTML/JS, build variables, browser storage, recovery,
 URLs, download links or logs. Download audio/reports through authenticated fetch.
-The first bearer is shared owner/invite access, **not per-user job isolation**;
+An owner/invite bearer is shared privileged access, **not per-user job isolation**;
 any holder can operate on jobs exposed by that preview instance. Keep invitations
 narrow and rotate the token when revoking access.
 
@@ -318,7 +323,7 @@ the loopback/invite preview while that integration remains unverified.
    and run the same HTTPS/browser checks. Keep the backend bound to loopback.
    Disable caching for API/job/artifact responses; do not enable a cache-everything
    rule for this hostname. No static artifact contains credentials or recordings.
-8. Browser acceptance must confirm the destination/consent step, session-only token,
+8. Browser acceptance must confirm the top switch, explicit normal Master action, session-only token,
    expected CSP/CORS, chunk progress, polling and authenticated downloads on the
    intended devices. Record actual deployment separately from source readiness.
 
@@ -432,3 +437,28 @@ original session is valid whenever possible.
 [cloudflare-routing]: https://developers.cloudflare.com/tunnel/concepts/routing/
 [tailscale-funnel]: https://tailscale.com/docs/features/tailscale-funnel
 [tailscale-free]: https://tailscale.com/docs/account/manage-plans/free-plans-discounts
+
+
+## Shared editor validation — November 16, 2026
+
+The first integrated candidate passed **93 hybrid Node tests**, **31 browser-DSP
+unit tests**, **24 web build/documentation tests**, and **56 MCP tests** (one
+existing optional other-volume test skipped). The native backend passed **72
+Linux tests**; Windows passed 71 with one Unix-only skip. Twelve additional
+native parity repeats passed for settings, blend/reference matching and float
+geometry. The CLI reference-analysis path matched reference-WAV output PCM.
+
+Chromium passed **21/21 end-to-end checks** against a real native CLI fixture:
+normal import/analysis/master controls in both modes; shared settings/reference;
+AudioWorklet EQ response; WAV/MP3/ZIP outputs; unchanged original; re-mastering;
+cancellation/outage behavior; and local recovery. Layout captures at 320, 390
+and 1440 px use synthetic audio. The fixture adapts only the exact API transport;
+it does not simulate DSP or establish public connectivity.
+
+Separately, the deployed Funnel endpoint completed an actual public job with a
+profile blend, reference measurements, custom target, ceiling and intensity.
+The float result loaded into the normal editor and exported through its normal
+WAV and MP3 controls. Recovery and additional browser-engine results are being
+checked and will be recorded with the final preview checkpoint. Physical
+Android/iPhone listening, long-track memory and network resilience remain
+unqualified; synthetic-sink and layout checks do not establish those results.

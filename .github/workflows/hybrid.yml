@@ -32,5 +32,5 @@ jobs:
           python3 -m unittest discover -s hybrid/deploy/relay/tests -p 'test_*.py'
           python3 hybrid/deploy/tailscale/funnel_scaffold.py
           python3 hybrid/deploy/validate_deployment.py offline
-      - name: Check explicit browser consent and request lifecycle
+      - name: Check editor mastering intent and request lifecycle
         run: node --test web/site/hybrid/*.test.mjs

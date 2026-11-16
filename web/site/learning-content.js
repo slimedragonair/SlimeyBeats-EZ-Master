@@ -5,7 +5,7 @@ export const TOPICS = [
 ];
 // The shared guide also serves the native app. Qualify browser-only privacy at
 // rendering time instead of changing the desktop's local-workflow promises.
-export const BROWSER_PRIVACY_NOTE = "Local mastering keeps audio on your device by default. Use server processing checks availability without audio; while enabled and visible, checks repeat every 30 seconds. Where guest access is enabled, opting in or choosing Check & connect requests a guest credential kept only in this tab. Operator address and token fields stay in advanced settings. Your current main file can be reused, but audio and its filename are sent only after destination and temporary-storage review, informed consent, and Upload & master on server. Switching off keeps access to existing jobs; Disconnect or leaving clears credentials. Public server availability is not guaranteed. There is no automatic local or server fallback. The tour never connects, uploads, starts processing or saves audio for you.";
+export const BROWSER_PRIVACY_NOTE = "Audio stays on this device by default. Want server mastering? Turn on the top Server processing switch, then use the usual Master button. The result opens in the same player and live EQ; Export saves it when you are ready. The info icon explains uploads and temporary storage. This tour never connects or processes audio for you.";
 export function textElement(tag, text, className) {
     const node = document.createElement(tag);
     node.textContent = text;

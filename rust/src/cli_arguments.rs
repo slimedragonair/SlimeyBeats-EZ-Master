@@ -28,8 +28,11 @@ pub struct Arguments {
     pub suffix: Option<String>,
     #[arg(long)]
     pub settings: Option<PathBuf>,
-    #[arg(long)]
+    #[arg(long, conflicts_with = "reference_analysis")]
     pub reference: Option<PathBuf>,
+    /// Read a bounded browser Analysis JSON instead of decoding a reference WAV.
+    #[arg(long, conflicts_with = "reference")]
+    pub reference_analysis: Option<PathBuf>,
     #[arg(long)]
     pub match_strength: Option<f64>,
     #[arg(long)]

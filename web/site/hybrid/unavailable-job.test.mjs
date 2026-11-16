@@ -61,7 +61,7 @@ for (const [name, operation] of Object.entries(operations)) for (const status of
         behavior.failure = status; await operation(session);
         assert.equal(session.job, previous); assert.equal(session.source, source);
         assert.equal(session.unavailableJobStatus, status); assert.equal(session.canForgetUnavailableJob, true);
-        assert.match(availabilityDetail(session, controller), /Forget unavailable job.*does not confirm server deletion/);
+        assert.match(availabilityDetail(session, controller), /Retry.*does not confirm server deletion/);
         await controller.check();
         assert.equal(calls.filter((call) => call.url.endsWith("/v1/session")).length, 1);
         const before = calls.length;
