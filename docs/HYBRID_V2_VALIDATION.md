@@ -1,0 +1,85 @@
+# Hybrid Studio v2 validation — November 16, 2026
+
+The v2 backend is deployed behind the existing Funnel endpoint. The ordinary
+editor uses server projects for original-file import, analysis, mastering,
+supported Studio processing and full-resolution export. Local processing remains
+the default. This record separates native tests, owned HTTP fixtures, the public
+service and physical-device acceptance.
+
+## Implemented and checked
+
+| Check | Result and scope |
+|---|---|
+| Backend on Linux | **114 tests passed** in GitHub Actions at `14aaf57`; shared queue, ownership, range downloads, limits, expiry/cancellation, immutable banks, reference selection, typed analysis, history and actual native codec integration |
+| Windows backend | 107 of 111 tests passed, four platform-specific checks skipped; five focused report/new-bank regression tests subsequently passed with the actual worker |
+| Native worker | Windows/Linux release builds, strict Clippy and native/HTTP fixtures passed; [worker qualification](../rust/src/hybrid_worker/VALIDATION.md) retains exact scope and hashes |
+| Full browser workflow | Chromium 143 and Linux WebKit 26: **18 checks each**; Firefox 144: **17 checks**, plus **13 targeted stream checks** |
+| Preview audio and live controls | Captured output verified live EQ level change, stopped silence and live stem mutes; original/full-bank A/B, region edits, exact edited-bank PCM, Undo/Redo and full-mix exports were checked |
+| No full browser decode in server mode | Tests reject full-song `decodeAudioData`, media Blob/object-URL paths and heavy browser audio jobs; playback streams native media through authenticated Range requests |
+| Downloads | WAV, MP3 and session ZIP passed actual browser downloads and artifact hash checks; full-resolution server audio is distinct from the compressed listening preview |
+| MCP | Seven focused help tests and actual 45-tool stdio protocol verification passed; public remote processing is not exposed through the local companion |
+| Published local mode | Actual hosted build `276a8c8` / runtime `f1e9f9f53a9f4cc1` passed touch import, Master, live EQ, MP3/report/ZIP and 320/390 CSS-pixel layout checks, with only same-origin static GETs |
+| Engine guidance | Source candidate after that build passed native-backed import/Master, local/server label changes, retained streamed-source export guidance and 320/390-pixel layout without page errors |
+| Long public song | **In progress:** an 18-minute, 48 kHz stereo MP3 imported successfully; a harness metadata-observation failure prevented qualification of its later actions in that attempt |
+
+The browser suites use real native DSP in an owned loopback service. Their
+fixture changes only the copied API-origin pin and supplies a streaming HTTP
+proxy; it does not simulate DSP replies. The generated classic Service Worker
+preserves shared policy sources and supports Firefox 144, whose module Service
+Worker evaluation failed. Credentials remain in tab memory, including across
+native attachment downloads; two workspace listeners do not close each other's
+message ports.
+
+## Actual deployed service
+
+The deployed Linux worker SHA-256 is
+`37fd55fc09201f0d4397ecd784c03bf1fbf65c2e05921c89f2f674247ec2c8ff`.
+Backend source was checkpointed at `24e5b3d`. The service uses eight worker
+threads, CPU quota 800%, memory high 24 GiB, memory max 32 GiB and 256 tasks.
+One heavy worker is shared between v1 and v2. A quota is a bound, not a promise
+that every input admitted by duration/byte limits will finish.
+
+**14 actual public-service checks passed** on one deterministic 24-second,
+44.1 kHz stereo fixture. These covered original decode/identity, authenticated
+preview Range, two/four neural stems, voice cleanup, issue scan, spectral repair,
+region editing, current bank controls, WAV/MP3/ZIP downloads and cancellation.
+Every output retained its geometry and finite PCM; complete mixes were compared
+with their independently decoded stem sums. The original stayed byte-identical.
+
+Native/model processes were observed under the dedicated service identity and
+configured limits. Cancellation during real neural work preserved the previous
+revision and reaped the owned model/native child processes. The service remained
+active. The one owned guest project was deleted; a subsequent GET returned 404.
+No unrelated project, desktop installation or Funnel configuration was changed.
+
+The observed two-stem command took 78.5 seconds including queueing, with its
+first running observation at 56 seconds; four-stem took 26.4 seconds. These are
+qualification observations, not isolated inference benchmarks or a latency SLA.
+
+## Speed and admission
+
+See the [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md) for all
+warmed samples, hardware, inputs, settings and independent PCM comparisons.
+On a 60-second fixture, median Master worker wall time was **9.873 seconds in
+the Ryzen 9 5950X desktop browser** versus **6.499 seconds on the eight-thread
+EPYC server**: about **1.52x throughput**. Analyze was 1.239 versus 1.061 seconds.
+The 30-second Master comparison was about 1.32x; short Analyze was effectively
+tied. These timings exclude internet upload, queue, preview creation and download.
+They do not establish a physical-phone multiplier or a whole-workflow speedup.
+
+Source admission defaults to one hour / 2 GiB encoded and decoded per input;
+neural separation separately retains a 512 MiB decoded limit. The worker's
+one-hour qualification used 8 kHz mono with `safety:false` and `intensity:0`;
+it is not a maximum-memory, default-settings, 48 kHz stereo qualification.
+
+## Limits still requiring device/workload acceptance
+
+- Physical iPhone/Android audio, storage behavior and sustained memory use.
+- Subjective isolation/mastering quality, headphones/speakers and GPU inference.
+- Maximum 2 GiB jobs, large simultaneous live stream banks, concurrent-user
+  endurance, network interruption/resume and long-session stability.
+- A temporary server project is not local crash recovery. Export/download a
+  session ZIP before leaving; credentials and remote undo history are not saved.
+
+No source limits were increased by downsampling or truncating originals. The
+stable main web app and Hotfix4 desktop installer remain separate releases.

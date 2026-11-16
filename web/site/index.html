@@ -100,7 +100,7 @@
                 <aside class="library panel" aria-label="Your track">
                     <div class="eyebrow">✦ Your session</div>
                     <h2>Your sound. <br />Your space.</h2>
-                    <p class="muted">
+                    <p class="muted" id="processing-privacy-note">
                         One track at a time.<br />Local mastering keeps audio on your device.
                     </p>
                     <button id="add" class="primary wide">
@@ -131,7 +131,7 @@
                         ><span
                             >WAV, MP3, FLAC, M4A<br />and browser-supported
                             audio</span
-                        ><small>Mono / stereo · Up to 15 min</small>
+                        ><small id="drop-limits">Mono / stereo · Up to 15 min</small>
                     </button>
                     <div id="track-card" class="track-card" hidden>
                         <span class="eyebrow">Current track</span
@@ -544,7 +544,7 @@
                             ?
                         </button></label
                     >
-                    <p class="small">
+                    <p class="small" id="export-help">
                         Export uses the decoded sample rate. MP3 is lossy and can add short padding;
                         use WAV for aligned stems and exact loops. Browser decoding may resample your input.
                     </p>

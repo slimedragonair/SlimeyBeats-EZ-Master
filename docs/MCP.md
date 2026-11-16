@@ -1,6 +1,6 @@
 # AI assistant connection — desktop MCP preview
 
-**Hybrid v2 — source candidate:** `get_help(topic="hybrid")` explains the separate browser/server workflow: original-file imports upload audio; Analyze, Master, supported heavy Studio tools and full-resolution exports run remotely, with 192 kbps listening previews by default. Live deployment verification is pending. This companion remains local stdio, keeps 45 tools and does not upload audio or forward jobs to that service. [Workflow and limits](HYBRID_STUDIO.md) · [v2 protocol](HYBRID_REMOTE_PROTOCOL.md) · [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md). Hotfix4 binaries retain their shipped help; source guidance does not update an installed companion.
+**Hybrid v2 — development preview:** `get_help(topic="hybrid")` explains the separate browser/server workflow: original-file imports upload audio; Analyze, Master, supported heavy Studio tools and full-resolution exports run remotely, with 192 kbps listening previews by default. Deployment checks are recorded in [Hybrid v2 validation](HYBRID_V2_VALIDATION.md). This companion remains local stdio, keeps 45 tools and does not upload audio or forward jobs to that service. [Workflow and limits](HYBRID_STUDIO.md) · [v2 protocol](HYBRID_REMOTE_PROTOCOL.md) · [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md). Hotfix4 binaries retain their shipped help; source guidance does not update an installed companion.
 
 SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **45 tools in Hotfix4 and current source builds** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**, build revision **2026111501**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
@@ -10,7 +10,7 @@ The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeat
 
 ## Browser server mode and the local MCP boundary
 
-The v2 browser candidate keeps full-resolution originals and editable audio on
+The v2 browser preview keeps full-resolution originals and editable audio on
 the server. New imports upload the original file instead of requiring whole-track
 phone decoding; reference imports upload reference audio. Supported Studio tools
 include bank import/mixing, voice cleanup, spectral/time edits, Doctor scans/repairs,

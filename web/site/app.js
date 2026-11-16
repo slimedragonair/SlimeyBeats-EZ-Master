@@ -1,6 +1,5 @@
 import { DspClient, interleave, toBuffer } from "./dsp-client.js";
 import { createPlayerRouter } from "./audio/player-router.js";
-import { limitsSummary } from "./audio/import-validation.js";
 import { wireHelp } from "./help.js";
 import {
     $,
@@ -187,7 +186,7 @@ function syncControls() {
         $("session-state").textContent =
             "Master preview ready · Listen, tweak, then export";
     jobFeedback?.refresh();
-    serverProcessing.renderMainControls({ locked });
+    serverProcessing.renderMainControls({ locked, remoteSource: player.isRemote, localLimits: player.local.importLimits });
 }
 async function job(action) {
     if (busy || restoring) return;
@@ -836,7 +835,7 @@ try {
         );
     const initial = await dsp.call("init");
     player.importLimits = Object.freeze(initial.import_limits);
-    $("import-limits").textContent = limitsSummary(player.importLimits);
+    serverProcessing.renderMainControls({ localLimits: player.local.importLimits });
     settings = initial.settings;
     defaults = structuredClone(settings);
     for (const id of ["profile", "blend-profile"]) {

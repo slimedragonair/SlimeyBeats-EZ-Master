@@ -1,7 +1,10 @@
+import { renderEngineGuidance } from "./engine-guidance.js";
+
 // Processing selection is independent of the editor: both engines feed the
 // same immutable-source / editable-master workflow.
 const listeners = new Set();
 let controller, runMaster, cancelMaster, locked = false;
+let localLimits, remoteSource = false;
 
 export const serverProcessing = {
     get enabled() { return !!controller?.enabled; },
@@ -13,8 +16,13 @@ export const serverProcessing = {
     subscribe(listener) { listeners.add(listener); },
     changed() { for (const listener of listeners) listener(); this.renderMainControls(); },
     renderMainControls(options) {
-        if (options) locked = !!options.locked;
+        if (options) {
+            if (Object.hasOwn(options, "locked")) locked = !!options.locked;
+            if (Object.hasOwn(options, "localLimits")) localLimits = options.localLimits;
+            if (Object.hasOwn(options, "remoteSource")) remoteSource = options.remoteSource;
+        }
         if (typeof document === "undefined") return;
+        renderEngineGuidance({ server: this.enabled, remoteSource, localLimits });
         // Never override the editor's file, settings, transport or export locks.
         const toggle = document.getElementById("hybrid-enabled");
         if (toggle) toggle.disabled = locked;

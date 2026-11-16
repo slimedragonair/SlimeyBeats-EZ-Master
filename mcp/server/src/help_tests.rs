@@ -51,7 +51,7 @@ fn hybrid_help_explains_expired_access_without_replaying_audio() {
 #[test]
 fn hybrid_help_separates_source_status_and_local_mcp_transport() {
     let help = get(Topic::Hybrid);
-    assert_eq!(help["source_status"]["phase"], "source_candidate");
+    assert_eq!(help["source_status"]["phase"], "development_preview");
     assert_eq!(help["source_status"]["browser_api_version"], 2);
     assert_eq!(help["source_status"]["deployment_verified"], false);
     assert_eq!(help["remote_processing_from_mcp"], false);

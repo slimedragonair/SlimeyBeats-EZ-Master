@@ -26,7 +26,18 @@ Turning autosave off keeps existing copies. **Stop autosave and clear this windo
 
 ![Opt-in browser recovery and storage choices](images/recovery-web.png)
 
-Open **Help → Recovery**. **Enable local recovery** explicitly permits audio/settings storage in this site's IndexedDB, beyond tab lifetime. Interface preferences remain separate in localStorage. No recovery audio is uploaded. People using the same browser profile may be able to recover it; use the explicit disable/delete controls on shared devices.
+Open **Help → Recovery**. **Enable local recovery** explicitly permits local-workspace audio/settings storage in this site's IndexedDB, beyond tab lifetime. Interface preferences remain separate in localStorage. Recovery capture/restoration does not itself upload audio. People using the same browser profile may be able to recover it; use the explicit disable/delete controls on shared devices.
+
+Optional **Server processing** in the `current-work` v2 preview has a separate
+boundary: requested imports or migration upload original audio for native DSP,
+while the browser streams listening previews. Remote full-resolution projects
+are not downloaded into IndexedDB or included in local recovery. Tokens remain
+in tab memory, not recovery files, preferences or URLs. Save explicit server
+exports/session ZIPs before leaving or expiry; these keep downloaded results and
+metadata, not server credentials or a complete original/reference and undo-history
+backup. Keep source files separately. The server's one-hour / 2 GiB input
+defaults and separate 512 MiB neural cap do not enlarge local recovery budgets.
+[Hybrid Studio workflow, retention and cleanup](HYBRID_STUDIO.md).
 
 The browser keeps three points per tab, at most **12 points / 256 MiB globally**, with a **128 MiB snapshot budget**. Storage quota, browser cleanup and device memory can impose lower practical limits. Hitting a recovery limit pauses saves, not importing, mastering, EQ or exports. The recovery panel explains the failure. Audio storage stays off until enabled.
 

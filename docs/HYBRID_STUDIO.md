@@ -1,10 +1,11 @@
-# Hybrid Studio v2 — source candidate
+# Hybrid Studio v2 — development preview
 
-**Deployment verification is pending.** This guide describes the full v2
-source candidate, not a verified published browser/backend combination. Check
-the browser build ID, the running service's authenticated `/v2/capabilities`
-and the parent's deployment record. An older v1 Master-only deployment is not
-v2 qualification. Source/help changes do not update installed desktop packages.
+The v2 backend is deployed and the development browser preview is published on
+`current-work`. Native-backed workflows passed Chromium, Firefox and Linux WebKit;
+actual public-service neural tools, exports and cancellation passed separately.
+Read the [validation record and remaining device/workload gaps](HYBRID_V2_VALIDATION.md)
+and check the displayed browser build. Source/help changes do not update an
+installed Hotfix4 desktop package or merge this preview into the main web app.
 
 The candidate keeps **Add audio → Analyze → Master → live EQ → Export** and
 adds server-backed Studio. In server mode, import uploads the **original file**;
@@ -16,7 +17,7 @@ remains the default. This replaces the old bridge's Master-only decoded upload.
 [Matched Analyze/Master benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md) ·
 [CPU neural runtime checks](../hybrid/deploy/remote-tools/MEASUREMENTS.md)
 
-## Use the candidate
+## Use the preview
 
 1. Turn on **Server processing**. Availability/authentication checks do not
    upload audio or start a master. If the selected service lacks v2, keep local
@@ -154,7 +155,7 @@ desktop-PC browser/native worker Analyze/Master, with separate engine/wall/trans
 times, every run, hashes and machine details. It is not deployed HTTP/Funnel
 end-to-end latency or physical iPhone speed qualification. [Neural checks](../hybrid/deploy/remote-tools/MEASUREMENTS.md)
 prove real two/four-stem synthetic execution, not subjective isolation quality.
-Earlier v1 Master-only public WAV24/MP3 checks remain historical. The parent must
-verify the final published browser/backend combination, authenticated streams,
-downloads, isolation, quotas and cancellation before marking v2 deployed.
+Earlier v1 Master-only public WAV24/MP3 checks remain historical. Current
+[v2 checks](HYBRID_V2_VALIDATION.md) distinguish native/fixture acceptance from
+actual public transport, longer songs and hosted mobile layouts.
 Physical-device memory/listening and long-session behavior remain separate work.
