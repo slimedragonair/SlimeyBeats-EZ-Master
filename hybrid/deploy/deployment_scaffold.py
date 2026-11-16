@@ -5,6 +5,8 @@ from __future__ import annotations
 import configparser
 from pathlib import Path
 
+from cloudflare_scaffold import check_cloudflare_scaffold
+
 
 def check_scaffold(directory: Path) -> dict[str, bool]:
     unit = configparser.ConfigParser(interpolation=None, strict=False)
@@ -17,13 +19,11 @@ def check_scaffold(directory: Path) -> dict[str, bool]:
             (directory / "slimeybeats-hybrid.env.example").read_text(encoding="utf-8").splitlines()
             if line.strip() and not line.lstrip().startswith("#")
         )
-        tunnel = [line.strip() for line in (directory / "cloudflared.yml.example").read_text(encoding="utf-8").splitlines()
-                  if line.strip() and not line.lstrip().startswith("#")]
         service = unit["Service"]
         unit_section = unit["Unit"]
     except (OSError, ValueError, KeyError, configparser.Error):
         return {"source_examples_parse": False}
-    return {
+    checks = {
         "source_examples_parse": True,
         "dedicated_user_and_group": service.get("User") == service.get("Group") == "slimeybeats-hybrid",
         "fixed_python_entrypoint": service.get("ExecStart") ==
@@ -50,11 +50,6 @@ def check_scaffold(directory: Path) -> dict[str, bool]:
         "/opt/slimeybeats-hybrid/repository/rust/target/release/slimeybeats-ez-master-cli",
         "explicit_codec_path_and_pool": "Environment=PATH=/usr/local/bin:/usr/bin:/bin" in unit_text
         and "Environment=RAYON_NUM_THREADS=4" in unit_text,
-        # This checks the shipped subset, not arbitrary YAML. cloudflared validates the real file.
-        "tunnel_ingress_subset": tunnel == [
-            "tunnel: REPLACE_WITH_TUNNEL_UUID",
-            "credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_UUID.json",
-            "ingress:", "- hostname: api.slimedragon.net",
-            "service: http://127.0.0.1:8787", "- service: http_status:404",
-        ],
     }
+    checks.update(check_cloudflare_scaffold(directory))
+    return checks

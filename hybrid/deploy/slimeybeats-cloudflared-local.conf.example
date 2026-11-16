@@ -1,0 +1,8 @@
+# Optional alternative for a LOCALLY managed named tunnel; do not mix modes.
+# Operator destination: slimeybeats-cloudflared.service.d/local.conf
+[Service]
+LoadCredential=
+ExecStartPre=
+ExecStartPre=/usr/local/libexec/cloudflared tunnel --config /etc/cloudflared/config.yml ingress validate
+ExecStart=
+ExecStart=/usr/local/libexec/cloudflared tunnel --no-autoupdate --loglevel info --metrics 127.0.0.1:20241 --config /etc/cloudflared/config.yml run

@@ -42,6 +42,31 @@ class DocumentationPayloadTests(unittest.TestCase):
         self.assertNotIn('](../rust/', converted)
         self.assertIn('separate source package', converted)
 
+    def test_offline_hybrid_source_paths_preserve_workflow_audio_and_image_links(self):
+        source = ('[Guide](USER_GUIDE.md#server) [Audio](../examples/audio/demo-input.wav) '
+                  '![Status](images/server.png) [Backend](../hybrid/server/README.md) '
+                  '[Session](../hybrid/server/guest_sessions.py) '
+                  '[Relay](../hybrid/deploy/relay/Caddyfile.example) '
+                  '[Evidence](../hybrid/deploy/cloudflare-source-findings.json) '
+                  '[Tests](../hybrid/tests/test_public_access.py)')
+        converted = offline_guide(source)
+        for relative in ('server/README.md', 'server/guest_sessions.py',
+                         'deploy/relay/Caddyfile.example', 'deploy/cloudflare-source-findings.json',
+                         'tests/test_public_access.py'):
+            self.assertIn('`hybrid/' + relative + '`', converted)
+        self.assertNotIn('](../hybrid/', converted)
+        self.assertEqual(converted.count('separate source package'), 1)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for relative in ('docs/USER_GUIDE.md', 'docs/images/server.png', 'Examples/demo-input.wav'):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'offline documentation fixture')
+            guide = root / 'docs/HYBRID_STUDIO.md'
+            guide.write_text(converted, encoding='utf-8')
+            self.assertEqual(verify_local_links([guide], root), 3)
+            self.assertFalse((root / 'hybrid').exists())
+
 
 class PublicDocumentationPackagingTests(unittest.TestCase):
     NEW_GUIDES = (
@@ -118,6 +143,24 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
                   *(self.runtime / 'docs' / name for name in GUIDES)]
         self.assertGreater(verify_local_links(guides, self.runtime), 0)
 
+    def test_reviewed_hybrid_deployment_exceptions_ship_verbatim(self):
+        expected = {
+            'hybrid/deploy/cloudflare-source-findings.json',
+            'hybrid/deploy/slimeybeats-cloudflared.sysusers.conf',
+            'hybrid/deploy/relay/home-relay.sysusers.conf',
+            'hybrid/deploy/relay/vps-tunnel.sysusers.conf',
+        }
+        for relative in expected:
+            with self.subTest(path=relative):
+                self.assertEqual((self.source / relative).read_bytes(),
+                                 (self.repository / relative).read_bytes())
+        exceptions = {
+            path.relative_to(self.source).as_posix()
+            for path in (self.source / 'hybrid').rglob('*')
+            if path.is_file() and (path.suffix.lower() == '.json' or path.name.endswith('.sysusers.conf'))
+        }
+        self.assertEqual(exceptions, expected)
+
     def test_unreviewed_docs_images_and_private_payloads_stay_excluded(self):
         checkout = self.root / 'checkout'
         shutil.copytree(self.source, checkout)
@@ -128,6 +171,15 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
             'rust/tools/__pycache__/private.pyc', 'mastercraft/__pycache__/private.py',
             'hybrid/environment', 'hybrid/.env', 'hybrid/jobs/private.wav',
             'hybrid/server/operator.token', 'hybrid/deploy/credentials.json',
+            'hybrid/server/session.json', 'hybrid/tests/private.json',
+            'hybrid/deploy/operator.JSON', 'hybrid/deploy/unreviewed.sysusers.conf',
+            'hybrid/deploy/relay/credentials.json', 'hybrid/deploy/tailscale/device-state.json',
+            'hybrid/server/cloudflare-source-findings.json',
+            'hybrid/deploy/relay/cloudflare-source-findings.json',
+            'hybrid/tests/home-relay.sysusers.conf',
+            'hybrid/deploy/home-relay.sysusers.conf',
+            'hybrid/deploy/tailscale/vps-tunnel.sysusers.conf',
+            'hybrid/server/slimeybeats-cloudflared.sysusers.conf',
         ]
         for relative in private_paths:
             path = checkout / relative

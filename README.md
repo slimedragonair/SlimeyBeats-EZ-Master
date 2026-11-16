@@ -10,7 +10,7 @@
 
 **Local song mastering. Real-time EQ. Your music stays yours.**
 
-**Hybrid Studio preview (`current-work`):** open **Overview → Server studio (optional preview)** for explicitly consented WAV/MP3 uploads, queued native mastering, audio/JSON downloads and deletion. Browser processing remains local by default. The private Ubuntu service has passed real jobs, including an 18-minute synthetic mono fixture; public HTTPS/domain activation is still pending. This first preview is owner-only, with a 128 MiB browser download budget; longer WAVs may need MP3 or desktop. MCP stays local over stdio; `get_help(topic="hybrid")` explains the boundary. [Setup, limits and validation](docs/HYBRID_STUDIO.md). The released desktop installer remains Hotfix4.
+**[Hybrid Studio beta — try the server switch](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/):** **Use server processing** selects optional remote mastering; availability labels explain a down, disabled or busy server. Switching on never uploads audio. Select a WAV/MP3, review the destination/settings and consent before submitting. Guest sessions keep each visitor's jobs separate; owner-token controls are advanced-only. Local processing remains the default, and existing local playback/exports stay identified as local. The live Tailscale Funnel connection passed public WAV24/MP3, report, isolation and deletion checks. This small beta has shared connection/rate limits and temporary, one-hour jobs; download before leaving. Browser downloads have a 128 MiB budget; choose MP3 for longer material. [Setup, limits and validation](docs/HYBRID_STUDIO.md). MCP stays local over stdio. The released desktop installer remains Hotfix4.
 
 SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Linux source support, and a private browser preview. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
 
@@ -199,7 +199,11 @@ The browser screenshot above uses generated test audio in the current app. [Open
 
 **Phone layout:** Re-master and Export stay separate, and playback remains available while scrolling. The capture uses generated test audio. [Open it at full size](docs/images/web-phone-master.png). This is browser emulation, not physical iPhone/Android qualification.
 
-By default, audio and measurements stay in tab memory until downloaded. Opting into local recovery stores audio/settings in this site's IndexedDB beyond tab lifetime, with explicit disable/delete controls and separate size limits. There are no audio uploads, accounts, analytics or server DSP. Without a completed recovery point, reloading/closing the tab discards the session; export important work first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
+By default, audio and measurements stay in tab memory until downloaded. Opting into local recovery stores audio/settings in this site's IndexedDB beyond tab lifetime, with explicit disable/delete controls and separate size limits. Local mode performs no audio uploads or server DSP. The separate hybrid beta requires explicit upload consent and uses temporary guest sessions; local recovery does not recover server jobs. Without a completed recovery point, reloading/closing the tab discards the local session; export important work first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
+
+<img src="docs/images/hybrid-server-job.png" width="270" alt="Hybrid beta completed MP3 job with report downloads, expiry and explicit server-file deletion">
+
+**Optional hybrid beta:** an actual public HTTPS job using generated test audio. [Open the full-size capture](docs/images/hybrid-server-job.png) · [Try the server switch in current-work](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) · [Privacy, shared beta limits and validation](docs/HYBRID_STUDIO.md). This is remote mastering, with separate downloads; server stem separation and wider Studio parity are future work.
 
 ## Evidence and limits
 

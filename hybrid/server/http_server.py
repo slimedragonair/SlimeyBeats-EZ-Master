@@ -1,4 +1,4 @@
-"""Small, bounded HTTP server for the private version-one API."""
+"""Bounded version-one API with explicit owner and optional guest principals."""
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -9,6 +9,7 @@ import threading
 from urllib.parse import parse_qs, urlsplit
 
 from .errors import ApiError
+from .client_identity import check_host, client_key
 from .http_auth import ALLOW_HEADERS, ALLOW_METHODS, allowed_origin, authenticate, preflight
 from .http_deadline import DeadlineReader
 
@@ -90,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
         self.json_response(417, {"error": "Expect is not supported"})
         return False
 
-    def headers_for(self, status, length, mime="application/json", filename=None, cors=False):
+    def headers_for(self, status, length, mime="application/json", filename=None, cors=False, retry_after=None):
         self.connection.settimeout(self.server.config.request_timeout_seconds)
         self.send_response(status)
         self.send_header("Content-Type", mime)
@@ -104,7 +105,7 @@ class Handler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin") if hasattr(self, "headers") else None
         if origin in self.server.config.origins:
             self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Access-Control-Expose-Headers", "Content-Disposition")
+            self.send_header("Access-Control-Expose-Headers", "Content-Disposition, Retry-After")
             if cors:
                 self.send_header("Access-Control-Allow-Methods", ALLOW_METHODS)
                 self.send_header("Access-Control-Allow-Headers", ALLOW_HEADERS)
@@ -113,11 +114,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("WWW-Authenticate", "Bearer")
         if filename:
             self.send_header("Content-Disposition", 'attachment; filename="' + filename + '"')
+        if retry_after is not None:
+            self.send_header("Retry-After", str(retry_after))
         self.end_headers()
 
-    def json_response(self, status, value, cors=False):
+    def json_response(self, status, value, cors=False, retry_after=None):
         data = b"" if status == 204 else json.dumps(value, allow_nan=False, separators=(",", ":")).encode("utf-8")
-        self.headers_for(status, len(data), cors=cors)
+        self.headers_for(status, len(data), cors=cors, retry_after=retry_after)
         self.wfile.write(data)
 
     def body(self, maximum, json_body=False):
@@ -144,8 +147,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def dispatch(self):
         try:
+            check_host(self)
             allowed_origin(self)
-            if not self.path.startswith("/") or self.path.startswith("//"):
+            if (not self.path.startswith("/") or self.path.startswith("//")
+                    or self.requestline.split()[1] != self.path):
                 raise ApiError(400, "Invalid request target")
             parsed = urlsplit(self.path)
             if parsed.fragment or parsed.scheme or parsed.netloc:
@@ -160,8 +165,21 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/health" and not parsed.query and self.command == "GET":
                 self.json_response(200, {"status": "up"})
                 return
+            if self.path == "/v1/status" and self.command == "GET":
+                self.json_response(200, self.server.store.public_status())
+                return
+            if self.path == "/v1/session" and self.command == "POST":
+                if not self.server.config.public_enabled:
+                    raise ApiError(403, "Public guest access is disabled")
+                if not allowed_origin(self):
+                    raise ApiError(403, "Guest sessions require a configured web origin")
+                key = client_key(self)
+                if self.body(16384, json_body=True) != {}:
+                    raise ApiError(400, "Session accepts an empty JSON object")
+                self.json_response(201, self.server.store.sessions.mint(key))
+                return
             if path == "/v1" or path.startswith("/v1/"):
-                authenticate(self)
+                principal = authenticate(self)
             else:
                 raise ApiError(404, "Endpoint not found")
             if path == "/v1/capabilities" and not parsed.query and self.command == "GET":
@@ -172,33 +190,37 @@ class Handler(BaseHTTPRequestHandler):
                 if len(keys) > 1:
                     raise ApiError(400, "Only one Idempotency-Key is accepted")
                 value = self.body(16384, json_body=True)
-                self.json_response(201, self.server.store.create(value, keys[0] if keys else None))
+                self.json_response(201, self.server.store.create(value, keys[0] if keys else None,
+                                                                principal=principal))
                 return
             match = JOB_ROUTE.fullmatch(path)
             if not match:
                 raise ApiError(404, "Endpoint not found")
             job_id, action, artifact_id = match.groups()
             store = self.server.store
+            store.snapshot(job_id, principal=principal)
             if action == "upload" and self.command == "PUT":
                 query = parse_qs(parsed.query, keep_blank_values=True)
                 if set(query) != {"offset"} or len(query["offset"]) != 1 or not re.fullmatch(r"[0-9]{1,12}", query["offset"][0]):
                     raise ApiError(400, "One nonnegative upload offset is required")
-                value = store.upload(job_id, int(query["offset"][0]), self.body(self.server.config.chunk_bytes))
+                value = store.upload(job_id, int(query["offset"][0]), self.body(self.server.config.chunk_bytes),
+                                     principal=principal)
             elif parsed.query:
                 raise ApiError(400, "Query parameters are not accepted")
             elif action == "run" and self.command == "POST":
                 if self.body(16384, json_body=True) != {}:
                     raise ApiError(400, "Run accepts an empty JSON object")
-                value = store.run(job_id)
+                value = store.run(job_id, principal=principal,
+                                  client_key=client_key(self) if not principal.is_owner else None)
             elif action is None and self.command == "GET":
-                value = store.snapshot(job_id)
+                value = store.snapshot(job_id, principal=principal)
             elif action is None and self.command == "DELETE":
-                value = store.delete(job_id)
+                value = store.delete(job_id, principal=principal)
             elif artifact_id and self.command == "GET":
-                with store.artifact(job_id, artifact_id) as (artifact, stream):
+                with store.artifact(job_id, artifact_id, principal=principal) as (artifact, stream):
                     self.headers_for(200, artifact["bytes"], artifact["content_type"], artifact["name"])
                     while block := stream.read(65536):
-                        if not store.download_current(job_id):
+                        if not store.download_current(job_id, principal=principal):
                             self.close_connection = True
                             return
                         self.wfile.write(block)
@@ -207,7 +229,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ApiError(405, "Method is not supported")
             self.json_response(200, value)
         except ApiError as error:
-            self.json_response(error.status, {"error": error.message})
+            self.json_response(error.status, {"error": error.message}, retry_after=error.retry_after)
         except (BrokenPipeError, ConnectionResetError, socket.timeout):
             self.close_connection = True
         except Exception:

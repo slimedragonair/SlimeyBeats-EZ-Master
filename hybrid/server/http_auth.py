@@ -3,6 +3,7 @@
 import hmac
 
 from .errors import ApiError
+from .principals import OWNER
 
 ALLOW_HEADERS = "Authorization, Content-Type, Idempotency-Key"
 ALLOW_METHODS = "GET, POST, PUT, DELETE, OPTIONS"
@@ -21,8 +22,11 @@ def authenticate(handler):
     values = handler.headers.get_all("Authorization", [])
     supplied = values[0] if len(values) == 1 else ""
     expected = "Bearer " + handler.server.config.token
-    if not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("ascii")):
+    if hmac.compare_digest(supplied.encode("utf-8"), expected.encode("ascii")):
+        return OWNER
+    if not supplied.startswith("Bearer "):
         raise ApiError(401, "Bearer authentication is required")
+    return handler.server.store.sessions.authenticate(supplied[7:])
 
 
 def preflight(handler):

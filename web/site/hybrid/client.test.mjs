@@ -83,18 +83,22 @@ test("disconnect aborts pending fetch and body consumption; lost old connect can
     pending[0].reject(new Error("aborted"));
     await assert.rejects(old);
     await client.get("job-1");
-    let bodySignal, started;
+    let bodySignal, started, bodyCancelled = false;
     const ready = new Promise((resolve) => { started = resolve; });
     const reader = new ServerClient({ pageUrl, fetchImpl: async (url, init) => {
         if (url.endsWith("capabilities")) return Response.json(CAPS);
         bodySignal = init.signal;
-        return { ok: true, json: () => new Promise((resolve, reject) => {
-            init.signal.addEventListener("abort", () => reject(new Error("body aborted"))); started();
-        }) };
+        return { ok: true, headers: new Headers({ "Content-Type": "application/json" }), body: { getReader: () => ({
+            read: () => new Promise((resolve, reject) => {
+                init.signal.addEventListener("abort", () => reject(new Error("body aborted"))); started();
+            }),
+            cancel: async () => { bodyCancelled = true; }, releaseLock() {},
+        }) } };
     } });
     await reader.connect("https://api.slimedragon.net", "token");
     const reading = reader.get("job-1"); await ready;
     reader.disconnect(); assert.equal(bodySignal.aborted, true); await assert.rejects(reading, /stopped/);
+    assert.equal(bodyCancelled, true);
 });
 
 test("download is authenticated and safely named; DELETE requires acknowledgement and errors never echo response bodies", async () => {

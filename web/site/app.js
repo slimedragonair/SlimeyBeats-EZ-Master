@@ -25,6 +25,7 @@ import { masterRecoverySize, captureMasterRecovery, prepareMasterRecovery, resto
 import { verifiedMp3 } from "./audio/verified-mp3-export.js";
 import { eqProfileJson } from "./session-export.js";
 import { packageSession } from "./session-export-client.js";
+import { serverProcessing } from "./hybrid/main-controls.js";
 
 let settings,
     defaults,
@@ -102,6 +103,7 @@ wireLearning(preferences);
 jobFeedback = wireJobFeedback(() => studio.busy);
 wireWorkspaceNavigation();
 wireViewportLayout();
+serverProcessing.subscribe(syncControls);
 syncControls();
 function masterSignature() {
     if (!settings) return "";
@@ -180,6 +182,8 @@ function syncControls() {
         $("session-state").textContent =
             "Master preview ready · Listen, tweak, then export";
     jobFeedback?.refresh();
+    serverProcessing.rememberLocalFile(currentFile);
+    serverProcessing.renderMainControls({ locked });
 }
 async function job(action) {
     if (busy || restoring) return;
@@ -278,6 +282,8 @@ async function loadWorker(buffer = player.original) {
 }
 async function loadFile(file) {
     if (!file) return;
+    serverProcessing.select(file);
+    if (serverProcessing.enabled) return;
     studio.pause();
     await job(async (ensureCurrent) => {
         status("Decoding your track locally…");
@@ -339,6 +345,7 @@ async function analyze() {
     });
 }
 async function master() {
+    if (serverProcessing.enabled) { serverProcessing.review(); return; }
     await job(async () => {
         player.pause();
         status("Mastering locally in the Rust worker…");

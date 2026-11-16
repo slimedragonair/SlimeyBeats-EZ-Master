@@ -15,6 +15,8 @@ import threading
 import time
 
 from .errors import ApiError, ProcessingError
+from .guest_sessions import GuestRegistry, limited
+from .principals import OWNER
 from .requests import parse_master_request
 from .storage import is_link
 
@@ -36,6 +38,7 @@ class Job:
     downloads_done: threading.Event = field(default_factory=threading.Event)
     downloads: int = 0
     unreaped: bool = False
+    principal_id: str = "owner"
 
     def __post_init__(self):
         self.done.set()
@@ -60,48 +63,67 @@ class JobStore:
         self.queue = deque()
         self.idempotency = {}
         self.stopping = False
+        self.sessions = GuestRegistry(config)
 
-    def _get(self, job_id):
+    def _get(self, job_id, principal=OWNER):
+        self.sessions.validate(principal)
         job = self.jobs.get(job_id)
-        if job is None or job.deadline <= time.monotonic():
+        if (job is None or job.deadline <= time.monotonic()
+                or not principal.is_owner and job.principal_id != principal.id):
             raise ApiError(404, "Job not found or expired")
         return job
 
-    def create(self, value, idempotency_key=None):
+    def public_status(self):
+        with self.lock:
+            state = "disabled" if not self.config.public_enabled else (
+                "busy" if len(self.jobs) >= self.config.max_jobs else "online")
+            return {"api_version": 1, "status": state, "guest_access": self.config.public_enabled}
+
+    def create(self, value, idempotency_key=None, principal=OWNER):
         request = parse_master_request(value, self.config)
         fingerprint = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
                                                allow_nan=False).encode()).hexdigest()
         if idempotency_key is not None and not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", idempotency_key):
             raise ApiError(400, "Invalid Idempotency-Key")
         with self.lock:
+            self.sessions.validate(principal)
             if self.stopping:
                 raise ApiError(503, "Service is stopping")
-            if idempotency_key in self.idempotency:
-                previous_id, previous_fingerprint = self.idempotency[idempotency_key]
+            scoped_key = (principal.id, idempotency_key)
+            if scoped_key in self.idempotency:
+                previous_id, previous_fingerprint = self.idempotency[scoped_key]
                 if fingerprint != previous_fingerprint:
                     raise ApiError(409, "Idempotency-Key was used for different job fields")
-                return self._get(previous_id).snapshot()
+                return self._get(previous_id, principal).snapshot()
+            now = time.monotonic()
+            if not principal.is_owner:
+                retained = [job for job in self.jobs.values() if job.principal_id == principal.id]
+                if retained:
+                    raise limited("Guest retained job limit reached", min(job.deadline for job in retained), now)
             if len(self.jobs) >= self.config.max_jobs:
-                raise ApiError(429, "Temporary job limit reached; delete a job or wait for expiry")
+                raise limited("Temporary job limit reached; delete a job or wait for expiry",
+                              min(job.deadline for job in self.jobs.values()), now)
             if sum(j.request.total_bytes for j in self.jobs.values()) + request.total_bytes > self.config.max_jobs * self.config.max_upload_bytes:
                 raise ApiError(413, "Upload reservation limit reached")
             self.storage.check_space(self.jobs.values(), new_reservation=True)
             job_id = secrets.token_hex(16)
             directory = self.storage.create(job_id)
-            job = Job(job_id, request, directory, time.time() + self.config.retention_seconds,
-                      time.monotonic() + self.config.retention_seconds)
+            job = Job(job_id, request, directory,
+                      min(time.time() + self.config.retention_seconds, principal.expires),
+                      min(time.monotonic() + self.config.retention_seconds, principal.deadline),
+                      principal_id=principal.id)
             self.jobs[job_id] = job
             if idempotency_key is not None:
-                self.idempotency[idempotency_key] = (job_id, fingerprint)
+                self.idempotency[scoped_key] = (job_id, fingerprint)
             return job.snapshot()
 
-    def snapshot(self, job_id):
+    def snapshot(self, job_id, principal=OWNER):
         with self.lock:
-            return self._get(job_id).snapshot()
+            return self._get(job_id, principal).snapshot()
 
-    def upload(self, job_id, offset, payload):
+    def upload(self, job_id, offset, payload, principal=OWNER):
         with self.lock:
-            job = self._get(job_id)
+            job = self._get(job_id, principal)
             if job.state != "uploading":
                 raise ApiError(409, "Job no longer accepts uploads")
             if offset != job.uploaded:
@@ -130,13 +152,17 @@ class JobStore:
             job.message = "Upload complete" if job.uploaded == job.request.total_bytes else "Uploading"
             return job.snapshot()
 
-    def run(self, job_id):
+    def run(self, job_id, principal=OWNER, client_key=None):
         with self.changed:
-            job = self._get(job_id)
+            job = self._get(job_id, principal)
             if job.state != "uploading":
                 return job.snapshot()
             if job.uploaded != job.request.total_bytes:
                 raise ApiError(409, "Upload is incomplete")
+            if not principal.is_owner:
+                if client_key is None:
+                    raise ApiError(400, "Guest client identity is required")
+                self.sessions.start_job(principal, client_key)
             job.state = "queued"
             job.progress = 0.3
             job.message = "Queued for processing"
@@ -160,9 +186,9 @@ class JobStore:
                 self.changed.wait(timeout=0.25)
         return None
 
-    def delete(self, job_id, expired=False):
+    def delete(self, job_id, expired=False, principal=OWNER):
         with self.lock:
-            job = self.jobs.get(job_id) if expired else self._get(job_id)
+            job = self.jobs.get(job_id) if expired and principal.is_owner else self._get(job_id, principal)
             if job is None:
                 return {"deleted": True}
             job.cancel.set()
@@ -182,9 +208,9 @@ class JobStore:
         return {"deleted": True}
 
     @contextmanager
-    def artifact(self, job_id, artifact_id):
+    def artifact(self, job_id, artifact_id, principal=OWNER):
         with self.lock:
-            job = self._get(job_id)
+            job = self._get(job_id, principal)
             artifact = job.artifacts.get(artifact_id)
             if job.state != "completed" or artifact is None:
                 raise ApiError(404, "Artifact not found")
@@ -211,13 +237,19 @@ class JobStore:
                 if job.downloads == 0:
                     job.downloads_done.set()
 
-    def download_current(self, job_id):
+    def download_current(self, job_id, principal=OWNER):
         with self.lock:
+            try:
+                self.sessions.validate(principal)
+            except ApiError:
+                return False
             job = self.jobs.get(job_id)
             return (job is not None and job.state == "completed" and not job.cancel.is_set()
+                    and (principal.is_owner or job.principal_id == principal.id)
                     and job.deadline > time.monotonic())
 
     def expire(self):
+        self.sessions.expire()
         with self.lock:
             expired = [job.id for job in self.jobs.values() if job.deadline <= time.monotonic()]
         failure = None

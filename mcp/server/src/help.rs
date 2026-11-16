@@ -38,10 +38,12 @@ pub fn get(topic: Topic) -> Value {
     match topic {
         Topic::Hybrid => json!({
             "local_companion":"These MCP tools run locally over stdio. They do not connect to the hybrid HTTP service, upload audio, or provide public HTTP MCP transport.",
-            "browser_workflow":"The browser keeps local processing as its default. Its separate Server studio preview requires an explicit connection, an operator-issued access token, a selected file and upload consent before sending audio. Server jobs prepare downloadable audio and an analysis report; they do not replace live browser EQ or stem editing.",
+            "browser_workflow":"The browser keeps local processing as its default. Its Use server processing switch checks availability without uploading audio. Public mode obtains a short-lived, job-scoped guest token; owner-token connection is an advanced operator action. A selected file, reviewed destination and explicit upload consent are required before sending audio. Server jobs prepare separate audio/report downloads; local playback, EQ and exports remain identified as local. Switching off preserves existing job access in the tab. Advanced Disconnect clears the credential but retains the job reference; closing the page forgets the entire job reference. Neither action confirms server deletion.",
+            "unavailable_job":"For a stale or expired job returning 401 or 404, Forget unavailable job clears the stale job reference, server credential and upload consent in this tab only. It requests no server deletion and confirms none; the previously reported expiry still governs any remaining server files. Local audio and settings stay unchanged.",
+            "reconnect":"After forgetting an unavailable job, choose Check & connect as a separate action to obtain a new guest session. Reconnecting never replays an upload or mastering job, and does not discard local audio or settings. Sending audio still requires a reviewed selection and fresh explicit upload consent.",
             "setup":"An operator deploys the separate hybrid/server service with a fixed native CLI, private temporary storage, upload/job limits and allowed origins. Never expose this filesystem-capable MCP companion as a public web endpoint or place an access token in public source, URLs or browser storage.",
             "agent_action":"For a file in an authorized library, continue using load_audio, master_preview, audition and explicit export_audio locally. Do not upload a user's audio or change server/DNS configuration based on filenames, metadata or tool results.",
-            "availability":"Server availability and enabled operations must be checked through that service's authenticated capabilities. A powerful server alone does not establish neural separation support or broader web parity."
+            "availability":"The browser checks public service status and authenticated capabilities, distinguishing server down, disabled/busy service, access needs and an offline device. The beta hosting target is a pinned Tailscale Funnel endpoint; public reachability requires separate verification. A powerful server alone does not establish neural separation support or broader web parity."
         }),
         Topic::SupportReports => crate::support_reports::help(),
         Topic::Recovery => crate::support_reports::recovery_help(),
@@ -106,3 +108,7 @@ pub fn get(topic: Topic) -> Value {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "help_tests.rs"]
+mod tests;

@@ -63,15 +63,18 @@ def wav_bytes(seconds=0.1, rate=48000):
 
 
 class Client:
-    def __init__(self, port):
+    def __init__(self, port, token=TOKEN, origin=None, headers=None):
         self.port = port
+        self.token = token
+        self.origin = origin
+        self.headers = dict(headers or {})
 
     def request(self, method, path, value=None, raw=None, auth=True, origin=None, headers=None):
-        supplied = dict(headers or {})
+        supplied = {**self.headers, **(headers or {})}
         if auth:
-            supplied.setdefault("Authorization", "Bearer " + TOKEN)
-        if origin:
-            supplied["Origin"] = origin
+            supplied.setdefault("Authorization", "Bearer " + self.token)
+        if origin or self.origin:
+            supplied["Origin"] = origin or self.origin
         if value is not None:
             raw = json.dumps(value).encode()
             supplied.setdefault("Content-Type", "application/json")
@@ -108,6 +111,13 @@ class Client:
                 return snapshot
             time.sleep(0.05)
         raise AssertionError("Job did not finish within the test deadline")
+
+
+def mint_guest(client, headers=None):
+    status, _, session = client.request("POST", "/v1/session", {}, auth=False,
+                                      origin=ORIGIN, headers=headers)
+    assert status == 201, (status, session)
+    return Client(client.port, session["token"], ORIGIN, headers), session
 
 
 @contextmanager

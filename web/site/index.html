@@ -9,7 +9,7 @@
         <meta name="theme-color" content="#120e1c" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://api.slimedragon.net; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+            content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://api.slimedragon.net https://slimeybeats-preview.tailf8de2d.ts.net; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
         />
         <meta
             name="description"
@@ -192,6 +192,7 @@
                             ↥ Export WAV
                         </button>
                     </div>
+                    <div id="server-studio-host"></div>
                     <div id="overview" class="page">
                         <div id="welcome" class="hero">
                             <img
@@ -266,10 +267,9 @@
                         </ol>
                         <p class="local-note">
                             ♧ Local mastering keeps your audio here. The optional
-                            Server studio below requires a separate file selection,
-                            informed consent and an explicit upload. No automatic server fallback.
+                            server processing switch requires informed consent
+                            and an explicit upload. No automatic server fallback.
                         </p>
-                        <div id="server-studio-host"></div>
                     </div>
                     <div id="eq" class="page" hidden>
                         <div class="section-heading">
@@ -377,6 +377,7 @@
                             <time id="clock">0:00 / 0:00</time>
                         </div>
                     </details>
+                    <p id="hybrid-playback-note" class="small" hidden></p>
                     <div class="playback primary-player" aria-label="Mastering playback">
                         <div class="transport-main primary-transport">
                             <button id="play" disabled>Play</button>

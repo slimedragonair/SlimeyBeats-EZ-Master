@@ -1,0 +1,56 @@
+[Unit]
+Description=SlimeyBeats public beta Funnel connector
+Wants=network-online.target
+After=network-online.target slimeybeats-hybrid.service
+RequiresMountsFor=/var/lib/slimeybeats-funnel
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=slimeybeats-funnel
+Group=slimeybeats-funnel
+WorkingDirectory=/
+Environment=HOME=/var/lib/slimeybeats-funnel
+ExecStart=/usr/local/libexec/slimeybeats-funnel/tailscaled --tun=userspace-networking --statedir=/var/lib/slimeybeats-funnel --state=/var/lib/slimeybeats-funnel/tailscaled.state --socket=/run/slimeybeats-funnel/tailscaled.sock --port=0 --no-logs-no-support
+StateDirectory=slimeybeats-funnel
+StateDirectoryMode=0700
+RuntimeDirectory=slimeybeats-funnel
+RuntimeDirectoryMode=0700
+UMask=0077
+ReadWritePaths=/var/lib/slimeybeats-funnel
+
+# Userspace mode needs neither a TUN device nor network-admin capabilities.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+CPUQuota=100%
+MemoryHigh=192M
+MemoryMax=384M
+MemorySwapMax=0
+TasksMax=64
+LimitNOFILE=2048
+LimitCORE=0
+KillMode=control-group
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

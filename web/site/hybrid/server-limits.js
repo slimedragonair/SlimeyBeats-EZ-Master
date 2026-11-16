@@ -11,6 +11,11 @@ function approximateTime(seconds) {
     return `${Math.floor(whole / 60)} min ${whole % 60} sec`;
 }
 
+export function temporaryStorageSummary(caps) {
+    return `Temporary server storage · retention ${caps.privacy.retention_seconds.toLocaleString()} seconds. ` +
+        "Exact expiry appears after job creation. Request Cancel & delete for confirmed cleanup.";
+}
+
 export function serverStoragePolicy(caps) {
     const { limits, privacy } = caps;
     const hasDuration = Object.hasOwn(limits, "max_audio_seconds");

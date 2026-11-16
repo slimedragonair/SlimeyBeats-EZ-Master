@@ -72,6 +72,11 @@ class Config:
     request_timeout_seconds: float = 15
     cleanup_interval_seconds: float = 5
     max_connections: int = 16
+    public_enabled: bool = False
+    guest_session_ttl_seconds: int = 3600
+    trust_cloudflare_client_ip: bool = False
+    expected_host: str | None = None
+    trust_relay_client_ip: bool = False
 
     def __post_init__(self):
         if (len(self.token) < 32 or not self.token.isascii()
@@ -82,6 +87,19 @@ class Config:
         object.__setattr__(self, "data_dir", Path(self.data_dir).absolute())
         object.__setattr__(self, "origins", parse_origins(",".join(self.origins)))
         address = ipaddress.ip_address(self.host)
+        if any(type(value) is not bool for value in (
+                self.public_enabled, self.trust_cloudflare_client_ip, self.trust_relay_client_ip)):
+            raise ValueError("Public access and proxy trust must be explicit booleans")
+        if self.trust_cloudflare_client_ip and self.trust_relay_client_ip:
+            raise ValueError("Select only one trusted client IP mode")
+        if (type(self.guest_session_ttl_seconds) is not int
+                or not 1 <= self.guest_session_ttl_seconds <= 3600):
+            raise ValueError("Guest sessions must expire within one hour")
+        if self.expected_host is not None and self.expected_host != "api.slimedragon.net":
+            raise ValueError("Expected host must be api.slimedragon.net")
+        if (self.trust_cloudflare_client_ip or self.trust_relay_client_ip) and (not address.is_loopback
+                or self.expected_host != "api.slimedragon.net"):
+            raise ValueError("Client IP trust requires loopback and the expected public host")
         if address.version != 4:
             raise ValueError("This preview binds an explicit IPv4 address")
         if not address.is_loopback and not sys.platform.startswith("linux"):
@@ -119,11 +137,15 @@ class Config:
 
 
 def from_arguments(argv=None):
-    parser = argparse.ArgumentParser(description="Private owner/invite hybrid preview; protect remote access with TLS")
+    parser = argparse.ArgumentParser(description="Owner hybrid backend with optional public guest sessions; protect remote access with TLS")
     parser.add_argument("--cli", type=Path, required=True)
     parser.add_argument("--ffmpeg", type=Path)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
+    parser.add_argument("--expected-host")
+    trust = parser.add_mutually_exclusive_group()
+    trust.add_argument("--trust-cloudflare-client-ip", action="store_true")
+    trust.add_argument("--trust-relay-client-ip", action="store_true")
     parser.add_argument("--data-dir", "--storage-dir", type=Path,
                         default=Path(tempfile.gettempdir()) / "slimeybeats-hybrid-private")
     for name in ("max-upload-bytes", "chunk-bytes", "max-jobs", "retention-seconds",
@@ -134,6 +156,7 @@ def from_arguments(argv=None):
     parser.add_argument("--decode-timeout-seconds", type=float, default=argparse.SUPPRESS)
     args = vars(parser.parse_args(argv))
     args["token"] = os.environ.get("SLIMEYBEATS_HYBRID_TOKEN", "")
+    args["public_enabled"] = os.environ.get("SLIMEYBEATS_HYBRID_PUBLIC", "") == "1"
     args["origins"] = parse_origins(os.environ.get("SLIMEYBEATS_HYBRID_ORIGINS", ""))
     if args["ffmpeg"] is None:
         sibling = args["cli"].absolute().parent / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")

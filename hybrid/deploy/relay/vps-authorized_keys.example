@@ -1,0 +1,2 @@
+# Operator destination: /etc/ssh/authorized_keys/slimeybeats-tunnel (root-owned).
+restrict,port-forwarding,permitlisten="127.0.0.1:18787" ssh-ed25519 REPLACE_WITH_HOME_PUBLIC_KEY_BASE64 slimeybeats-home-relay

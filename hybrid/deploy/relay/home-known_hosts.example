@@ -1,0 +1,3 @@
+# Obtain and verify this host public key through the parent's trusted OCI console.
+# Do not trust an unauthenticated ssh-keyscan result as the initial pin.
+slimeybeats-oracle-relay ssh-ed25519 REPLACE_WITH_RELAY_HOST_PUBLIC_KEY_BASE64

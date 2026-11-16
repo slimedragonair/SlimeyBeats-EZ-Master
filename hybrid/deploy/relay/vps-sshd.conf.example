@@ -1,0 +1,22 @@
+# Operator destination: /etc/ssh/sshd_config.d/60-slimeybeats-relay.conf
+Match User slimeybeats-tunnel
+    AuthenticationMethods publickey
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AuthorizedKeysFile /etc/ssh/authorized_keys/slimeybeats-tunnel
+    AllowTcpForwarding remote
+    AllowStreamLocalForwarding no
+    PermitListen 127.0.0.1:18787
+    PermitOpen none
+    GatewayPorts no
+    PermitTTY no
+    X11Forwarding no
+    AllowAgentForwarding no
+    PermitTunnel no
+    PermitUserRC no
+    MaxSessions 0
+    ClientAliveInterval 15
+    ClientAliveCountMax 3
+    ForceCommand /bin/false
+Match all

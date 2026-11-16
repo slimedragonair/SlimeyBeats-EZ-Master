@@ -10,7 +10,7 @@ def offline_guide(text):
     text = text.replace('../examples/audio/', '../Examples/').replace('examples/audio/demo-input.wav', 'Examples/demo-input.wav')
     # Runtime bundles do not contain the separate source archive. Keep contributor
     # references as explicit repository paths rather than broken local links.
-    text, count = re.subn(r'(?<!!)\[[^\]]+\]\(\.\./((?:rust|web|mcp|plugins|\.github)/[^)]+)\)', lambda match: '`' + match[1] + '`', text)
+    text, count = re.subn(r'(?<!!)\[[^\]]+\]\(\.\./((?:rust|web|mcp|plugins|hybrid|\.github)/[^)]+)\)', lambda match: '`' + match[1] + '`', text)
     if count:
         text += '\n\nContributor file paths above refer to the separate source package.\n'
     return text

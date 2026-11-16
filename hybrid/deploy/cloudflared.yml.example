@@ -1,9 +1,14 @@
-# Locally managed named tunnel example; not a created tunnel or DNS record.
-# The server agent substitutes its tunnel UUID and credential filename.
+# LOCALLY managed alternative; not read by the preferred remote token-file unit.
+# Operator destination: /etc/cloudflared/config.yml, root:slimeybeats-cloudflared 0640.
+# The operator substitutes its tunnel UUID and credential filename; JSON also 0640.
+# Use only tunnel-scoped credentials, never an account-wide cert.pem in the service.
 tunnel: REPLACE_WITH_TUNNEL_UUID
 credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_UUID.json
 
 ingress:
   - hostname: api.slimedragon.net
+    path: ^/(health|v1/(status|capabilities))$
     service: http://127.0.0.1:8787
+  - hostname: api.slimedragon.net
+    service: http_status:404
   - service: http_status:404

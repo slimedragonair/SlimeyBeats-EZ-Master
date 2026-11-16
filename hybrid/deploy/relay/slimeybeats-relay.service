@@ -1,0 +1,50 @@
+[Unit]
+Description=SlimeyBeats outbound reverse SSH relay
+Wants=network-online.target
+After=network-online.target slimeybeats-hybrid.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=slimeybeats-relay
+Group=slimeybeats-relay
+WorkingDirectory=/
+Environment=HOME=/nonexistent
+LoadCredential=relay-key:/etc/slimeybeats-relay/id_ed25519
+ExecStartPre=/usr/bin/test -s %d/relay-key
+ExecStart=/usr/bin/ssh -NT -F /etc/slimeybeats-relay/ssh_config -i %d/relay-key slimeybeats-relay
+Restart=always
+RestartSec=15
+TimeoutStopSec=10
+KillMode=control-group
+UMask=0077
+CPUQuota=50%
+MemoryHigh=32M
+MemoryMax=64M
+MemorySwapMax=0
+TasksMax=16
+LimitNOFILE=128
+LimitCORE=0
+OOMPolicy=stop
+IPAccounting=yes
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

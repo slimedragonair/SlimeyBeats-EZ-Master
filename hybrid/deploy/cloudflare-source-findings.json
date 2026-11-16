@@ -1,0 +1,89 @@
+{
+  "checked_date": "2026-11-15",
+  "scope": "Public official sources only; no account, DNS, SSH, token, or server inspection. Source summaries, not a legal interpretation.",
+  "release": {
+    "version": "2026.11.0",
+    "published_at": "2026-11-12T12:23:45Z",
+    "source": "https://api.github.com/repos/cloudflare/cloudflared/releases/latest",
+    "pinned_source": "https://github.com/cloudflare/cloudflared/releases/tag/2026.11.0",
+    "linux_amd64": {
+      "sha256": "51f7c68b57ed7269164075d7e789efce5b59355982f06392deeb037d982a51fd",
+      "bytes": 40283099
+    },
+    "linux_arm64": {
+      "sha256": "abe54a006acf9faf2d19ee9d953cb0d0804e92f59c5382a162e57b84d086f56f",
+      "bytes": 37668707
+    },
+    "note": "Latest was checked for this dated finding only. The helper never resolves latest or selects a digest automatically."
+  },
+  "findings": [
+    {
+      "url": "https://developers.cloudflare.com/tunnel/",
+      "section": "Cloudflare Tunnel / availability banner",
+      "fact": "Tunnel is available on all plans. This is connector availability, not unrestricted permission to transfer public large audio files."
+    },
+    {
+      "url": "https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/",
+      "section": "Published applications / Note",
+      "fact": "Publishing an application does not require a paid Cloudflare Access plan. Access policies are a separate authentication feature."
+    },
+    {
+      "url": "https://developers.cloudflare.com/tunnel/get-started/#prerequisites",
+      "section": "Prerequisites; Create a tunnel; Connect an application",
+      "fact": "Publishing requires a domain on Cloudflare. Remotely managed tunnels use config_src=cloudflare; their ingress configuration is stored remotely."
+    },
+    {
+      "url": "https://developers.cloudflare.com/dns/zone-setups/full-setup/#availability",
+      "section": "Primary setup (Full); Availability",
+      "fact": "Full setup uses Cloudflare authoritative nameservers and is available on Free, Pro, Business, and Enterprise."
+    },
+    {
+      "url": "https://developers.cloudflare.com/dns/zone-setups/partial-setup/#availability",
+      "section": "CNAME setup (Partial); Availability",
+      "fact": "Keeping external authoritative DNS while proxying selected hostnames via partial setup requires Business or Enterprise; it is unavailable on Free/Pro."
+    },
+    {
+      "url": "https://developers.cloudflare.com/cloudflare-one/faq/cloudflare-tunnels-faq/",
+      "section": "How can Tunnel be used with Partial DNS (CNAME Setup)?; Large-file and streaming traffic through Tunnel",
+      "fact": "Tunnel can use full or partial DNS setup. Public hostname routes use the reverse proxy and carry the large-file restriction; private routes are distinct."
+    },
+    {
+      "url": "https://developers.cloudflare.com/tunnel/concepts/routing/#published-applications",
+      "section": "Published applications / Note",
+      "fact": "For Free, Pro, and Business public hostname routes, Cloudflare explicitly requires an appropriate specific paid service to serve video and other large files."
+    },
+    {
+      "url": "https://www.cloudflare.com/service-specific-terms-application-services/",
+      "section": "Content Delivery Network (Free, Pro, or Business)",
+      "page_updated": "2026-09-28",
+      "fact": "The CDN section requires specific paid services for non-Enterprise large-file/video serving and reserves the ability to limit or disable disproportionate audio, picture, or other large-file use without those services. No public audio eligibility or numeric safe threshold is established here."
+    },
+    {
+      "url": "https://developers.cloudflare.com/tunnel/reference/run-parameters/#token-file",
+      "section": "token-file; no-autoupdate; metrics; loglevel",
+      "fact": "--token-file PATH is for remotely managed tunnels only and requires cloudflared 2025.4.0 or newer. --no-autoupdate prevents updater drift; metrics can bind explicitly to loopback. Debug logs can disclose request headers, so the unit uses info."
+    },
+    {
+      "url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#LoadCredential=ID%5B:PATH%5D",
+      "section": "Credentials / LoadCredential=; Environment variables / %d credential directory example",
+      "fact": "LoadCredential reads a protected source into the service credential directory. The service references a file path with %d rather than embedding secret contents in ExecStart or Environment. Requires systemd credential support (247+)."
+    },
+    {
+      "url": "https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/#2-review-your-dns-records",
+      "section": "2. Review your DNS records / Common records",
+      "fact": "Quick scan is not guaranteed to discover all DNS records. Review the complete provider zone, including existing website and email records, before switching authoritative nameservers."
+    },
+    {
+      "url": "https://developers.cloudflare.com/dns/dnssec/#migrate-to-cloudflare-with-dnssec-active",
+      "section": "Disable DNSSEC; Migrate to Cloudflare with DNSSEC active",
+      "fact": "Changing nameservers while the old DS remains cached can cause validating resolvers to return SERVFAIL. The documented non-multisigner path removes the old DS and waits for its TTL before changing nameservers, then restores DNSSEC with the new DS after migration."
+    }
+  ],
+  "operator_constraints": [
+    "Parent reports a new account, Squarespace authoritative DNS, an existing DS, and Google mail MX records; those account/domain facts were not independently inspected by this task.",
+    "Before any parent-run migration: audit/export all DNS records, preserve Google MX plus SPF/DKIM/DMARC and verification records, review DNSSEC/DS TTL handling, and record rollback. Do not alter apex/www proxy behavior as part of this connector work.",
+    "Public connector examples are control-plane-only. Audio uploads/downloads require R2 or another approved transfer architecture. R2 activation, billing, eligibility, free allowances, and integration remain with the parent; this task makes no free-audio-service promise.",
+    "Chunking, changing cache settings, or splitting files does not establish permission under the cited terms. Do not broaden ingress as a workaround.",
+    "Keep the local private engine/interface intact and MCP private. cloudflared is a network connector, not an MCP server."
+  ]
+}

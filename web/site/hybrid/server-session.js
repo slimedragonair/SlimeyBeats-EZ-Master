@@ -24,12 +24,18 @@ export class ServerSession {
         this.message = "Local mastering is the default. Server studio is disconnected; no connection or upload has been requested.";
         this.error = false;
         this.creationUncertain = false;
+        this.processingEnabled = true;
+        this.available = true;
+        this.lastFailure = null;
+        this.unavailableJobStatus = 0;
+        this.forgottenJob = null;
     }
     get sameServer() { return this.connected && this.jobEndpoint === this.client.endpoint; }
     get canSubmit() {
-        return this.connected && !this.busy && !!this.file && this.consent &&
+        return this.processingEnabled && this.available && this.connected && !this.busy && !this.unavailableJobStatus && !!this.file && this.consent &&
             (!this.job || (this.sameServer && this.job.state === "uploading"));
     }
+    get canForgetUnavailableJob() { return !!this.job && [401, 404].includes(this.unavailableJobStatus) && !this.busy; }
     #notify(message, error = false) {
         this.message = message; this.error = error; this.onChange(this);
     }
@@ -40,14 +46,37 @@ export class ServerSession {
         this.#wake?.(); this.#wake = null;
         this.busy = "";
     }
-    async #action(label, action) {
+    setProcessingEnabled(value) {
+        this.processingEnabled = !!value;
+        this.consent = false;
+        if (!value && this.busy) this.#stop();
+        this.onChange(this);
+    }
+    setAvailable(value, stop = false) {
+        this.available = !!value;
+        if (!value) {
+            this.consent = false;
+            if (stop && this.busy) this.#stop();
+        }
+        this.onChange(this);
+    }
+    async #action(label, action, jobAccess = false) {
         if (this.busy) return;
         const generation = ++this.#generation;
         this.busy = label;
+        this.lastFailure = null;
         this.#notify(label);
         const current = () => generation === this.#generation;
         try { await action(current); }
-        catch (error) { if (current()) this.#notify(error.message, true); }
+        catch (error) {
+            if (current()) {
+                const status = error.status ?? error.cause?.status;
+                if (jobAccess && this.job && [401, 404].includes(status)) {
+                    this.unavailableJobStatus = status; this.consent = false;
+                }
+                this.lastFailure = error; this.#notify(error.message, true);
+            }
+        }
         finally { if (current()) { this.busy = ""; this.onChange(this); } }
     }
     async connect(endpoint, token) {
@@ -58,17 +87,29 @@ export class ServerSession {
             this.caps = caps; this.connected = true;
             this.#notify(this.job
                 ? "Connected. A previous job is remembered in this tab. Check its status or delete it at its original destination. Nothing was uploaded."
-                : "Connected. Review the storage policy, then choose a separate WAV or MP3 for this server. No audio has been uploaded.");
+                : "Connected. Review the selected WAV or MP3, destination and storage policy. No audio has been uploaded.");
         });
     }
     disconnect() {
         this.#stop(); this.client.disconnect();
         this.connected = false; this.caps = null; this.file = null; this.consent = false;
         this.#notify(this.job
-            ? "Disconnected; token, selected file and consent cleared. Server work may continue. Reconnect to the original destination and choose Cancel & delete server files to request deletion, or wait for the displayed expiry. Deletion has not been confirmed."
+            ? "Disconnected; token, selected file and consent cleared. Server work may continue. A new guest token cannot recover this job; retrieval or deletion needs the original credential or an operator. Deletion has not been confirmed."
             : this.creationUncertain
                 ? "Disconnected; token, selected file and consent cleared. A job creation response was lost; an empty server job may remain until the server's retention deadline."
                 : "Disconnected; token, selected file and consent cleared. Pending requests were stopped in this tab.");
+    }
+    forgetUnavailableJob() {
+        if (!this.canForgetUnavailableJob) return false;
+        this.forgottenJob = { endpoint: this.jobEndpoint, expires_at: this.job.expires_at };
+        this.#stop(); this.client.disconnect();
+        this.connected = false; this.caps = null; this.consent = false;
+        this.job = null; this.jobEndpoint = ""; this.source = null;
+        this.unavailableJobStatus = 0; this.lastFailure = null; this.creationUncertain = false;
+        // Keep the selected File in memory. The controller revalidates its
+        // current source against fresh capabilities after explicit reconnect.
+        this.#notify("Unavailable job forgotten in this tab; server credential and consent cleared. No server deletion was requested or confirmed. The previous reported expiry still governs any remaining server files. Your local audio and settings are unchanged. Choose Check & connect to start a new server session; nothing is uploaded automatically.");
+        return true;
     }
     select(file) {
         if (!this.connected || this.busy) return;
@@ -85,11 +126,12 @@ export class ServerSession {
     }
     consentToUpload(value) {
         if (this.busy) return;
-        this.consent = !!value && this.connected && !!this.file;
+        this.consent = !!value && this.processingEnabled && this.available && this.connected && !this.unavailableJobStatus && !!this.file;
         this.onChange(this);
     }
     #accept(job) {
         this.job = job;
+        this.unavailableJobStatus = 0;
         this.#notify(`${job.state}: ${job.message || "Server status received."}`);
     }
     async submit({ profile, format, mode }) {
@@ -108,7 +150,7 @@ export class ServerSession {
                     job = await this.client.create({ filename: file.name, bytes: file.size, profile, format, mode,
                         target_lufs: null, ceiling_dbtp: -1, intensity: 1, consent: true });
                 } catch (error) {
-                    throw new Error(`${error.message} Job creation outcome is unknown. No file chunks were sent. Retrying may create another empty job; it will be subject to server retention.`);
+                    throw new Error(`${error.message} Job creation outcome is unknown. No file chunks were sent. Retrying may create another empty job; it will be subject to server retention.`, { cause: error });
                 }
                 if (!current()) return;
                 this.creationUncertain = false;
@@ -136,7 +178,7 @@ export class ServerSession {
                 this.#accept(job);
             }
             await this.#poll(current);
-        });
+        }, true);
     }
     async #poll(current) {
         while (current() && !TERMINAL_STATES.has(this.job.state) && this.job.state !== "uploading") {
@@ -154,18 +196,19 @@ export class ServerSession {
             const job = await this.client.get(this.job.id);
             if (!current()) return;
             this.#accept(job); await this.#poll(current);
-        });
+        }, true);
     }
     async delete() {
         if (!this.sameServer || !this.job || this.busy === "Deleting server files…") return;
         this.#stop();
         await this.#action("Deleting server files…", async (current) => {
             try { await this.client.delete(this.job.id); }
-            catch (error) { throw new Error(`${error.message} Server deletion is NOT confirmed. Retry Cancel & delete server files; the job and its expiry are still shown.`); }
+            catch (error) { throw new Error(`${error.message} Server deletion is NOT confirmed. Retry Cancel & delete server files; the job and its expiry are still shown.`, { cause: error }); }
             if (!current()) return;
             this.job = null; this.source = null; this.jobEndpoint = ""; this.file = null; this.consent = false;
+            this.unavailableJobStatus = 0;
             this.#notify("Server confirmed cancellation and deletion of this job's files. Choose a file and consent again to start another job.");
-        });
+        }, true);
     }
     async download(artifactId, save) {
         if (!this.sameServer || this.busy || this.job?.state !== "completed") return;
@@ -174,8 +217,9 @@ export class ServerSession {
         await this.#action("Downloading server artifact…", async (current) => {
             const result = await this.client.artifact(this.job.id, artifact);
             if (!current()) return;
+            this.unavailableJobStatus = 0;
             save(result);
             this.#notify("Download prepared from an authenticated request. Server files remain until explicit deletion or the displayed expiry.");
-        });
+        }, true);
     }
 }

@@ -1,0 +1,8 @@
+# Operator destination: slimeybeats-hybrid.service.d/relay-localonly.conf
+# Keep the existing ExecStart bound to 127.0.0.1:8787.
+[Service]
+IPAddressDeny=any
+IPAddressAllow=localhost
+IPAccounting=yes
+# Applied after EnvironmentFile merging; remove only after guest rollout approval.
+UnsetEnvironment=SLIMEYBEATS_HYBRID_PUBLIC

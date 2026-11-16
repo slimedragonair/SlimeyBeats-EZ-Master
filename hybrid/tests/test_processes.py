@@ -28,9 +28,11 @@ class ProcessTests(unittest.TestCase):
     def test_large_output_is_drained_and_token_environment_removed(self):
         with running_service() as (service, client):
             job = service.store.jobs[client.create(b"x")[2]["id"]]
-            code = ("import os,sys; assert 'SLIMEYBEATS_HYBRID_TOKEN' not in os.environ; "
+            code = ("import os,sys; assert not any(k.upper().startswith('SLIMEYBEATS_HYBRID_') for k in os.environ); "
                     "sys.stdout.buffer.write(b'x'*2097152); sys.stderr.buffer.write(b'y'*2097152)")
-            with patch.dict(os.environ, {"SLIMEYBEATS_HYBRID_TOKEN": TOKEN}):
+            with patch.dict(os.environ, {"SLIMEYBEATS_HYBRID_TOKEN": TOKEN,
+                                         "SLIMEYBEATS_HYBRID_PUBLIC": "1",
+                                         "SLIMEYBEATS_HYBRID_ORIGINS": "https://private.example"}):
                 service.worker.runner.run([sys.executable, "-c", code], job, timeout=10)
             self.assertFalse(job.unreaped)
 

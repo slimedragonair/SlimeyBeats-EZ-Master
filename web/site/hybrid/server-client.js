@@ -1,6 +1,7 @@
 import { serverEndpoint } from "./endpoint-policy.js";
 import { capabilities, snapshot } from "./protocol.js";
 import { ArtifactDownloadError, checkArtifactDownload, readArtifactDownload } from "./artifact-download.js";
+import { readBoundedJson, JsonResponseError, AUTHENTICATED_JSON_LIMIT_BYTES } from "./bounded-json.js";
 
 export class ServerClient {
     #token = "";
@@ -19,7 +20,11 @@ export class ServerClient {
         if (typeof token !== "string" || !token.trim() || /[\s\u0000-\u001f\u007f]/.test(token) || token.length > 4096)
             throw new Error("Enter a valid owner or invite token.");
         this.#token = token;
-        try { return capabilities(await this.#json("/v1/capabilities")); }
+        try {
+            const value = await this.#json("/v1/capabilities");
+            try { return capabilities(value); }
+            catch (error) { error.status = 200; throw error; }
+        }
         catch (error) { if (epoch === this.#epoch) this.disconnect(); throw error; }
     }
     cancelPending() {
@@ -42,27 +47,29 @@ export class ServerClient {
                     response.status === 404 ? " The job may have expired or been deleted." :
                     response.status === 409 ? " Refresh the job before retrying." :
                     response.status === 429 ? " The server is busy; retry later." : "";
-                throw new Error(`Server request failed (HTTP ${response.status}).${hint}`);
+                const error = new Error(`Server request failed (HTTP ${response.status}).${hint}`);
+                error.status = response.status;
+                throw error;
             }
-            return await read(response);
+            return await read(response, controller.signal);
         } catch (error) {
             if (controller.signal.aborted) throw new Error("Request stopped or timed out. Server work or deletion may not have stopped; check the job before retrying.");
             // Never reflect an exception/response body that could echo a token.
-            if (error instanceof ArtifactDownloadError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
+            if (error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
             throw new Error("The server could not be reached or its response could not be read. Check network, server CORS and the site's connection policy, then retry.");
         } finally { clearTimeout(timeout); this.#requests.delete(controller); }
     }
     #json(path, method = "GET", body) {
         return this.#request(path, { method, ...(body === undefined ? {} : {
             headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-        }) }, (response) => response.json());
+        }) }, (response, signal) => readBoundedJson(response, { maxBytes: AUTHENTICATED_JSON_LIMIT_BYTES, signal }));
     }
     async create(body) { return snapshot(await this.#json("/v1/jobs", "POST", body)); }
     async get(id) { return snapshot(await this.#json(this.#path(id)), id); }
     async upload(id, offset, body) {
         const value = await this.#request(`${this.#path(id)}/upload?offset=${offset}`, {
             method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body,
-        }, (response) => response.json());
+        }, (response, signal) => readBoundedJson(response, { maxBytes: AUTHENTICATED_JSON_LIMIT_BYTES, signal }));
         return snapshot(value, id);
     }
     async run(id) { return snapshot(await this.#json(`${this.#path(id)}/run`, "POST", {}), id); }

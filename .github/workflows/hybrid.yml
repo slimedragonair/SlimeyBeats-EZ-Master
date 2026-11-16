@@ -28,6 +28,9 @@ jobs:
         run: |
           python3 -m hybrid.tests --cli rust/target/release/slimeybeats-ez-master-cli
           python3 -m unittest discover -s hybrid/deploy/tests -p 'test_*.py'
+          python3 -m unittest discover -s hybrid/deploy/tailscale/tests -p 'test_*.py'
+          python3 -m unittest discover -s hybrid/deploy/relay/tests -p 'test_*.py'
+          python3 hybrid/deploy/tailscale/funnel_scaffold.py
           python3 hybrid/deploy/validate_deployment.py offline
       - name: Check explicit browser consent and request lifecycle
-        run: node --test web/site/hybrid/client.test.mjs web/site/hybrid/session.test.mjs web/site/hybrid/artifact-download.test.mjs web/site/hybrid/server-limits.test.mjs
+        run: node --test web/site/hybrid/*.test.mjs

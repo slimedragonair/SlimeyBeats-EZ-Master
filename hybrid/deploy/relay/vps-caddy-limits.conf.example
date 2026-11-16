@@ -1,0 +1,10 @@
+# Operator destination: caddy.service.d/relay-limits.conf; use the packaged caddy user.
+[Service]
+CPUQuota=100%
+MemoryHigh=128M
+MemoryMax=256M
+MemorySwapMax=0
+TasksMax=64
+LimitNOFILE=1024
+LimitCORE=0
+IPAccounting=yes

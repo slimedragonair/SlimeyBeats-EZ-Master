@@ -33,6 +33,12 @@ DOCUMENTATION_IMAGES = (
 )
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')
+HYBRID_DEPLOYMENT_FILES = (
+    'hybrid/deploy/cloudflare-source-findings.json',
+    'hybrid/deploy/slimeybeats-cloudflared.sysusers.conf',
+    'hybrid/deploy/relay/home-relay.sysusers.conf',
+    'hybrid/deploy/relay/vps-tunnel.sysusers.conf',
+)
 
 def copy_public_source(repository, destination):
     repository, destination = Path(repository).resolve(), Path(destination).resolve()
@@ -71,7 +77,8 @@ def copy_public_source(repository, destination):
     for directory in ('server', 'tests', 'deploy'):
         for path in sorted((repository / 'hybrid' / directory).rglob('*')):
             if (path.is_file() and '__pycache__' not in path.parts
-                    and path.suffix in ('.py', '.md', '.service', '.example')):
+                    and (path.suffix in ('.py', '.md', '.service', '.example')
+                         or path.relative_to(repository).as_posix() in HYBRID_DEPLOYMENT_FILES)):
                 copy(path.relative_to(repository))
     for directory in ('site', 'tools'):
         for path in sorted((repository / 'web' / directory).rglob('*')):

@@ -1,0 +1,18 @@
+{
+  "config": {
+    "ingress": [
+      {
+        "hostname": "api.slimedragon.net",
+        "path": "^/(health|v1/(status|capabilities))$",
+        "service": "http://127.0.0.1:8787"
+      },
+      {
+        "hostname": "api.slimedragon.net",
+        "service": "http_status:404"
+      },
+      {
+        "service": "http_status:404"
+      }
+    ]
+  }
+}

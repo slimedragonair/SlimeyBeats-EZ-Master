@@ -1,0 +1,34 @@
+Host slimeybeats-relay
+    HostName RELAY_PUBLIC_HOST
+    User slimeybeats-tunnel
+    Port 22
+    RemoteForward 127.0.0.1:18787 127.0.0.1:8787
+    BatchMode yes
+    IdentitiesOnly yes
+    IdentityAgent none
+    PubkeyAuthentication yes
+    PreferredAuthentications publickey
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    StrictHostKeyChecking yes
+    UserKnownHostsFile /etc/slimeybeats-relay/known_hosts
+    GlobalKnownHostsFile /dev/null
+    HostKeyAlias slimeybeats-oracle-relay
+    HostKeyAlgorithms ssh-ed25519
+    CheckHostIP no
+    UpdateHostKeys no
+    VerifyHostKeyDNS no
+    CanonicalizeHostname no
+    ServerAliveInterval 15
+    ServerAliveCountMax 3
+    ExitOnForwardFailure yes
+    ConnectTimeout 10
+    ConnectionAttempts 1
+    TCPKeepAlive no
+    Compression no
+    RequestTTY no
+    ForwardAgent no
+    ForwardX11 no
+    PermitLocalCommand no
+    ControlMaster no
+    ControlPath none

@@ -1,0 +1,55 @@
+[Unit]
+Description=SlimeyBeats Cloudflare network connector
+Wants=network-online.target
+After=network-online.target slimeybeats-hybrid.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=slimeybeats-cloudflared
+Group=slimeybeats-cloudflared
+WorkingDirectory=/
+Environment=HOME=/nonexistent
+# systemd reads the root-only source and exposes a private copy to this service.
+LoadCredential=tunnel-token:/etc/slimeybeats-cloudflared/tunnel.token
+ExecStartPre=/usr/bin/test -s %d/tunnel-token
+# Remote ingress is authoritative; cloudflared-remote.json.example is the review body.
+ExecStart=/usr/local/libexec/cloudflared tunnel --no-autoupdate --loglevel info --metrics 127.0.0.1:20241 run --token-file %d/tunnel-token
+UMask=0077
+
+# Initial connector budgets, not a measured audio throughput guarantee.
+CPUQuota=100%
+MemoryHigh=128M
+MemoryMax=256M
+MemorySwapMax=0
+TasksMax=64
+LimitNOFILE=1024
+LimitCORE=0
+OOMPolicy=stop
+KillMode=control-group
+TimeoutStopSec=40
+Restart=on-failure
+RestartSec=10
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

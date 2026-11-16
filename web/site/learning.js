@@ -121,7 +121,7 @@ export function wireLearning(preferences) {
         openedManually = true;
         mode = "help";
         if (guide) { help(); return; }
-        frame("Loading guidance…", "Local mastering keeps audio on your device. Server studio is a separate opt-in workflow.", "Help & learning");
+        frame("Loading guidance…", "Local mastering keeps audio on your device. Use server processing is optional: availability checks send no audio, and uploads require separate review and consent. Public server availability is not guaranteed.", "Help & learning");
         try { await load(); if (dialog.open) help(); }
         catch (error) {
             if (!dialog.open) return;

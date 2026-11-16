@@ -1,0 +1,33 @@
+{
+	admin 127.0.0.1:2019
+	servers {
+		protocols h1 h2
+		timeouts {
+			read_header 10s
+			idle 30s
+		}
+		max_header_size 32KB
+	}
+}
+
+api.slimedragon.net {
+	@api path /health /v1/status /v1/session /v1/capabilities /v1/jobs /v1/jobs/*
+	handle @api {
+		reverse_proxy 127.0.0.1:18787 {
+			# The socket peer is authoritative; do not configure trusted_proxies here.
+			header_up Host api.slimedragon.net
+			header_up X-SlimeyBeats-Client-IP {remote_host}
+			header_up -CF-*
+			header_up -X-Forwarded-*
+			header_up -Forwarded
+			header_up -X-Real-IP
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+			}
+		}
+	}
+	handle {
+		respond 404
+	}
+}
