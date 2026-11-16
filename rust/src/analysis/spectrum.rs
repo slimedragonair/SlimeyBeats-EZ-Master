@@ -1,3 +1,4 @@
+use super::high_frequency::{Accumulator, HighFrequencySummary};
 use crate::{audio::Audio, meters::percentile, profiles::BANDS};
 use rustfft::{FftPlanner, num_complex::Complex32};
 use serde::{Deserialize, Serialize};
@@ -12,6 +13,8 @@ pub struct Spectrum {
     pub noise_candidate: bool,
     pub sibilance_spike_fraction: f64,
     pub octave_power: Vec<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high_frequency: Option<HighFrequencySummary>,
 }
 impl Spectrum {
     pub fn octaves(&self) -> Vec<f64> {
@@ -32,6 +35,7 @@ pub fn spectrum(audio: &Audio) -> Spectrum {
     let hop = size / 2;
     let total = (audio.frames().saturating_sub(size) / hop + 1).max(1);
     let count = total.min(3072);
+    let mut high_frequency = Accumulator::new(audio.sample_rate, size, audio.frames(), total);
     let mut planner = FftPlanner::<f32>::new();
     let fft = planner.plan_fft_forward(size);
     let window: Vec<_> = (0..size)
@@ -89,6 +93,9 @@ pub fn spectrum(audio: &Audio) -> Spectrum {
             for i in 0..bins {
                 power[i] += buffer[i].norm_sqr() as f64 * scale;
             }
+        }
+        if let Some(highs) = &mut high_frequency {
+            highs.observe(&power, start, energies[frame] >= active_floor);
         }
         if energies[frame] >= active_floor {
             for (a, p) in average.iter_mut().zip(&power) {
@@ -195,5 +202,6 @@ pub fn spectrum(audio: &Audio) -> Spectrum {
         noise_candidate,
         sibilance_spike_fraction: spike,
         octave_power,
+        high_frequency: high_frequency.and_then(|highs| highs.finish(cutoff)),
     }
 }

@@ -1,10 +1,11 @@
 use crate::{
-    analysis::Analysis,
+    analysis::{Analysis, high_frequency::HighFrequencySummary},
     config::{EqBand, default_eq},
     meters::percentile,
     profiles::{self, BANDS},
 };
 use anyhow::{Result, ensure};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 const PROFILE_WEIGHT: f64 = 0.25;
@@ -14,22 +15,40 @@ const QUANTUM_DB: f64 = 0.25;
 const MIN_DURATION_SECONDS: f64 = 1.;
 const QUIET_LUFS: f64 = -69.5;
 const MIN_VALID_CORE_BANDS: usize = 3;
+const MAX_COMBINED_HIGH_CUT_DB: f64 = 3.;
 
-fn interpolate(values: &[f64], frequency: f64) -> f64 {
-    if frequency <= BANDS[0] {
-        return values[0];
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EqSuggestion {
+    pub bands: Vec<EqBand>,
+    pub notes: Vec<String>,
+    pub high_frequency: Option<HighFrequencySummary>,
+}
+
+fn interpolate(values: &[f64], valid: &[bool], frequency: f64) -> f64 {
+    let mut available = (0..BANDS.len()).filter(|&i| valid[i]);
+    let Some(mut previous) = available.next() else {
+        return 0.;
+    };
+    if frequency <= BANDS[previous] {
+        return values[previous];
     }
-    for i in 1..BANDS.len() {
+    for i in available {
         if frequency <= BANDS[i] {
-            let t = (frequency / BANDS[i - 1]).log2() / (BANDS[i] / BANDS[i - 1]).log2();
-            return values[i - 1] + (values[i] - values[i - 1]) * t;
+            let t = (frequency / BANDS[previous]).log2() / (BANDS[i] / BANDS[previous]).log2();
+            return values[previous] + (values[i] - values[previous]) * t;
         }
+        previous = i;
     }
-    values[values.len() - 1]
+    values[previous]
 }
 
 /// Pure, bounded suggestions: identical measurements, profile, and version produce identical bands.
 pub fn suggest(measurement: &Analysis, profile: &Value) -> Result<Vec<EqBand>> {
+    Ok(proposal(measurement, profile)?.bands)
+}
+
+/// Additive explanation/evidence API; proposing never mutates audio or accepted EQ.
+pub fn proposal(measurement: &Analysis, profile: &Value) -> Result<EqSuggestion> {
     ensure!(
         measurement.measured_db.len() == BANDS.len()
             && measurement.valid.len() == BANDS.len()
@@ -37,9 +56,19 @@ pub fn suggest(measurement: &Analysis, profile: &Value) -> Result<Vec<EqBand>> {
         "No reliable EQ suggestion: invalid tonal measurements."
     );
     ensure!(
-        measurement.duration_s >= MIN_DURATION_SECONDS
+        measurement.duration_s.is_finite()
+            && measurement.duration_s >= MIN_DURATION_SECONDS
+            && measurement.metrics.integrated_lufs.is_finite()
             && measurement.metrics.integrated_lufs > QUIET_LUFS,
         "No reliable EQ suggestion: use at least one second of audible music."
+    );
+    ensure!(
+        measurement
+            .spectrum
+            .high_frequency
+            .as_ref()
+            .is_none_or(|highs| highs.valid(measurement.sample_rate, measurement.duration_s)),
+        "No reliable EQ suggestion: invalid upper-treble evidence."
     );
     let target = profiles::target_curve(profile)?;
     let core: Vec<_> = (2..=8)
@@ -59,11 +88,13 @@ pub fn suggest(measurement: &Analysis, profile: &Value) -> Result<Vec<EqBand>> {
             band.on = false;
             continue;
         }
-        let measured = interpolate(&measurement.measured_db, band.freq);
-        let residual = (measured - interpolate(&target, band.freq) - offset).clamp(-8., 8.);
-        let neighborhood = (interpolate(&measurement.measured_db, band.freq / 2.)
-            + interpolate(&measurement.measured_db, band.freq * 2.))
-            * 0.5;
+        let measured = interpolate(&measurement.measured_db, &measurement.valid, band.freq);
+        let residual =
+            (measured - interpolate(&target, &[true; 10], band.freq) - offset).clamp(-8., 8.);
+        let neighborhood =
+            (interpolate(&measurement.measured_db, &measurement.valid, band.freq / 2.)
+                + interpolate(&measurement.measured_db, &measurement.valid, band.freq * 2.))
+                * 0.5;
         let local = (measured - neighborhood).clamp(-6., 6.);
         let correction = -PROFILE_WEIGHT * residual - LOCAL_SHAPE_WEIGHT * local;
         let upper = if band.freq <= 120. || band.freq >= 8000. {
@@ -78,7 +109,56 @@ pub fn suggest(measurement: &Analysis, profile: &Value) -> Result<Vec<EqBand>> {
         };
         band.gain = (bounded / QUANTUM_DB).round() * QUANTUM_DB;
     }
-    Ok(bands)
+    let high_frequency = measurement.spectrum.high_frequency.clone();
+    let mut notes = vec!["Conservative, deterministic starting point with 25% tonal-profile influence. Inspect the curve, Apply it to audition, and adjust by ear.".into()];
+    if let Some(highs) = &high_frequency {
+        notes.push(highs.note());
+        if highs.excess_candidate && bands[6].on {
+            // One air-band move: do not add a second cut to an existing correction.
+            bands[6].gain = bands[6].gain.min(highs.suggested_cut_db);
+            bound_combined_high_cut(&mut bands, measurement.sample_rate);
+            notes.push(format!("Start with a {:.2} dB high shelf at 10 kHz. The complete proposed curve is limited to 3 dB of upper-treble attenuation. A shelf affects all sound in that region and cannot restore missing drum detail.", bands[6].gain));
+        }
+        if highs.sampling_capped {
+            notes.push("This is a bounded sample across the song; unsampled passages may differ. Frequency evidence does not identify a snare, hi-hat, or AI origin.".into());
+        }
+    } else {
+        notes.push("The extra upper-treble check needs at least two seconds and enough usable bandwidth above 10 kHz. No additional high-frequency guard was proposed.".into());
+    }
+    Ok(EqSuggestion {
+        bands,
+        notes,
+        high_frequency,
+    })
+}
+
+fn bound_combined_high_cut(bands: &mut [EqBand], sample_rate: u32) {
+    // Quantize toward zero while easing overlapping cuts. The bounded iteration
+    // reaches a flat negative branch, so the final response cannot exceed the cap.
+    for _ in 0..16 {
+        let minimum = (0..=96)
+            .map(|i| {
+                let frequency = 10_000. * 2_f64.powf(i as f64 / 96.);
+                if frequency >= sample_rate as f64 * 0.49 {
+                    return 0.;
+                }
+                bands
+                    .iter()
+                    .filter(|band| band.on)
+                    .map(|band| {
+                        super::biquad::from_band(band, sample_rate)
+                            .response_db(frequency, sample_rate)
+                    })
+                    .sum::<f64>()
+            })
+            .fold(0., f64::min);
+        if minimum >= -MAX_COMBINED_HIGH_CUT_DB - 1e-6 {
+            break;
+        }
+        for band in bands.iter_mut().filter(|band| band.gain < 0.) {
+            band.gain = (band.gain * 0.85 / QUANTUM_DB).ceil() * QUANTUM_DB;
+        }
+    }
 }
 
 #[cfg(test)]
