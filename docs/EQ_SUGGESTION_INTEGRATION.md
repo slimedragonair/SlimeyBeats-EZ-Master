@@ -38,11 +38,20 @@ runtime cache versioning build when publishing the new browser method.
 
 ## Rollout mapping
 
-Status on November 16, 2026: remote inspection only. The existing preview
-backend is healthy, but its deployed source lacks the new HF contract/tests.
-Linux staging and tests await the parent's complete integration commit ID;
-the new feature is not yet verified on the live server. No live files or
-service state were changed during inspection.
+Status on November 16, 2026: commit
+`aee0275259cb0b3bc3bb6f3e830947d779da8e3c` passed isolated Linux staging.
+Both release binaries built; 233 headless native tests and all 119 backend
+tests passed. Two optional downloaded-bundle native tests remained ignored.
+Independent balanced/boosted fixtures verified real HTTP/native suggestion
+and HF-evidence parity, reference round trips, unchanged source audio, and
+bit-identical float-PCM export. The backend suite exercised all six formats.
+The independent export probe initially rejected a valid extensible float-WAV
+header; its parser was corrected and the targeted probe passed without
+changing product source. All 1,071 staged source files retained their committed
+bytes. This qualifies the staged service, not the deployed preview backend:
+live file hashes, service identity and HTTP health remained unchanged. The
+code/binary rollout bundle is prepared; production rollout and live feature
+verification remain separate operator steps.
 
 1. Parent checkpoints `current-work` after quick native/WASM/backend checks.
    `.github/workflows/current-work-preview.yml` publishes `/current-work/`
@@ -130,6 +139,19 @@ new issue flag.
 - Matching transport tests passed: MCP 2, WASM 3, native worker 1, CLI 4,
   backend 18 with one platform skip, remote adapter 3, documentation 18 and
   MCP packaging 5. Production-service deployment remains a separate check.
+- A frozen `aee0275` Windows all-target run passed: **373 library tests**, two
+  existing ignored tests, and all binary/integration targets. An owner-provided
+  **179.8-second, 48 kHz stereo WAV** completed full native suggestion analysis;
+  its file hash stayed unchanged and no extra upper-treble cut was requested.
+  The private test exported no audio and supplies no listening-quality verdict.
+- The `aee0275` hosted development preview passed its publication smoke, and
+  Windows/Linux and backend CI passed. Broader browser CI passed DSP and native
+  streaming in all three engines, then stopped because the newly added UI-test
+  command omitted its required `--site` argument. The command was corrected;
+  later steps from that run remain unrun rather than being counted as passed.
+- Portable session analysis now retains the upper-treble measurements and
+  proposed-cut guidance in separate sections. Two focused packaging regressions
+  passed, including old reports and exclusion of unexpected fields.
 
 ## Deferred Studio transport scope
 
