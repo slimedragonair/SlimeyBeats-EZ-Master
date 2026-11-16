@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from runtime_cache import version_runtime
+from build_remote_media_worker import bundle_remote_media_worker
 
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser()
@@ -29,5 +30,6 @@ dependency_notices(ROOT/'web/dsp',destination)
 notice=destination/'THIRD-PARTY-NOTICES.txt'
 notice.write_text(notice.read_text(encoding='utf-8').replace('not used on Windows','not used in the browser').replace('FFmpeg is an optional external installation and is not bundled.','The browser build does not use or bundle FFmpeg.'),encoding='utf-8')
 shutil.copy2(ROOT/'OUTPUT_OWNERSHIP.md',destination/'OUTPUT-OWNERSHIP.txt')
+bundle_remote_media_worker(destination)
 print(f'Runtime cache version: {version_runtime(destination)}')
 print(f'Static site ready: {destination}')

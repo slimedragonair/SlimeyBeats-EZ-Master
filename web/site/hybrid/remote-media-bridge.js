@@ -34,7 +34,7 @@ export class RemoteMediaBridge {
     async #start() {
         const scope = new URL("../", import.meta.url);
         const worker = new URL("../remote-media-worker.js", import.meta.url);
-        await this.container.register(worker, { type: "module", scope: scope.pathname });
+        await this.container.register(worker, { scope: scope.pathname });
         await this.container.ready;
         if (!this.ownedController()) await new Promise((resolve, reject) => {
             const changed = () => { if (this.ownedController()) { clearTimeout(timer); this.container.removeEventListener("controllerchange", changed); resolve(); } };

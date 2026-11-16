@@ -60,11 +60,12 @@ jobs:
           python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
       - name: Verify Chromium
         run: python3 web/tools/verify_browser.py --out '${{ runner.temp }}/browser-checks/chromium'
-      - name: Build fixed hybrid worker and verify the shared editor in three engines
+      - name: Build fixed hybrid workers and verify streaming Studio in three engines
         run: |
-          cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli
+          cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
           for browser in chromium firefox webkit; do
-            python3 web/tools/verify_hybrid_browser.py --guest --cli rust/target/release/slimeybeats-ez-master-cli --browser "$browser" --out "${{ runner.temp }}/browser-checks/hybrid-guest-$browser"
+            python3 web/tools/verify_remote_media.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-media-$browser"
+            python3 web/tools/verify_remote_studio.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-studio-$browser"
           done
       - name: Verify Firefox
         run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'

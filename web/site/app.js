@@ -366,7 +366,7 @@ async function analyze() {
         $("insight").textContent = issues.length
             ? issues
                   .slice(0, 3)
-                  .map((i) => i.detail)
+                  .map((i) => i.detail.replace(/[.!?]+$/, ""))
                   .join(". ")
             : "No strong detector warnings. Start with a gentle master, then compare at matched level.";
         status(
