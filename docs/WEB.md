@@ -13,7 +13,7 @@ records current validation and features still reserved for desktop.
 
 The default **local browser mode** uses the project's Rust mastering engine, compiled to WebAssembly. Local processing happens on your device; the website serves static files. This local workflow does not upload audio or require an account. The static site has no analytics or payment system.
 
-**Optional Server processing (`current-work`, v2):** use the same import, Analyze, Master, live EQ, Export and Studio controls. Switching it on alone performs availability/authentication checks; importing then uploads the original file, including references or selected stems, for server decoding and native DSP. The browser receives metadata and compressed listening streams instead of allocating whole-song PCM. Local work never falls back to the service automatically. [Workflow, capabilities, privacy and deployment status](HYBRID_STUDIO.md) distinguish this candidate from the released local workflow and the earlier Master-only bridge.
+**Optional Server processing (v2):** use the same import, Analyze, Master, live EQ, Export and Studio controls in the main web app. Switching it on alone performs availability/authentication checks; importing then uploads the original file, including references or selected stems, for server decoding and native DSP. The browser receives metadata and compressed listening streams instead of allocating whole-song PCM. Local work never falls back to the service automatically. [Workflow, capabilities, privacy and deployment status](HYBRID_STUDIO.md) distinguish local processing from remote processing and the earlier Master-only bridge.
 
 ## Use it
 

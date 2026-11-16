@@ -1,13 +1,15 @@
-# Hybrid Studio v2 — development preview
+# Hybrid Studio v2
 
-The v2 backend is deployed and the development browser preview is published on
-`current-work`. Native-backed workflows passed Chromium, Firefox and Linux WebKit;
+The v2 backend is deployed. The [main web app](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/)
+is published from `main` after its browser workflow passes; the isolated
+`current-work` preview remains available for testing future changes.
+Native-backed workflows passed Chromium, Firefox and Linux WebKit;
 actual public-service neural tools, exports and cancellation passed separately.
 Read the [validation record and remaining device/workload gaps](HYBRID_V2_VALIDATION.md)
 and check the displayed browser build. Source/help changes do not update an
-installed Hotfix4 desktop package or merge this preview into the main web app.
+installed Hotfix4 desktop package.
 
-The candidate keeps **Add audio → Analyze → Master → live EQ → Export** and
+The web app keeps **Add audio → Analyze → Master → live EQ → Export** and
 adds server-backed Studio. In server mode, import uploads the **original file**;
 the server decodes and retains full-resolution audio. The browser uses metadata
 and compressed listening streams instead of whole-song PCM. Local processing
