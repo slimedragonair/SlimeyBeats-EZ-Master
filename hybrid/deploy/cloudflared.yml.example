@@ -1,0 +1,9 @@
+# Locally managed named tunnel example; not a created tunnel or DNS record.
+# The server agent substitutes its tunnel UUID and credential filename.
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  - hostname: api.slimedragon.net
+    service: http://127.0.0.1:8787
+  - service: http_status:404

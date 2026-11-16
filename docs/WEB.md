@@ -11,7 +11,9 @@ records current validation and features still reserved for desktop.
 
 [Open SlimeyBeats in your browser](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/)
 
-The browser preview uses the project's Rust mastering engine, compiled to WebAssembly. Audio processing happens on your device. The website's host serves static files; there is no upload endpoint, account, analytics, server rendering, or payment system.
+The local browser workflow uses the project's Rust mastering engine, compiled to WebAssembly. Local processing happens on your device; its website serves static files. The released main app has no audio upload endpoint, account, analytics or payment system.
+
+**Hybrid development preview:** `current-work` adds a separate optional Server studio panel. Connecting does not upload audio; selecting a server file, consenting and submitting does. Its private native-processing service is staged on Linux; public HTTPS activation is pending. [Workflow, limits and validation](HYBRID_STUDIO.md). Local work never falls back to this service automatically.
 
 ## Use it
 

@@ -1,0 +1,33 @@
+name: Hybrid Studio checks
+on:
+  push:
+    branches: [main, current-work]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hybrid-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  hybrid:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install audio codecs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Build the fixed native worker
+        run: cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli
+      - name: Check server boundaries and deployment examples
+        run: |
+          python3 -m hybrid.tests --cli rust/target/release/slimeybeats-ez-master-cli
+          python3 -m unittest discover -s hybrid/deploy/tests -p 'test_*.py'
+          python3 hybrid/deploy/validate_deployment.py offline
+      - name: Check explicit browser consent and request lifecycle
+        run: node --test web/site/hybrid/client.test.mjs web/site/hybrid/session.test.mjs web/site/hybrid/artifact-download.test.mjs web/site/hybrid/server-limits.test.mjs

@@ -1,5 +1,5 @@
 import { wireDialogFocus } from "./dialog-focus.js";
-import { TOPICS, action, textElement, renderTopic } from "./learning-content.js";
+import { TOPICS, action, textElement, renderTopic, BROWSER_PRIVACY_NOTE } from "./learning-content.js";
 import { revealLearningElement, revealHelpTopics } from "./learning-navigation.js";
 
 const $ = (id) => document.getElementById(id);
@@ -67,7 +67,7 @@ export function wireLearning(preferences) {
         const item = guide.steps[step];
         frame(item.title, item.body, `Guided tutorial · ${step + 1} of ${guide.steps.length}`);
         body.append(textElement("p", `Where to find it: ${PLACES[item.web_target]}`, "learning-callout"),
-            textElement("p", item.detail), textElement("p", guide.welcome.privacy_note, "learning-privacy"));
+            textElement("p", item.detail), textElement("p", BROWSER_PRIVACY_NOTE, "learning-privacy"));
         const previous = action("Back", "tutorial-back", () => tutorial(step - 1));
         previous.disabled = step === 0;
         actions.append(previous, action("End tour", "tutorial-dismiss", dismiss));
@@ -82,7 +82,7 @@ export function wireLearning(preferences) {
     function welcome() {
         mode = "welcome";
         frame(guide.welcome.title, guide.welcome.body, "Welcome");
-        body.append(textElement("p", guide.welcome.privacy_note, "learning-callout"),
+        body.append(textElement("p", BROWSER_PRIVACY_NOTE, "learning-callout"),
             textElement("p", "Start with Basic controls. Find this tour and plain-language help in the bottom-right corner whenever you need them."));
         actions.append(action("No thanks", "tutorial-decline", dismiss),
             action("Start tour", "tutorial-start", () => tutorial(), true));
@@ -121,7 +121,7 @@ export function wireLearning(preferences) {
         openedManually = true;
         mode = "help";
         if (guide) { help(); return; }
-        frame("Loading guidance…", "Your audio stays in this tab.", "Help & learning");
+        frame("Loading guidance…", "Local mastering keeps audio on your device. Server studio is a separate opt-in workflow.", "Help & learning");
         try { await load(); if (dialog.open) help(); }
         catch (error) {
             if (!dialog.open) return;

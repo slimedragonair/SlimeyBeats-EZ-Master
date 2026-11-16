@@ -9,11 +9,11 @@
         <meta name="theme-color" content="#120e1c" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+            content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://api.slimedragon.net; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
         />
         <meta
             name="description"
-            content="Private song mastering and real-time EQ. Your audio stays in your browser. Free, open-source SlimeDragon Audio software."
+            content="Private local song mastering and real-time EQ by default, with an explicit opt-in server preview. Free, open-source SlimeDragon Audio software."
         />
         <title>SlimeyBeats-EZ-Master · SlimeDragon Audio</title>
         <link rel="icon" href="assets/slimeybeats-small-icon.png" />
@@ -28,6 +28,7 @@
         <link rel="stylesheet" href="playback-layout.css" />
         <link rel="stylesheet" href="recovery.css" />
         <link rel="stylesheet" href="preview.css" />
+        <link rel="stylesheet" href="hybrid/studio.css" />
     </head>
     <body class="basic-controls">
         <div class="app-shell">
@@ -64,7 +65,7 @@
                     alt=""
                 />
                 <div class="header-actions">
-                    <span class="privacy-badge"><i></i> Private by design</span
+                    <span class="privacy-badge"><i></i> Local by default</span
                     ><button id="analyze" class="primary" disabled>
                         ◈ Analyze
                     </button>
@@ -78,7 +79,7 @@
                 </div>
                 <details id="preview-details" class="preview-details">
                     <summary>Build details</summary>
-                    <p>Preview choices and local recovery are separate from the main site. Audio stays on your device.</p>
+                    <p>Preview choices and local recovery are separate from the main site. Local mastering keeps audio on your device. The optional Server studio uploads only with your explicit selection and consent.</p>
                     <dl>
                         <dt>Branch</dt><dd>current-work</dd>
                         <dt>Preview commit</dt><dd id="preview-commit">Unavailable</dd>
@@ -99,7 +100,7 @@
                     <div class="eyebrow">✦ Your session</div>
                     <h2>Your sound. <br />Your space.</h2>
                     <p class="muted">
-                        One track at a time.<br />Nothing leaves your device.
+                        One track at a time.<br />Local mastering keeps audio on your device.
                     </p>
                     <button id="add" class="primary wide">
                         ＋ Add audio file</button
@@ -264,9 +265,11 @@
                             </li>
                         </ol>
                         <p class="local-note">
-                            ♧ Your audio stays here. No accounts, uploads,
-                            tracking, or cloud rendering.
+                            ♧ Local mastering keeps your audio here. The optional
+                            Server studio below requires a separate file selection,
+                            informed consent and an explicit upload. No automatic server fallback.
                         </p>
+                        <div id="server-studio-host"></div>
                     </div>
                     <div id="eq" class="page" hidden>
                         <div class="section-heading">
@@ -647,6 +650,7 @@
         >
         <script type="module" src="support.js"></script>
         <script type="module" src="preview-info.js"></script>
+        <script type="module" src="hybrid/studio.js"></script>
         <script type="module" src="bootstrap.js"></script>
     </body>
 </html>

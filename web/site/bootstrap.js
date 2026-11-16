@@ -7,7 +7,7 @@ function startupFailed() {
     const status = document.getElementById("status");
     // Module errors may contain URLs, paths or stack traces. Reporting uses its
     // existing category allowlist; the startup message never copies the error.
-    status.textContent = "The app could not start. Reload this page to retry. If startup still fails, choose Report a problem. No audio was uploaded.";
+    status.textContent = "The local audio engine could not start. Reload this page to retry, or choose Report a problem. The optional Server studio has separate connection and upload controls with its own status.";
     status.classList.add("status-error");
     document.getElementById("engine-report").hidden = false;
     document.dispatchEvent(new Event("engine-unavailable"));

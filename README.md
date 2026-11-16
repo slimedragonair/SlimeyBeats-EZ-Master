@@ -10,7 +10,7 @@
 
 **Local song mastering. Real-time EQ. Your music stays yours.**
 
-**Hybrid Studio development (`current-work`):** an optional, authenticated server workflow is being built for heavier work. Browser processing remains local by default. The first milestone is explicitly consented WAV/MP3 uploads, queued native mastering, downloads and deletion; it is not an anonymous public service. MCP remains local over stdio; `get_help(topic="hybrid")` explains that boundary. The released desktop installer remains Hotfix4.
+**Hybrid Studio preview (`current-work`):** open **Overview → Server studio (optional preview)** for explicitly consented WAV/MP3 uploads, queued native mastering, audio/JSON downloads and deletion. Browser processing remains local by default. The private Ubuntu service has passed real jobs, including an 18-minute synthetic mono fixture; public HTTPS/domain activation is still pending. This first preview is owner-only, with a 128 MiB browser download budget; longer WAVs may need MP3 or desktop. MCP stays local over stdio; `get_help(topic="hybrid")` explains the boundary. [Setup, limits and validation](docs/HYBRID_STUDIO.md). The released desktop installer remains Hotfix4.
 
 SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Linux source support, and a private browser preview. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
 

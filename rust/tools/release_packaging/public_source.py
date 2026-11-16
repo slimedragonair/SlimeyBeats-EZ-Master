@@ -14,7 +14,7 @@ GUIDES = (
     'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'UPDATES_AND_OPTIONAL_TOOLS.md',
     'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md',
     'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
-    'HOTFIX4.md',
+    'HOTFIX4.md', 'HYBRID_STUDIO.md',
 )
 # Keep screenshots explicit: only reviewed public captures belong in the source
 # package, never an arbitrary image or private report added to the checkout.
@@ -29,6 +29,7 @@ DOCUMENTATION_IMAGES = (
     'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',
     'web-stem-editor-phone.png', 'web-stem-editor-tools.png', 'doctor-desktop.png',
     'doctor-web-findings.png', 'doctor-web-repair.png', 'web-session-downloads.png',
+    'hybrid-server-job.png',
 )
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')
@@ -67,6 +68,11 @@ def copy_public_source(repository, destination):
         copy(Path('rust') / name)
     for name in DEMO_FILES:
         copy(Path('examples/audio') / name)
+    for directory in ('server', 'tests', 'deploy'):
+        for path in sorted((repository / 'hybrid' / directory).rglob('*')):
+            if (path.is_file() and '__pycache__' not in path.parts
+                    and path.suffix in ('.py', '.md', '.service', '.example')):
+                copy(path.relative_to(repository))
     for directory in ('site', 'tools'):
         for path in sorted((repository / 'web' / directory).rglob('*')):
             if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':

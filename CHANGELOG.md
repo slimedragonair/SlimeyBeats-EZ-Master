@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Hybrid Studio preview (`current-work`)
+
+- Keep browser mastering local by default; add a separate, consented server source, session-only access token and bounded chunk uploads.
+- Queue native Rust mastering on an authenticated private service; download WAV24/MP3 and a numeric analysis report, or cancel/delete temporary audio explicitly.
+- Bound retained jobs, upload/decoded bytes, duration, worker resources and browser downloads. Expire partial uploads/results; stop owned workers and slow downloads before cleanup.
+- Add a Linux deployment guide and sandboxed private service validation, including real WAV/MP3 jobs and an 18-minute synthetic mono fixture. Public HTTPS/tunnel activation, per-user access and server stem tools remain pending.
+- Keep all 45 MCP tools local; expose the separate hybrid service boundary through discovery and help. No new installer or application version is released by this checkpoint.
+
 ## 0.5.0-beta.3 Hotfix4 — 2026-11-15
 
 - Refresh Windows Studio Preview build revision **2026111501**, keeping desktop **0.5.0-beta.3**, MCP **0.2.0-beta.3**, browser Studio **0.3.0-beta.3** and release tag **v0.5.0-beta.3**. Use immutable `-Hotfix4-Setup.exe`, `-Hotfix4.zip` and `-Hotfix4-Source.zip` assets; preserve earlier packages and the original tag.

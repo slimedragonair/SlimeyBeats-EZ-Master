@@ -1,0 +1,6 @@
+# Operator credentials and runtime audio never belong in public source.
+.env
+environment
+*.token
+data/
+jobs/

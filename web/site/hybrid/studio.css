@@ -1,0 +1,71 @@
+.hybrid-studio {
+    margin-block: 20px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    text-align: start;
+    min-width: 0;
+}
+.hybrid-studio > summary {
+    padding: 12px 16px;
+    min-height: 48px;
+    cursor: pointer;
+    color: var(--teal);
+    font-weight: 600;
+}
+.hybrid-content { padding: 4px 16px 16px; }
+.hybrid-content p { margin-block: 8px 14px; }
+.hybrid-content fieldset {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 0 0 20px;
+    min-width: 0;
+}
+.hybrid-content legend { color: var(--violet); padding-inline: 6px; }
+.hybrid-content label { display: block; margin-block: 8px 4px; }
+.hybrid-content input:not([type="checkbox"]), .hybrid-content select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 8px;
+    font: inherit;
+}
+.hybrid-content input[type="file"] { overflow: hidden; }
+.hybrid-content input::file-selector-button {
+    min-height: 44px;
+    margin-inline-end: 8px;
+    font: inherit;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+}
+.hybrid-content .hybrid-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.hybrid-grid label { min-width: 0; }
+.hybrid-grid select { margin-top: 4px; }
+.hybrid-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.hybrid-content button { min-height: 44px; white-space: normal; max-width: 100%; }
+.hybrid-review { margin-block: 12px; }
+.hybrid-review dt { font-size: .8125rem; color: var(--muted); }
+.hybrid-review dd { margin: 0 0 12px; overflow-wrap: anywhere; }
+.hybrid-content .hybrid-consent { display: flex; gap: 10px; align-items: flex-start; margin-block: 16px; }
+.hybrid-consent input { margin-top: 4px; accent-color: var(--teal); }
+.hybrid-content progress { display: block; width: 100%; accent-color: var(--teal); margin-top: 8px; }
+#hybrid-job { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 20px; }
+#hybrid-job[hidden] { display: none; }
+#hybrid-status { margin-bottom: 0; overflow-wrap: anywhere; }
+.hybrid-error { border-left: 3px solid #ffb3ca; padding: 10px; color: #ffdae4; background: #351c2b; }
+#hybrid-artifacts { list-style: none; padding: 0; margin-bottom: 0; display: grid; gap: 8px; }
+#hybrid-artifacts:empty { display: none; }
+#hybrid-artifacts button { overflow-wrap: anywhere; }
+@media (max-width: 680px) {
+    .hybrid-content { padding-inline: 12px; }
+    .hybrid-content .hybrid-grid { grid-template-columns: minmax(0, 1fr); }
+    .hybrid-actions > button, #hybrid-submit { width: 100%; }
+}

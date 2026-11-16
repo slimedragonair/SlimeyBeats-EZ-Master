@@ -1,0 +1,63 @@
+[Unit]
+Description=SlimeyBeats private hybrid Studio preview
+After=network.target
+RequiresMountsFor=/var/lib/slimeybeats-hybrid
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=slimeybeats-hybrid
+Group=slimeybeats-hybrid
+WorkingDirectory=/opt/slimeybeats-hybrid/repository
+EnvironmentFile=/etc/slimeybeats-hybrid/environment
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=RAYON_NUM_THREADS=4
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=TMPDIR=/var/lib/slimeybeats-hybrid
+Environment=HOME=/var/lib/slimeybeats-hybrid
+Environment=XDG_CONFIG_HOME=/var/lib/slimeybeats-hybrid/config
+Environment=XDG_CACHE_HOME=/var/lib/slimeybeats-hybrid/cache
+Environment=XDG_DATA_HOME=/var/lib/slimeybeats-hybrid/data
+ExecStartPre=/usr/bin/python3 /opt/slimeybeats-hybrid/repository/hybrid/deploy/validate_deployment.py inventory
+ExecStart=/usr/bin/python3 -m hybrid.server --host 127.0.0.1 --port 8787 --cli ${SLIMEYBEATS_HYBRID_CLI} --data-dir ${SLIMEYBEATS_HYBRID_STORAGE}
+StateDirectory=slimeybeats-hybrid
+StateDirectoryMode=0700
+UMask=0077
+
+# These apply to the Python supervisor, Rust worker and codec children together.
+CPUQuota=200%
+MemoryHigh=3G
+MemoryMax=4G
+MemorySwapMax=0
+TasksMax=64
+LimitNOFILE=1024
+LimitCORE=0
+OOMPolicy=stop
+KillMode=control-group
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET
+
+[Install]
+WantedBy=multi-user.target

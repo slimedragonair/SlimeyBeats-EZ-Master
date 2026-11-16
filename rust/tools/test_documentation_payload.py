@@ -47,12 +47,13 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
     NEW_GUIDES = (
         'STEM_EDITOR.md', 'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'WEB_EXPORTS.md',
         'WEB_EXPORT_VALIDATION.md', 'BROWSER_PARITY_ROADMAP.md', 'MOBILE_PREVIEW.md',
-        'HOTFIX4.md',
+        'HOTFIX4.md', 'HYBRID_STUDIO.md',
     )
     NEW_IMAGES = (
         'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',
         'web-stem-editor-phone.png', 'web-stem-editor-tools.png', 'doctor-desktop.png',
         'doctor-web-findings.png', 'doctor-web-repair.png', 'web-session-downloads.png',
+        'hybrid-server-job.png',
     )
 
     @classmethod
@@ -125,12 +126,16 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
             'docs/images/private-session.png', 'personal.wav', 'user_data/settings.json',
             'output/private.wav', 'models/private.onnx', 'rust/target/release/private.exe',
             'rust/tools/__pycache__/private.pyc', 'mastercraft/__pycache__/private.py',
+            'hybrid/environment', 'hybrid/.env', 'hybrid/jobs/private.wav',
+            'hybrid/server/operator.token', 'hybrid/deploy/credentials.json',
         ]
         for relative in private_paths:
             path = checkout / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'private fixture; must not ship')
         exported = copy_public_source(checkout, self.root / 'filtered-source')
+        self.assertTrue((exported / 'hybrid/server/worker.py').is_file())
+        self.assertTrue((exported / 'hybrid/deploy/slimeybeats-hybrid.service').is_file())
         for relative in private_paths:
             with self.subTest(path=relative):
                 self.assertFalse((exported / relative).exists(), relative)
