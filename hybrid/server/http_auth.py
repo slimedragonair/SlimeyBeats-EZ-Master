@@ -5,7 +5,7 @@ import hmac
 from .errors import ApiError
 from .principals import OWNER
 
-ALLOW_HEADERS = "Authorization, Content-Type, Idempotency-Key"
+ALLOW_HEADERS = "Authorization, Content-Type, Idempotency-Key, Range"
 ALLOW_METHODS = "GET, POST, PUT, DELETE, OPTIONS"
 
 
@@ -35,5 +35,5 @@ def preflight(handler):
     if handler.headers.get("Access-Control-Request-Method") not in ALLOW_METHODS.split(", "):
         raise ApiError(403, "Preflight method is not allowed")
     requested = {item.strip().lower() for item in handler.headers.get("Access-Control-Request-Headers", "").split(",") if item.strip()}
-    if not requested <= {"authorization", "content-type", "idempotency-key"}:
+    if not requested <= {"authorization", "content-type", "idempotency-key", "range"}:
         raise ApiError(403, "Preflight headers are not allowed")

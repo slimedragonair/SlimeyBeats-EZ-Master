@@ -64,6 +64,11 @@ class JobStore:
         self.idempotency = {}
         self.stopping = False
         self.sessions = GuestRegistry(config)
+        from .project_store import ProjectStore
+        self.projects = ProjectStore(self)
+
+    def retained(self):
+        return [*self.jobs.values(), *self.projects.projects.values()]
 
     def _get(self, job_id, principal=OWNER):
         self.sessions.validate(principal)
@@ -76,7 +81,7 @@ class JobStore:
     def public_status(self):
         with self.lock:
             state = "disabled" if not self.config.public_enabled else (
-                "busy" if len(self.jobs) >= self.config.max_jobs else "online")
+                "busy" if len(self.retained()) >= self.config.max_jobs else "online")
             return {"api_version": 1, "status": state, "guest_access": self.config.public_enabled}
 
     def create(self, value, idempotency_key=None, principal=OWNER):
@@ -97,15 +102,15 @@ class JobStore:
                 return self._get(previous_id, principal).snapshot()
             now = time.monotonic()
             if not principal.is_owner:
-                retained = [job for job in self.jobs.values() if job.principal_id == principal.id]
+                retained = [job for job in self.retained() if job.principal_id == principal.id]
                 if retained:
                     raise limited("Guest retained job limit reached", min(job.deadline for job in retained), now)
-            if len(self.jobs) >= self.config.max_jobs:
+            if len(self.retained()) >= self.config.max_jobs:
                 raise limited("Temporary job limit reached; delete a job or wait for expiry",
-                              min(job.deadline for job in self.jobs.values()), now)
+                              min(job.deadline for job in self.retained()), now)
             if sum(j.request.total_bytes for j in self.jobs.values()) + request.total_bytes > self.config.max_jobs * self.config.max_upload_bytes:
                 raise ApiError(413, "Upload reservation limit reached")
-            self.storage.check_space(self.jobs.values(), new_reservation=True)
+            self.storage.check_space(self.retained(), new_reservation=True)
             job_id = secrets.token_hex(16)
             directory = self.storage.create(job_id)
             job = Job(job_id, request, directory,
@@ -130,7 +135,7 @@ class JobStore:
                 raise ApiError(409, "Upload offset does not match uploaded_bytes")
             if not payload or len(payload) > self.config.chunk_bytes or job.uploaded + len(payload) > job.request.total_bytes:
                 raise ApiError(413, "Chunk exceeds upload bounds")
-            self.storage.check_space(self.jobs.values())
+            self.storage.check_space(self.retained())
             path = job.directory / ("upload." + job.request.extension)
             if is_link(path):
                 raise ApiError(500, "Temporary upload is unavailable")
@@ -175,6 +180,16 @@ class JobStore:
             while not self.stopping:
                 while self.queue:
                     job_id = self.queue.popleft()
+                    if isinstance(job_id, tuple):
+                        project = self.projects.projects.get(job_id[0])
+                        command = project.command if project else None
+                        if (command and command.id == job_id[1] and command.state == "queued"
+                                and not command.cancel.is_set() and not project.deleting
+                                and command.deadline > time.monotonic()):
+                            command.state, command.progress, command.message = "running", 0.1, "Processing audio"
+                            command.done.clear()
+                            return command
+                        continue
                     job = self.jobs.get(job_id)
                     if (job is not None and job.state == "queued" and not job.cancel.is_set()
                             and job.deadline > time.monotonic()):
@@ -258,6 +273,10 @@ class JobStore:
                 self.delete(job_id, expired=True)
             except ApiError as error:
                 failure = error
+        try:
+            self.projects.expire()
+        except ApiError as error:
+            failure = error
         if failure is not None:
             raise failure
 
@@ -266,4 +285,7 @@ class JobStore:
             self.stopping = True
             for job in self.jobs.values():
                 job.cancel.set()
+            for project in self.projects.projects.values():
+                if project.command:
+                    project.command.cancel.set()
             self.changed.notify_all()

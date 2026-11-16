@@ -18,8 +18,26 @@ credentials. `GET /health` returns only `{"status":"up"}`.
 The explicit `--cli` must name the built native executable. `--ffmpeg` can select
 a native codec executable; otherwise startup discovers it beside the CLI or on
 the operator's PATH. Keep CLI/codec packages under operator control. MP3 output
-also needs the native CLI's own FFmpeg discovery to work. Native work uses
+also needs the native CLI's own FFmpeg discovery to work. v1 native work uses
 `--threads 4`; one processing worker runs at a time.
+
+## Optional remote Studio API
+
+The additive v2 project API is configured with `--studio-cli ABSOLUTE_STUDIO_WORKER`
+and the existing FFmpeg path. Omitting the Studio binary preserves v1 processing;
+authenticated `GET /v2/capabilities` reports `available:false`. The full contract,
+operator budgets and native release requirements are documented in
+[HYBRID_REMOTE_PROTOCOL.md](../../docs/HYBRID_REMOTE_PROTOCOL.md).
+
+Both versions share the same retained-capacity accounting, guest registry and
+single FIFO processing worker. v2 permits two guest projects for main/Studio,
+120 editing commands per guest per hour, and 128-stem batches, with separate
+4 GiB bank PCM and 16 GiB project disk bounds. It supports authenticated streaming
+previews/downloads, revision commits and rollback, explicit per-Master reference
+selection, and audio-only undo with authoritative A/B metadata. Its limits do
+not change the v1 defaults described below.
+`--v2-threads N` selects 1–32 native/Rayon/OpenMP threads for v2 only, default 4;
+an operator can select 8 for an eight-CPU service allocation without changing v1.
 
 ## Normal Master settings and editable audio
 
@@ -127,15 +145,16 @@ audio/job expiry is clamped to session expiry, including queued/running jobs and
 downloads; the existing expiry sweeper cancels work and removes owned files.
 
 Guest limits are deliberately small: 64 live sessions; four session creations
-per IP and 64 globally per 10-minute window; three starts per session, eight per
+per IP and 64 globally per 10-minute window; three v1 starts per session, eight per
 IP and 32 globally per hour. Only the first successful run transition counts;
 idempotent run retries do not. Sessions and jobs share the existing four retained
 jobs and one worker. Owner processing bypasses guest rate limits, but still obeys
 the global job/storage bounds. Rate and capacity failures return 429 with an
 integer-seconds `Retry-After`, exposed through CORS. Deleting a job frees its slot
 but does not reset a guest's rate budget. Session expiry also leaves rate windows
-intact. There are at most 256 watched IP/operation windows plus two global
-counters; live windows are never evicted to accept rotated IPs. IP metadata is
+intact. There are at most 256 watched IP/operation windows plus fixed global
+counters (two for v1 and one additional v2 editing counter); live windows are
+never evicted to accept rotated IPs. IP metadata is
 HMAC-hashed in memory with a process-secret nonce, never persisted or logged.
 
 Client identity uses the socket peer by default, ignoring `X-Forwarded-For`,

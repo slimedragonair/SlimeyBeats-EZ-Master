@@ -77,6 +77,20 @@ class Config:
     trust_cloudflare_client_ip: bool = False
     expected_host: str | None = None
     trust_relay_client_ip: bool = False
+    studio_cli: Path | None = None
+    stem_python: Path | None = None
+    stem_models: Path | None = None
+    v2_max_upload_bytes: int = 2 * 1024 * MIB
+    v2_max_decoded_bytes: int = 2 * 1024 * MIB
+    v2_max_audio_seconds: int = 3600
+    v2_max_project_disk_bytes: int = 16 * 1024 * MIB
+    v2_retention_seconds: int = 3600
+    v2_preview_kbps: int = 192
+    v2_threads: int = 4
+    v2_memory_bytes: int = 16 * 1024 * MIB
+    v2_cpu_seconds: int = 14400
+    v2_worker_timeout_seconds: int = 3600
+    v2_decode_timeout_seconds: int = 300
 
     def __post_init__(self):
         if (len(self.token) < 32 or not self.token.isascii()
@@ -124,6 +138,8 @@ class Config:
         if self.ffmpeg is not None:
             ffmpeg = native_executable(self.ffmpeg)
             object.__setattr__(self, "ffmpeg", ffmpeg)
+        from .project_limits import validate_config
+        validate_config(self)
 
     def capabilities(self):
         return {
@@ -142,6 +158,13 @@ def from_arguments(argv=None):
     parser = argparse.ArgumentParser(description="Owner hybrid backend with optional public guest sessions; protect remote access with TLS")
     parser.add_argument("--cli", type=Path, required=True)
     parser.add_argument("--ffmpeg", type=Path)
+    parser.add_argument("--studio-cli", type=Path)
+    parser.add_argument("--stem-python", type=Path)
+    parser.add_argument("--stem-models", type=Path)
+    for name in ("v2-max-upload-bytes", "v2-max-decoded-bytes", "v2-max-audio-seconds",
+                 "v2-max-project-disk-bytes", "v2-retention-seconds", "v2-preview-kbps", "v2-threads", "v2-memory-bytes",
+                 "v2-cpu-seconds", "v2-worker-timeout-seconds", "v2-decode-timeout-seconds"):
+        parser.add_argument("--" + name, type=int, default=argparse.SUPPRESS)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
     parser.add_argument("--expected-host")

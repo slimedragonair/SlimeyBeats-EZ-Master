@@ -15,7 +15,17 @@ LOG_BYTES = 32768
 
 
 def terminate_and_reap(process):
-    if os.name == "posix":
+    if sys.platform.startswith("linux"):
+        # Let the subreaper kill and reap helpers even when they created their
+        # own process groups. killpg alone cannot reach those native helpers.
+        if process.poll() is None:
+            process.send_signal(signal.SIGTERM)
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            from .process_tree import kill_children
+            kill_children(process.pid, process.pid)
+    elif os.name == "posix":
         try:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
@@ -39,7 +49,8 @@ class ProcessRunner:
                    *map(str, command)]
         environment = {key: value for key, value in os.environ.items()
                        if not key.upper().startswith("SLIMEYBEATS_HYBRID_")}
-        environment.update({"RAYON_NUM_THREADS": "4", "OMP_NUM_THREADS": "4",
+        threads = str(getattr(config, "worker_threads", 4))
+        environment.update({"RAYON_NUM_THREADS": threads, "OMP_NUM_THREADS": threads,
                             "TMP": str(job.directory), "TEMP": str(job.directory),
                             "TMPDIR": str(job.directory)})
         log = bytearray()
@@ -82,7 +93,7 @@ class ProcessRunner:
                     raise ProcessingError("Processing timed out")
                 if pipe_errors:
                     raise ProcessingError("Processing pipe limit or write failure")
-                directory_bytes(job.directory, config.max_job_disk_bytes)
+                directory_bytes(job.directory, config.max_job_disk_bytes, getattr(config, "max_storage_files", 128))
                 job.cancel.wait(0.05)
             if process.returncode != 0 or job.cancel.is_set():
                 raise ProcessingError("Native processing failed")
@@ -101,4 +112,4 @@ class ProcessRunner:
             raise failure
         if pipe_errors:
             raise ProcessingError("Processing pipe limit or write failure")
-        directory_bytes(job.directory, config.max_job_disk_bytes)
+        directory_bytes(job.directory, config.max_job_disk_bytes, getattr(config, "max_storage_files", 128))

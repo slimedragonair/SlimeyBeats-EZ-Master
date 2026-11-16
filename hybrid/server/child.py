@@ -2,7 +2,7 @@
 
 This file is executed by the worker, never exposed as an HTTP operation. On
 Windows its non-inheritable job handle kills descendants if the supervisor dies.
-Linux parent death kills the isolated group, including native codec grandchildren.
+Linux uses an owned session and subreaper for nested codec/model process groups.
 """
 
 import ctypes
@@ -65,16 +65,30 @@ def main():
             resource.setrlimit(kind, (value, value))
 
         def kill_group(signum, frame):
-            os.killpg(os.getpgrp(), signal.SIGKILL)
+            if sys.platform.startswith("linux"):
+                from process_tree import kill_children
+                kill_children(os.getsid(0), os.getpid(), exclude=(os.getpid(),))
+            else:
+                os.killpg(os.getpgrp(), signal.SIGKILL)
 
         signal.signal(signal.SIGTERM, kill_group)
         if sys.platform.startswith("linux"):
             libc = ctypes.CDLL(None, use_errno=True)
+            if libc.prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
+                raise OSError("Cannot own orphaned descendants")
             if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
                 raise OSError("Cannot protect orphan worker")
             if os.getppid() != parent:
                 return 125
     result = subprocess.run(command, shell=False, stdin=subprocess.DEVNULL)
+    if sys.platform.startswith("linux"):
+        from process_tree import kill_children
+        kill_children(os.getsid(0), os.getpid(), exclude=(os.getpid(),))
+        while True:
+            try:
+                os.waitpid(-1, 0)
+            except ChildProcessError:
+                break
     # job_handle intentionally remains open: closing it would kill this supervisor.
     return result.returncode
 

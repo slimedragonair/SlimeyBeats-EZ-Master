@@ -91,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
         self.json_response(417, {"error": "Expect is not supported"})
         return False
 
-    def headers_for(self, status, length, mime="application/json", filename=None, cors=False, retry_after=None):
+    def headers_for(self, status, length, mime="application/json", filename=None, cors=False, retry_after=None, extra_headers=None):
         self.connection.settimeout(self.server.config.request_timeout_seconds)
         self.send_response(status)
         self.send_header("Content-Type", mime)
@@ -105,7 +105,7 @@ class Handler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin") if hasattr(self, "headers") else None
         if origin in self.server.config.origins:
             self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Access-Control-Expose-Headers", "Content-Disposition, Retry-After")
+            self.send_header("Access-Control-Expose-Headers", "Content-Disposition, Retry-After, Accept-Ranges, Content-Range, Content-Length")
             if cors:
                 self.send_header("Access-Control-Allow-Methods", ALLOW_METHODS)
                 self.send_header("Access-Control-Allow-Headers", ALLOW_HEADERS)
@@ -116,6 +116,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Disposition", 'attachment; filename="' + filename + '"')
         if retry_after is not None:
             self.send_header("Retry-After", str(retry_after))
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
 
     def json_response(self, status, value, cors=False, retry_after=None):
@@ -123,7 +125,7 @@ class Handler(BaseHTTPRequestHandler):
         self.headers_for(status, len(data), cors=cors, retry_after=retry_after)
         self.wfile.write(data)
 
-    def body(self, maximum, json_body=False):
+    def body_length(self, maximum):
         if self.headers.get_all("Transfer-Encoding"):
             raise ApiError(400, "Transfer-Encoding is not supported")
         lengths = self.headers.get_all("Content-Length", [])
@@ -132,6 +134,10 @@ class Handler(BaseHTTPRequestHandler):
         length = int(lengths[0])
         if length > maximum:
             raise ApiError(413, "Request body exceeds the byte limit")
+        return length
+
+    def body(self, maximum, json_body=False):
+        length = self.body_length(maximum)
         if json_body and self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
             raise ApiError(415, "Content-Type must be application/json")
         data = self.rfile.read(length)
@@ -157,7 +163,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ApiError(400, "Invalid request target")
             path = parsed.path
             if self.command == "OPTIONS":
-                if not path.startswith("/v1/"):
+                if not path.startswith(("/v1/", "/v2/")):
                     raise ApiError(404, "Endpoint not found")
                 preflight(self)
                 self.json_response(204, None, cors=True)
@@ -177,6 +183,10 @@ class Handler(BaseHTTPRequestHandler):
                 if self.body(16384, json_body=True) != {}:
                     raise ApiError(400, "Session accepts an empty JSON object")
                 self.json_response(201, self.server.store.sessions.mint(key))
+                return
+            if path == "/v2" or path.startswith("/v2/"):
+                from .project_http import dispatch
+                dispatch(self, parsed, authenticate(self))
                 return
             if path == "/v1" or path.startswith("/v1/"):
                 principal = authenticate(self)
@@ -229,7 +239,12 @@ class Handler(BaseHTTPRequestHandler):
                 raise ApiError(405, "Method is not supported")
             self.json_response(200, value)
         except ApiError as error:
-            self.json_response(error.status, {"error": error.message}, retry_after=error.retry_after)
+            message = error.message
+            if self.path.startswith("/v2/") and not re.fullmatch(r"[a-z_]{1,64}", message):
+                message = {400: "invalid_request", 401: "authentication_required", 403: "access_denied",
+                           404: "not_found", 409: "conflict", 413: "request_limit", 429: "rate_limit",
+                           507: "storage_full"}.get(error.status, "request_failed")
+            self.json_response(error.status, {"error": message}, retry_after=error.retry_after)
         except (BrokenPipeError, ConnectionResetError, socket.timeout):
             self.close_connection = True
         except Exception:

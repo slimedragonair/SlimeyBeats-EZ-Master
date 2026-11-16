@@ -11,8 +11,8 @@ CHANNELS = 2
 SAMPLE_BYTES = 2
 
 
-def prepare_wav(job, config, runner):
-    source = job.directory / ("upload." + job.request.extension)
+def prepare_wav(job, config, runner, source=None):
+    source = source if source is not None else job.directory / ("upload." + job.request.extension)
     destination = job.directory / "input.wav"
     if job.request.extension == "wav":
         info = inspect_wav(source, config)

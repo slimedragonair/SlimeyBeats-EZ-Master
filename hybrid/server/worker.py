@@ -17,9 +17,15 @@ class Worker(threading.Thread):
         self.config = config
         self.store = store
         self.runner = ProcessRunner(config)
+        from .project_worker import ProjectWorker
+        self.project_worker = ProjectWorker(config, store.projects)
 
     def run(self):
         while (job := self.store.claim()) is not None:
+            from .project_models import ProjectCommand
+            if isinstance(job, ProjectCommand):
+                self.project_worker.execute(job)
+                continue
             state, message, artifacts = "completed", "Master ready", {}
             try:
                 artifacts = self.process(job)

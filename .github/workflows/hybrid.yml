@@ -22,14 +22,15 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ffmpeg
-      - name: Build the fixed native worker
-        run: cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli
+      - name: Build the fixed native workers
+        run: cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
       - name: Check server boundaries and deployment examples
         run: |
-          python3 -m hybrid.tests --cli rust/target/release/slimeybeats-ez-master-cli
+          python3 -m hybrid.tests --cli rust/target/release/slimeybeats-ez-master-cli --studio-cli rust/target/release/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg
           python3 -m unittest discover -s hybrid/deploy/tests -p 'test_*.py'
           python3 -m unittest discover -s hybrid/deploy/tailscale/tests -p 'test_*.py'
           python3 -m unittest discover -s hybrid/deploy/relay/tests -p 'test_*.py'
+          python3 -m unittest discover -s hybrid/deploy/remote-tools/tests -p 'test_*.py'
           python3 hybrid/deploy/tailscale/funnel_scaffold.py
           python3 hybrid/deploy/validate_deployment.py offline
       - name: Check editor mastering intent and request lifecycle

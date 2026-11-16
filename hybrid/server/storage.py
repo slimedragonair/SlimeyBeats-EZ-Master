@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 
 from .errors import ApiError, ProcessingError
 
@@ -18,7 +19,7 @@ def is_link(path):
     return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
 
 
-def directory_bytes(path, limit=None):
+def directory_bytes(path, limit=None, max_entries=128):
     total = 0
     count = 0
     pending = [path]
@@ -26,20 +27,33 @@ def directory_bytes(path, limit=None):
         folder = pending.pop()
         if is_link(folder):
             raise ProcessingError("Unsafe storage entry")
-        with os.scandir(folder) as entries:
+        try:
+            entries = os.scandir(folder)
+        except FileNotFoundError:
+            if folder == path:
+                raise
+            # Native tools remove their own private temporary directories while
+            # this watchdog walks the project. A vanished descendant uses no
+            # disk; the root, links, other I/O errors and file limits still fail.
+            continue
+        with entries:
             for entry in entries:
                 count += 1
-                if count > 128:
+                if count > max_entries:
                     raise ProcessingError("Too many processing files")
                 child = Path(entry.path)
-                if is_link(child):
-                    raise ProcessingError("Unsafe storage entry")
-                if entry.is_dir(follow_symlinks=False):
-                    pending.append(child)
-                elif entry.is_file(follow_symlinks=False):
-                    total += entry.stat(follow_symlinks=False).st_size
-                else:
-                    raise ProcessingError("Unsafe storage entry")
+                try:
+                    if is_link(child):
+                        raise ProcessingError("Unsafe storage entry")
+                    details = entry.stat(follow_symlinks=False)
+                    if stat.S_ISDIR(details.st_mode):
+                        pending.append(child)
+                    elif stat.S_ISREG(details.st_mode):
+                        total += details.st_size
+                    else:
+                        raise ProcessingError("Unsafe storage entry")
+                except FileNotFoundError:
+                    continue
                 if limit is not None and total > limit:
                     raise ProcessingError("Processing storage limit exceeded")
     return total
@@ -119,13 +133,15 @@ class Storage:
         # rmtree unlinks symlinks/junctions rather than traversing their destinations.
         shutil.rmtree(directory)
 
-    def check_space(self, jobs, new_reservation=False):
+    def check_space(self, jobs, new_reservation=False, reservation_bytes=0):
         reserved = 0
         for job in jobs:
-            used = directory_bytes(job.directory, self.config.max_job_disk_bytes)
-            reserved += max(0, self.config.max_job_disk_bytes - used)
+            budget = getattr(job, "max_disk_bytes", self.config.max_job_disk_bytes)
+            used = directory_bytes(job.directory, budget, getattr(job, "max_storage_files", 128))
+            reserved += max(0, budget - used)
         if new_reservation:
             reserved += self.config.max_job_disk_bytes
+        reserved += reservation_bytes
         if shutil.disk_usage(self.root).free < reserved + self.config.min_free_bytes:
             raise ApiError(507, "Temporary processing storage is full")
 

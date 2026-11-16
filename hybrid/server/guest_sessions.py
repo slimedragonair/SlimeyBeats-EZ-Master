@@ -35,6 +35,7 @@ class Window:
 class Session:
     principal: Principal
     job_starts: int = 0
+    command_starts: int = 0
 
 
 def limited(message, deadline, now):
@@ -135,3 +136,13 @@ class GuestRegistry:
                 raise limited("Guest job rate limit reached", principal.deadline, now)
             self._consume("job", client_key, JOBS_PER_IP, JOBS_PER_WINDOW, JOB_WINDOW_SECONDS, now)
             session.job_starts += 1
+
+    def start_command(self, principal, client_key):
+        with self.lock:
+            now = self.monotonic()
+            self._purge(now)
+            session = self._session(principal, now)
+            if session.command_starts >= 120:
+                raise limited("command_quota", principal.deadline, now)
+            self._consume("command", client_key, 480, 1920, JOB_WINDOW_SECONDS, now)
+            session.command_starts += 1
