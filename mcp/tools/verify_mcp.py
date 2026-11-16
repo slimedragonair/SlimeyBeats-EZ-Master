@@ -53,14 +53,18 @@ def verify(server, fixture, codecs):
             assert all("inputSchema" in tool and "annotations" in tool for tool in tools)
             caps = client.call("get_capabilities")
             assert caps["concurrent_audio_jobs"] == 1
+            assert caps["hybrid_studio"]["remote_processing_from_mcp"] is False
+            assert caps["hybrid_studio"]["public_http_transport"] is False
+            assert "hybrid" in caps["help_topics"]
             if not caps["desktop_configured"]:
                 assert "desktop is not configured" in " ".join(caps["workflow"])
             neutral = next(p for p in caps["profiles"] if p["id"] == "neutral")
             assert isinstance(neutral["targets_lufs"]["streaming_safe"], (int, float))
             guide = client.call("get_help")
             assert guide["steps"] and guide["job_example"]
-            for topic in ("mastering", "eq", "export", "troubleshooting", "privacy"):
+            for topic in ("mastering", "eq", "export", "troubleshooting", "privacy", "hybrid"):
                 assert client.call("get_help", {"topic": topic})
+            assert "do not connect" in client.call("get_help", {"topic": "hybrid"})["local_companion"]
             # Some hosts consume text content instead of structuredContent.
             raw = client.request("tools/call", {"name": "get_help", "arguments": {}})["result"]
             assert json.loads(raw["content"][0]["text"]) == raw["structuredContent"]
