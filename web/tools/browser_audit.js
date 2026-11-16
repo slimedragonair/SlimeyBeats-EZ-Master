@@ -208,6 +208,7 @@ window.runAudit = async () => {
         checks.push(
             "three WAV formats, decoded peak guard, deterministic export",
         );
+        const priorReference = await dsp.call("reference-analysis");
         await dsp.call("reference", {
             samples: fixture(2, 1),
             rate: 48000,
@@ -226,7 +227,40 @@ window.runAudit = async () => {
             staleReferenceExport,
             "Changing reference must invalidate the stored master",
         );
+        assert(
+            JSON.stringify(await dsp.call("reference-analysis")) !== JSON.stringify(priorReference),
+            "Reference analysis must update even while the cached master is stale",
+        );
+        assert(
+            JSON.stringify(await dsp.call("suggest", { settings: JSON.stringify(settings) })) === JSON.stringify(suggestion),
+            "Reference changes must preserve the raw master for recovery and audition",
+        );
+        await dsp.call("master", { settings: JSON.stringify(settings) });
+        const refreshed = await dsp.call("export", { settings: JSON.stringify(settings), format: "wav32f" });
+        assert(refreshed.bytes.length > 44, "Re-mastering with the new reference must restore worker export");
+        const acceptedReference = await dsp.call("reference-analysis");
+        await dsp.call("reference", { samples: fixture(2, 1), rate: 48000, channels: 1 });
+        const afterReferenceReload = await dsp.call("export", { settings: JSON.stringify(settings), format: "wav32f" });
+        assert(afterReferenceReload.bytes.length === refreshed.bytes.length &&
+            afterReferenceReload.bytes.every((value, index) => value === refreshed.bytes[index]),
+            "Reloading the same reference for recovery must preserve a current export");
+        let invalidReferenceRejected = false;
+        try {
+            await dsp.call("reference", { samples: new Float32Array([NaN]), rate: 48000, channels: 1 });
+        } catch {
+            invalidReferenceRejected = true;
+        }
+        assert(invalidReferenceRejected, "A nonfinite reference must be rejected");
+        assert(JSON.stringify(await dsp.call("reference-analysis")) === JSON.stringify(acceptedReference),
+            "A rejected reference must preserve accepted analysis");
+        const afterRejectedReference = await dsp.call("export", { settings: JSON.stringify(settings), format: "wav32f" });
+        assert(afterRejectedReference.bytes.length === refreshed.bytes.length &&
+            afterRejectedReference.bytes.every((value, index) => value === refreshed.bytes[index]),
+            "A rejected reference must preserve the current master and deterministic export");
         checks.push("reference changes reject stale worker exports");
+        checks.push("reference changes preserve recovery PCM; re-master restores export");
+        checks.push("unchanged reference reload preserves current export");
+        checks.push("rejected reference preserves current analysis and export");
         await dsp.call("load", {
             samples: new Float32Array(48000),
             rate: 48000,

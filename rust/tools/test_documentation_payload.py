@@ -67,18 +67,32 @@ class DocumentationPayloadTests(unittest.TestCase):
             self.assertEqual(verify_local_links([guide], root), 3)
             self.assertFalse((root / 'hybrid').exists())
 
+    def test_v2_guide_links_stay_local_and_worker_evidence_uses_source_paths(self):
+        source = ('[Protocol](HYBRID_REMOTE_PROTOCOL.md#browser-contract) '
+                  '[Validation](HYBRID_V2_VALIDATION.md) '
+                  '![Master](images/hybrid-server-master.png) '
+                  '[Worker](../rust/src/hybrid_worker/VALIDATION.md) '
+                  '[Benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md)')
+        converted = offline_guide(source)
+        for link in ('HYBRID_REMOTE_PROTOCOL.md#browser-contract',
+                     'HYBRID_V2_VALIDATION.md', 'images/hybrid-server-master.png'):
+            self.assertIn('](' + link + ')', converted)
+        self.assertIn('`rust/src/hybrid_worker/VALIDATION.md`', converted)
+        self.assertIn('`hybrid/deploy/remote-tools/BENCHMARK.md`', converted)
+        self.assertEqual(converted.count('separate source package'), 1)
+
 
 class PublicDocumentationPackagingTests(unittest.TestCase):
     NEW_GUIDES = (
         'STEM_EDITOR.md', 'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'WEB_EXPORTS.md',
         'WEB_EXPORT_VALIDATION.md', 'BROWSER_PARITY_ROADMAP.md', 'MOBILE_PREVIEW.md',
-        'HOTFIX4.md', 'HYBRID_STUDIO.md',
+        'HOTFIX4.md', 'HYBRID_STUDIO.md', 'HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md',
     )
     NEW_IMAGES = (
         'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',
         'web-stem-editor-phone.png', 'web-stem-editor-tools.png', 'doctor-desktop.png',
         'doctor-web-findings.png', 'doctor-web-repair.png', 'web-session-downloads.png',
-        'hybrid-server-job.png',
+        'hybrid-server-job.png', 'hybrid-server-master.png', 'hybrid-shared-editor-phone.png',
     )
 
     @classmethod
@@ -186,6 +200,13 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'private fixture; must not ship')
         exported = copy_public_source(checkout, self.root / 'filtered-source')
+        runtime = self.root / 'filtered-runtime'
+        runtime.mkdir()
+        copy_documentation(checkout, runtime)
+        for relative in ('docs/private-report.md', 'docs/reports/session.json',
+                         'docs/images/private-session.png'):
+            with self.subTest(runtime_path=relative):
+                self.assertFalse((runtime / relative).exists(), relative)
         self.assertTrue((exported / 'hybrid/server/worker.py').is_file())
         self.assertTrue((exported / 'hybrid/deploy/slimeybeats-hybrid.service').is_file())
         for relative in private_paths:
@@ -212,6 +233,37 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
         image.unlink()
         with self.assertRaisesRegex(AssertionError, 'docs/images/doctor-desktop.png'):
             verify(self.runtime, self.archive)
+
+    def test_release_audit_requires_v2_guides_in_source_and_runtime(self):
+        for name in ('HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md'):
+            missing = 'docs/' + name
+            with self.subTest(guide=name, bundle='source'):
+                archive = self.archive_source(omitted=missing)
+                with self.assertRaisesRegex(AssertionError, missing):
+                    verify(self.runtime, archive)
+            with self.subTest(guide=name, bundle='runtime'):
+                guide = self.runtime / missing
+                original = guide.read_bytes()
+                try:
+                    guide.unlink()
+                    with self.assertRaisesRegex(AssertionError, missing):
+                        verify(self.runtime, self.archive)
+                finally:
+                    guide.write_bytes(original)
+
+    def test_release_audit_requires_reviewed_v2_screenshot(self):
+        missing = 'docs/images/hybrid-server-master.png'
+        archive = self.archive_source(omitted=missing)
+        with self.assertRaisesRegex(AssertionError, missing):
+            verify(self.runtime, archive)
+        image = self.runtime / missing
+        original = image.read_bytes()
+        try:
+            image.unlink()
+            with self.assertRaisesRegex(AssertionError, missing):
+                verify(self.runtime, self.archive)
+        finally:
+            image.write_bytes(original)
 
 
 if __name__ == '__main__':

@@ -16,6 +16,8 @@
 
 Actual 1440 × 1050 browser capture using a generated four-second stereo fixture and an owned native HTTP backend. This illustrates the shared workflow; physical-phone and maximum-size qualification remain separate from the [recorded checks](docs/HYBRID_V2_VALIDATION.md).
 
+**Validated on the public preview:** an **18-minute, 48 kHz stereo MP3** completed import, Analyze, Master, streamed playback and full WAV/MP3/session ZIP downloads through the real server. Chromium, Firefox and Linux WebKit also passed the native-backed editor workflows and local-to-server migration. [Exact tests, measured timings and physical-device gaps](docs/HYBRID_V2_VALIDATION.md).
+
 SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Linux source support, and a private browser preview. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
 
 **Windows x64 · Linux source · Browser preview · MIT licensed · Local processing by default**

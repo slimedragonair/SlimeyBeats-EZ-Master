@@ -18,6 +18,21 @@ pub struct Session {
     reference: Option<Analysis>,
     raw: Option<Audio>,
     report: Option<Report>,
+    raw_reference_stale: bool,
+}
+
+impl Session {
+    fn export_source(&self) -> anyhow::Result<&Audio> {
+        let raw = self
+            .raw
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Master the track first"))?;
+        anyhow::ensure!(
+            !self.raw_reference_stale,
+            "Reference changed. Master the track again before exporting."
+        );
+        Ok(raw)
+    }
 }
 
 fn master_settings(json: &str) -> anyhow::Result<Settings> {
@@ -40,6 +55,7 @@ impl Session {
             reference: None,
             raw: None,
             report: None,
+            raw_reference_stale: false,
         })
     }
 
@@ -51,11 +67,16 @@ impl Session {
     ) -> Result<(), JsValue> {
         import_limits::validate(samples.len(), rate, channels).map_err(failure)?;
         let audio = Audio::new(samples, rate, channels as usize).map_err(failure)?;
-        // Reference revisions affect future masters; the editor owns stale-state
-        // guards while recovery and audition retain the current raw master.
-        self.reference = Some(
-            analysis::analyze(&audio, &profile("neutral").map_err(failure)?).map_err(failure)?,
-        );
+        // Recovery and audition retain the current raw master, but the worker
+        // must reject stale exports independently of the editor's UI guard.
+        let reference =
+            analysis::analyze(&audio, &profile("neutral").map_err(failure)?).map_err(failure)?;
+        let changed = serde_json::to_value(&self.reference).map_err(failure)?
+            != serde_json::to_value(&reference).map_err(failure)?;
+        self.reference = Some(reference);
+        // Recovery reloads the unchanged baseline reference after rebuilding
+        // its master. That must preserve a current cache, never revive a stale one.
+        self.raw_reference_stale |= changed && self.raw.is_some();
         Ok(())
     }
 
@@ -90,6 +111,7 @@ impl Session {
         let raw_analysis = mastered.report.output.clone();
         self.raw = Some(mastered.audio);
         self.report = Some(mastered.report);
+        self.raw_reference_stale = false;
         Ok(serde_json::json!({"report":self.report,"raw_analysis":raw_analysis}).to_string())
     }
 
@@ -122,15 +144,13 @@ impl Session {
 
     pub fn export_wav(&mut self, json: &str, format: &str) -> Result<Vec<u8>, JsValue> {
         let s = settings(json).map_err(failure)?;
-        let raw = self
-            .raw
-            .as_ref()
-            .ok_or_else(|| failure("Master the track first"))?;
+        let raw = self.export_source().map_err(failure)?;
         let rendered = manual_eq::render(raw, &s, &|| false).map_err(failure)?;
         let (bytes, decoded, metrics, passes) =
             wav_output::encode_checked(rendered.audio, format, &s).map_err(failure)?;
         let output_analysis =
             analysis::analyze(&decoded, &profile(&s.profile).map_err(failure)?).map_err(failure)?;
+        let sample_rate = raw.sample_rate;
         if let Some(report) = &mut self.report {
             report.configuration["manual_eq"] =
                 serde_json::to_value(&s.manual_eq).map_err(failure)?;
@@ -140,7 +160,7 @@ impl Session {
             report.configuration["eq_final_trim_db"] = rendered.trim_db.into();
             report.output = output_analysis;
             report.exports = vec![
-                serde_json::json!({"format":format,"sample_rate":raw.sample_rate,"decoded_metrics":metrics,"encode_passes":passes,"dither":s.dither&&format!="wav32f"}),
+                serde_json::json!({"format":format,"sample_rate":sample_rate,"decoded_metrics":metrics,"encode_passes":passes,"dither":s.dither&&format!="wav32f"}),
             ];
             report
                 .notes

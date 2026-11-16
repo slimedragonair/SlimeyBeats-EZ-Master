@@ -36,6 +36,7 @@ fn state(session: &Session) -> Value {
         "raw": session.raw.as_ref().map(|raw| bits(&raw.samples)),
         "raw_ptr": session.raw.as_ref().map(|raw| raw.samples.as_ptr() as usize),
         "report": session.report,
+        "raw_reference_stale": session.raw_reference_stale,
     })
 }
 
@@ -86,8 +87,10 @@ fn adopts_exact_pcm_with_input_layout_and_locally_measured_report() {
         let mut raw = tones(rate, channels, [0.005, 0.02, 0.08]);
         raw[0] = -0.;
         let mut session = Session::new(input.clone(), rate, channels).unwrap();
-        let mut settings = Settings::default();
-        settings.profile = "edm".into();
+        let mut settings = Settings {
+            profile: "edm".into(),
+            ..Settings::default()
+        };
         settings.manual_eq[3].gain = 9.;
         settings.eq_output_db = 6.;
         let serverreport = json!({
@@ -381,9 +384,11 @@ fn exported_eq_and_gain_start_from_adopted_pcm_without_accumulation() {
     let pointer = session.preview_ptr().unwrap();
     let baseline = session.export_wav("{}", "wav32f").unwrap();
     assert_eq!(bits(&decode(&baseline).samples), bits(&raw));
-    let mut settings = Settings::default();
-    settings.eq_hold_loudness = false;
-    settings.eq_output_db = -3.;
+    let mut settings = Settings {
+        eq_hold_loudness: false,
+        eq_output_db: -3.,
+        ..Settings::default()
+    };
     for band in &mut settings.manual_eq {
         band.on = false;
     }
@@ -416,7 +421,7 @@ fn exported_eq_and_gain_start_from_adopted_pcm_without_accumulation() {
 }
 
 #[test]
-fn reference_serialization_and_recovery_updates_preserve_raw_and_report() {
+fn reference_changes_preserve_recovery_pcm_but_require_fresh_master_for_export() {
     let (mut session, raw) = fixture();
     assert_eq!(session.reference_analysis().unwrap(), "null");
     session
@@ -428,6 +433,11 @@ fn reference_serialization_and_recovery_updates_preserve_raw_and_report() {
     assert_eq!(session.reference_analysis().unwrap(), baseline_reference);
     let exported = session.export_wav("{}", "wav32f").unwrap();
     let report = session.report().unwrap();
+    session
+        .set_reference(tones(44100, 1, [0.01, 0.02, 0.03]), 44100, 1)
+        .unwrap();
+    assert!(!session.raw_reference_stale);
+    assert_eq!(session.export_wav("{}", "wav32f").unwrap(), exported);
     session
         .set_reference(tones(48000, 2, [0.04, 0.01, 0.005]), 48000, 2)
         .unwrap();
@@ -441,5 +451,27 @@ fn reference_serialization_and_recovery_updates_preserve_raw_and_report() {
     assert_eq!(state(&session)["raw_ptr"], before["raw_ptr"]);
     assert_eq!(state(&session)["raw"], before["raw"]);
     assert_eq!(state(&session)["input"], before["input"]);
+    assert!(session.raw_reference_stale);
+    assert_eq!(
+        session.export_source().unwrap_err().to_string(),
+        "Reference changed. Master the track again before exporting."
+    );
+    let stale = state(&session);
+    session
+        .set_reference(tones(48000, 2, [0.04, 0.01, 0.005]), 48000, 2)
+        .unwrap();
+    assert_eq!(
+        state(&session),
+        stale,
+        "Reloading a reference must not revive a stale master"
+    );
+    assert!(session.adopt_master_checked(vec![0.], "{}", "{}").is_err());
+    assert_eq!(
+        state(&session),
+        stale,
+        "A failed master must not restore export eligibility"
+    );
+    session.adopt_master(raw, "{}", "{}").unwrap();
+    assert!(!session.raw_reference_stale);
     assert_eq!(session.export_wav("{}", "wav32f").unwrap(), exported);
 }

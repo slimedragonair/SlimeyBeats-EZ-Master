@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import shutil
 
-from .public_source import GUIDES
+from .public_source import DOCUMENTATION_IMAGES, GUIDES
 
 
 def offline_guide(text):
@@ -25,7 +25,10 @@ def copy_documentation(repository, destination):
         text = (repository / 'docs' / name).read_text(encoding='utf-8')
         text = offline_guide(text)
         (docs / name).write_text(text, encoding='utf-8')
-    shutil.copytree(repository / 'docs/images', docs / 'images')
+    images = docs / 'images'
+    images.mkdir(exist_ok=True)
+    for name in DOCUMENTATION_IMAGES:
+        shutil.copy2(repository / 'docs/images' / name, images / name)
     shutil.copytree(repository / 'docs/legacy', docs / 'legacy')
     shutil.copy2(project / 'tests/fixtures/README.md', docs / 'fixture-credits.md')
     shutil.copy2(project / 'assets/ASSETS.md', docs / 'ASSETS.md')

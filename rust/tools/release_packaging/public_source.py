@@ -14,7 +14,7 @@ GUIDES = (
     'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'UPDATES_AND_OPTIONAL_TOOLS.md',
     'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md',
     'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
-    'HOTFIX4.md', 'HYBRID_STUDIO.md',
+    'HOTFIX4.md', 'HYBRID_STUDIO.md', 'HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md',
 )
 # Keep screenshots explicit: only reviewed public captures belong in the source
 # package, never an arbitrary image or private report added to the checkout.
@@ -29,7 +29,7 @@ DOCUMENTATION_IMAGES = (
     'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',
     'web-stem-editor-phone.png', 'web-stem-editor-tools.png', 'doctor-desktop.png',
     'doctor-web-findings.png', 'doctor-web-repair.png', 'web-session-downloads.png',
-    'hybrid-server-job.png',
+    'hybrid-server-job.png', 'hybrid-server-master.png', 'hybrid-shared-editor-phone.png',
 )
 DEMO_FILES = ('demo-input.wav', 'demo-master.wav', 'listen-input.mp3', 'listen-master.mp3',
               'CREDITS.md', 'source.json', 'demo-master.report.json', 'Listen.html')

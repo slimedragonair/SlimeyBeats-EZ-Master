@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright, expect
 from verify_studio_browser import fixture
 from recovery_studio_checks import studio_recovery, import_race, chromium_crash
+from recovery_reference_checks import reference_recovery
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -196,6 +197,7 @@ def run(args):
             result['checks'].append('blocked IndexedDB keeps editing/manual backup usable; report works without WASM or guidance')
             result['checks'] += studio_recovery(browser, base, args.out, ready, open_recovery, save_point)
             result['checks'] += import_race(browser, base, args.out, ready, open_recovery)
+            result['checks'] += reference_recovery(browser, base, args.out, ready, open_recovery, save_point)
             if args.browser == 'chromium':
                 result['checks'] += chromium_crash(browser, base, ready, open_recovery, save_point,
                     proof=args.out / 'chromium-crash-proof.json')

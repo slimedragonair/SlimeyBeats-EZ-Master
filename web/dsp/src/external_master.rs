@@ -148,6 +148,7 @@ impl Session {
         }))?;
         self.raw = Some(raw);
         self.report = Some(report);
+        self.raw_reference_stale = false;
         Ok(result)
     }
 }

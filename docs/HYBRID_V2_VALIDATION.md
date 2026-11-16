@@ -20,7 +20,11 @@ service and physical-device acceptance.
 | MCP | Seven focused help tests and actual 45-tool stdio protocol verification passed; public remote processing is not exposed through the local companion |
 | Published local mode | Actual hosted build `276a8c8` / runtime `f1e9f9f53a9f4cc1` passed touch import, Master, live EQ, MP3/report/ZIP and 320/390 CSS-pixel layout checks, with only same-origin static GETs |
 | Engine guidance | Source candidate after that build passed native-backed import/Master, local/server label changes, retained streamed-source export guidance and 320/390-pixel layout without page errors |
-| Long public song | **In progress:** an 18-minute, 48 kHz stereo MP3 imported successfully; a harness metadata-observation failure prevented qualification of its later actions in that attempt |
+| Existing local work → server | Five actual-UI migration checks passed in each of Chromium 143, Firefox 144 and Linux WebKit 26: original/edit PCM, pending faders, required mix commit, native tools and original-based main Re-Master; old local worker and playback references were released |
+| Long public song | **Passed:** 150-second preflight and **18-minute, 48 kHz stereo MP3**, through actual published Pages/Funnel: import, Analyze, Master, captured stream/Stop and complete WAV/MP3/session ZIP downloads; originals retained exact geometry and all owned projects were removed |
+| Browser control/state regressions | **129 Node checks** passed; two classic-worker build checks are included in 26 Python publication/build checks |
+| Documentation bundles | **15 payload + 3 link tests** passed on Windows and WSL after adding the v2 guides/screenshots to the reviewed public allowlists; unreviewed private files remain excluded |
+| Existing local reference/export bug | Reproduced on baseline `be3fcde` and fixed in the WASM Session: changed references refuse stale exports while preserving recovery PCM; unchanged reference reloads stay valid. Chromium/Firefox/WebKit passed **14 DSP checks each**; Chromium recovery passed **17 checks**, including A→B refusal and retained-PCM adoption. **31 binding tests**, formatting and strict Clippy passed |
 
 The browser suites use real native DSP in an owned loopback service. Their
 fixture changes only the copied API-origin pin and supplies a streaming HTTP
@@ -57,6 +61,38 @@ first running observation at 56 seconds; four-stem took 26.4 seconds. These are
 qualification observations, not isolated inference benchmarks or a latency SLA.
 
 ## Speed and admission
+
+### Published browser and public transport
+
+One Chromium 143 page loaded actual published build `276a8c8` and kept one guest
+for the 150-second preflight and 18-minute case. Neither static assets nor Funnel
+responses were simulated. The 18-minute MP3 was 8,640,428 bytes and decoded on
+the server to **51,840,000 stereo frames / 414,720,000 Float32 bytes**: beyond
+both the local 15-minute duration ceiling and 384 MiB decoded-PCM limit.
+The decoded source PCM hash and WAV/MP3 output frame counts were independently
+checked. Browser full-PCM decode, whole-media reads and heavy worker counters
+remained zero; native streamed playback produced nonzero output and Stop silence.
+
+| Actual UI action | 150 seconds of audio | 18 minutes of audio |
+|---|---:|---:|
+| Import, including upload/decode/preview preparation | 20.84 s | 78.42 s |
+| Analyze | 3.65 s | 19.04 s |
+| Master, including preview/poll overhead | 22.88 s | 150.59 s |
+| Reported Master engine time, included above | 14.47 s | 105.33 s |
+| WAV24 render plus full streamed download | 59.34 s | 281.89 s |
+| MP3 render plus full streamed download | 32.48 s | 124.00 s |
+| WAV session ZIP render plus full streamed download | 48.06 s | 292.99 s |
+
+These are individual network-inclusive qualification observations, not medians,
+phone benchmarks, a speedup ratio or a latency guarantee. The 18-minute WAV and
+ZIP downloads were approximately **311 MB each**; network time matters. The
+entire two-phase qualification, including three complete downloads per phase,
+took 1,148.93 seconds. Both phases passed, sources were unchanged, and the owned
+server projects subsequently returned 404 after cleanup. Earlier failed harness
+attempts are retained privately: they involved observation/dialog assumptions,
+not a claimed successful full run.
+
+### Matched processing benchmark
 
 See the [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md) for all
 warmed samples, hardware, inputs, settings and independent PCM comparisons.
