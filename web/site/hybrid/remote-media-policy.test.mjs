@@ -46,3 +46,17 @@ test("v2 metadata has an explicit 1 MiB budget while v1 default remains 64 KiB",
     assert.equal(result.assets.length, 70000);
     await assert.rejects(readBoundedJson(new Response("{}"), { maxBytes: PROJECT_JSON_LIMIT_BYTES + 1 }), /Invalid JSON response budget/);
 });
+test("two workspaces leave each other's media request port available", () => {
+    const controller = { scriptURL: new URL("../remote-media-worker.js", import.meta.url).href }, listeners = [], replies = [];
+    const container = { controller, addEventListener: (_, fn) => listeners.push(fn), removeEventListener() {} };
+    const master = new RemoteMediaBridge({ replyMediaAccess: () => replies.push("master") }, { container });
+    const studio = new RemoteMediaBridge({ replyMediaAccess: () => replies.push("studio") }, { container });
+    master.url("master-project", "master-asset"); studio.url("studio-project", "studio-asset");
+    let closed = false;
+    const port = { postMessage() { assert.equal(closed, false); }, close() { closed = true; } };
+    const event = { source: controller, ports: [port], data: { type: "slimeybeats-media-access", version: 2,
+        path: remoteMediaPath("studio-project", "studio-asset") } };
+    listeners[0](event); assert.equal(closed, false); assert.deepEqual(replies, []);
+    listeners[1](event); assert.equal(closed, true); assert.deepEqual(replies, ["studio"]);
+    master.dispose(); studio.dispose();
+});

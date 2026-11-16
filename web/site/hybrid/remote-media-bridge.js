@@ -14,7 +14,9 @@ export class RemoteMediaBridge {
             if (event.source !== this.container?.controller || !this.ownedController() || !event.ports?.[0] ||
                 value?.type !== "slimeybeats-media-access" || value.version !== 2) return;
             const port = event.ports[0];
-            if (!this.allowed.has(value.path)) { port.postMessage({ path: value.path }); port.close(); return; }
+            // Mastering and Studio share this worker. Leave an unowned request
+            // untouched so the other workspace can answer on the same port.
+            if (!this.allowed.has(value.path)) return;
             this.client.replyMediaAccess(port, value.path);
             port.close();
         };
