@@ -6,8 +6,9 @@ const COLORS = { clipping: "var(--doctor-clipping)", silence: "var(--doctor-sile
 const measured = value => JSON.stringify(value, null, 2);
 const setText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
 
-export function wireStudioDoctor({ client, getState, job, mutate, seek, draw, sync }) {
+export function wireStudioDoctor({ client, getState, job, mutate, seek, draw, sync, prepare }) {
     const $ = id => document.getElementById(`s-doctor-${id}`), state = new DoctorState();
+    let preparing = false, cancelGeneration = 0;
     const target = () => document.getElementById("s-target");
     function status(message) { setText($("status"), message); }
     function select(id) {
@@ -73,8 +74,17 @@ export function wireStudioDoctor({ client, getState, job, mutate, seek, draw, sy
             : "Select an issue to listen. Only supported repairs offer a preview. No automatic fix-all or missing-audio reconstruction.");
     }
     $("scan").onclick = async () => {
-        const current = getState();
-        if (current.busy || state.scanning || !current.info.loaded) return;
+        let current = getState();
+        if (current.busy || preparing || state.scanning || !current.info.loaded) return;
+        const generation = cancelGeneration;
+        if (prepare) {
+            preparing = true;
+            try { await prepare(); }
+            catch (error) { status(error.message || "The server workspace could not be prepared."); return; }
+            finally { preparing = false; }
+            current = getState();
+            if (generation !== cancelGeneration || current.busy || !current.info.loaded) return;
+        }
         const input = target(), token = state.begin(input.value,
             `${input.selectedOptions[0].textContent} · ${current.filename}`);
         render(); update(); status(`Scanning ${token.label} (saved audio)…`); sync();
@@ -114,6 +124,6 @@ export function wireStudioDoctor({ client, getState, job, mutate, seek, draw, sy
         invalidate(message = "Audio or target changed. Scan this saved target again.") {
             state.invalidate(); render(); status(message); update();
         },
-        cancel() { state.invalidate(); render(); status("Scan cancelled. No audio or history changed."); update(); sync(); },
+        cancel() { ++cancelGeneration; state.invalidate(); render(); status("Scan cancelled. No audio or history changed."); update(); sync(); },
     };
 }

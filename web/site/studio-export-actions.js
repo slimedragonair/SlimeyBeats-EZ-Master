@@ -17,6 +17,20 @@ export function wireStudioExports({ getState, client, playback, job, promote, no
                     if (getState().cancelled || signal.aborted) throw new DOMException("Export cancelled", "AbortError");
                 };
                 try {
+                    if (client.remote) {
+                        const project = client.project, name = id === "export-stems" ? "Studio-stems.zip" : id === "export-session" ? "Studio-session.zip"
+                            : `Studio-preview.${format === "mp3" ? "mp3" : "wav"}`;
+                        if (id === "promote") {
+                            const audio = await project.audio(project.manifest.preview_id);
+                            current(); await promote({ ...audio, name: "Studio mix.wav" });
+                            notice("Studio preview loaded for server mastering. Your Studio workspace is retained."); return;
+                        }
+                        await project.export(id === "export" ? "export" : "bundle", {
+                            ...(id === "export-stems" ? {} : { audio_id: project.manifest.preview_id }),
+                            format, ...(id !== "export" ? { kind: "studio", include_stems: true } : {}),
+                        }, name, { signal });
+                        current(); notice("Server download started from the full-resolution saved audio. Listening volume is excluded."); return;
+                    }
                     if (id === "export-stems") {
                         const result = await client.call("stem-export"); current();
                         download(stemZip(result.files, result.manifest), "Studio-stems.zip", "application/zip");

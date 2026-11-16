@@ -2,10 +2,12 @@ import { audioSize, audioRecord, audioBuffer } from "./recovery-format.js";
 import { interleave, DspClient } from "./dsp-client.js";
 import { recoverMasterIdentity } from "./master-recovery-identity.js";
 export function masterRecoverySize(player, reference, baselineReference) {
+    if (player.original?.remote) return 0;
     return audioSize(player.original) + audioSize(player.master) + (reference?.size || 0) + (baselineReference?.size || 0);
 }
 export function captureMasterRecovery(state) {
     if (!state.player.original) return null;
+    if (state.player.original.remote) throw new Error("Server projects need a session ZIP backup. Local recovery does not download full server audio or save server access tokens.");
     return { source: audioRecord(state.player.original), preview: audioRecord(state.player.master),
         settings: structuredClone(state.settings), baseline: structuredClone(state.baseline),
         signature: state.signature, currentSignature: state.currentSignature,

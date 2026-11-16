@@ -8,6 +8,7 @@ pub mod doctor_operations;
 pub mod doctor_protocol;
 pub mod file_policy;
 pub mod help;
+mod hybrid_help;
 pub mod jobs;
 pub mod optional_tool_protocol;
 pub mod optional_tools;

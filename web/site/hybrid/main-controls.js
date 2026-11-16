@@ -19,7 +19,7 @@ export const serverProcessing = {
         const toggle = document.getElementById("hybrid-enabled");
         if (toggle) toggle.disabled = locked;
         const privacy = document.querySelector?.(".privacy-badge");
-        if (privacy) privacy.textContent = this.enabled ? "Server mastering selected" : "Audio stays on this device";
+        if (privacy) privacy.textContent = this.enabled ? "Server processing selected" : "Local processing selected";
         const engine = document.getElementById("engine-status");
         if (engine && document.documentElement?.dataset.engineState === "ready")
             engine.textContent = this.enabled ? "RUST · SERVER" : "RUST · LOCAL";
@@ -29,4 +29,25 @@ export const serverProcessing = {
         return runMaster(audio, settings, reference, progress);
     },
     cancel() { cancelMaster?.(); },
+    async connection() {
+        if (!this.enabled || !controller) throw new Error("Turn on Server processing to use the server tools.");
+        const { session, availability } = controller;
+        if (session.canForgetUnavailableJob) controller.forgetUnavailableJob();
+        else if (!session.job && availability.state === "access") controller.disconnect();
+        if (!session.connected || !session.available) await controller.check();
+        if (controller.connecting) {
+            const deadline = Date.now() + 120000;
+            while (controller.connecting && this.enabled && Date.now() < deadline)
+                await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        if (!session.connected || !session.available || !this.enabled)
+            throw new Error("The server is unavailable. Retry the connection or choose local processing.");
+        return session.client;
+    },
+    failed(error) {
+        if (error?.name === "AbortError") return;
+        const status = error?.status;
+        if (!status || status === 200 || [401, 403, 429].includes(status) || status >= 500)
+            controller?.availability?.reportFailure(error);
+    },
 };

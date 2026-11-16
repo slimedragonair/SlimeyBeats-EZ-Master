@@ -1,5 +1,5 @@
 import { DspClient, interleave, toBuffer } from "./dsp-client.js";
-import { Player } from "./audio/player.js";
+import { createPlayerRouter } from "./audio/player-router.js";
 import { limitsSummary } from "./audio/import-validation.js";
 import { wireHelp } from "./help.js";
 import {
@@ -27,6 +27,8 @@ import { verifiedMp3 } from "./audio/verified-mp3-export.js";
 import { eqProfileJson } from "./session-export.js";
 import { packageSession } from "./session-export-client.js";
 import { serverProcessing } from "./hybrid/main-controls.js";
+import { RemoteMastering } from "./hybrid/remote-mastering.js";
+import { uploadWav } from "./hybrid/pcm-transfer.js";
 
 let settings,
     defaults,
@@ -49,7 +51,7 @@ let settings,
     visibility,
     jobFeedback;
 let exportAbort;
-const player = new Player(syncControls, (error) => {
+const player = createPlayerRouter(syncControls, (error) => {
     status(error.message, true);
 });
 const plots = new Plots(player);
@@ -59,6 +61,7 @@ const dspProgress = (value, text) => {
     jobFeedback?.refresh();
 };
 let dsp = new DspClient(dspProgress);
+const remoteMastering = new RemoteMastering(dspProgress);
 const studio = createStudio({
     getMainAudio: () => player.original,
     pauseMain: () => player.pause(),
@@ -249,7 +252,8 @@ function clearMaster() {
     reportView(null);
     syncControls();
 }
-async function loadWorker(buffer = player.original) {
+async function loadWorker(buffer = player.original, reference = referenceFile) {
+    if (buffer?.remote) return;
     const owner = jobRevision;
     const ensureOwner = () => {
         if (owner !== jobRevision)
@@ -266,8 +270,8 @@ async function loadWorker(buffer = player.original) {
         [samples.buffer],
     );
     ensureOwner();
-    if (referenceFile) {
-        const decoded = await player.decode(referenceFile);
+    if (reference) {
+        const decoded = await player.local.decode(reference);
         ensureOwner();
         const samples = interleave(decoded);
         await dsp.call(
@@ -286,14 +290,25 @@ async function loadFile(file) {
     if (!file) return;
     studio.pause();
     await job(async (ensureCurrent) => {
-        status("Decoding your track locally…");
-        const buffer = await player.decode(file);
+        const remote = serverProcessing.enabled;
+        const leavingRemote = player.isRemote && !remote;
+        status(remote ? "Uploading the original for server processing…" : "Decoding your track locally…");
+        const buffer = remote ? await remoteMastering.import(file) : await player.local.decode(file);
         ensureCurrent();
-        await loadWorker(buffer);
+        await loadWorker(buffer, leavingRemote ? null : referenceFile);
         ensureCurrent();
         trackRevision++;
+        player.useRemote(remote);
         clearMaster();
         player.setOriginal(buffer);
+        if (remote) {
+            player.local.setOriginal(null);
+            dsp.cancel();
+        }
+        if (leavingRemote) {
+            referenceFile = null; settings.reference = null; ++referenceRevision;
+            $("reference-name").textContent = "Optional. Borrow a finished track’s tonal direction.";
+        }
         analysis = null;
         currentFile = file;
         plots.setAudio(buffer);
@@ -306,7 +321,7 @@ async function loadFile(file) {
         $("session-state").textContent =
             "Track loaded · Analyze or Master to begin";
         $("filemeta").textContent =
-            `${time(Math.round(buffer.duration))} · ${buffer.numberOfChannels === 2 ? "Stereo" : "Mono"} · decoded ${buffer.sampleRate.toLocaleString()} Hz`;
+            `${time(Math.round(buffer.duration))} · ${buffer.numberOfChannels === 2 ? "Stereo" : "Mono"} · ${remote ? "server" : "decoded"} ${buffer.sampleRate.toLocaleString()} Hz`;
         buildBands(settings, eqChanged, buffer.sampleRate);
         page("overview");
         status(
@@ -314,14 +329,29 @@ async function loadFile(file) {
         );
     });
 }
+async function ensureRemoteSource(ensureCurrent, syncReference = true) {
+    if (!serverProcessing.enabled) throw new Error("Turn on Server processing to edit this server project.");
+    await remoteMastering.project.connect(); ensureCurrent?.();
+    if (remoteMastering.sourceFile !== currentFile || !remoteMastering.project.loaded ||
+        !remoteMastering.project.manifest.assets.some(asset => asset.id === remoteMastering.original?.id)) {
+        const source = currentFile instanceof Blob ? currentFile : player.original?.remote ? player.original : uploadWav(player.original);
+        await remoteMastering.import(source); ensureCurrent?.();
+        remoteMastering.sourceFile = currentFile;
+    }
+    if (syncReference && referenceFile && remoteMastering.referenceFile !== referenceFile) {
+        await remoteMastering.reference(referenceFile); ensureCurrent?.();
+        remoteMastering.referenceFile = referenceFile;
+    }
+}
 async function analyze() {
     if (document.body.classList.contains("studio-mode"))
         return studio.analyze();
-    await job(async () => {
+    await job(async (ensureCurrent) => {
         const source = trackRevision;
-        const result = await dsp.call("analyze", {
-            settings: JSON.stringify(settings),
-        });
+        if (serverProcessing.enabled || player.isRemote) await ensureRemoteSource(ensureCurrent);
+        const result = serverProcessing.enabled || player.isRemote ? await remoteMastering.analyze(settings)
+            : await dsp.call("analyze", { settings: JSON.stringify(settings) });
+        ensureCurrent();
         if (source !== trackRevision) return;
         analysis = result;
         $("steps").hidden = true;
@@ -352,20 +382,18 @@ async function master() {
         const source = trackRevision,
             key = masterSignature();
         const baseline = structuredClone(settings);
-        let result, serverMetadata = null, cleanupPending = false;
+        let result;
         if (remote) {
-            const reference = await dsp.call("reference-analysis");
+            await ensureRemoteSource(ensureCurrent);
             ensureCurrent();
-            const received = await serverProcessing.master(player.original, baseline, reference, dspProgress);
-            ensureCurrent();
-            serverMetadata = received.metadata;
-            cleanupPending = received.cleanupPending;
-            result = await dsp.call("adopt-master", { samples: received.samples,
-                settings: JSON.stringify(baseline), metadata: JSON.stringify(serverMetadata) }, [received.samples.buffer]);
-        } else result = await dsp.call("master", { settings: JSON.stringify(baseline) });
+            result = await remoteMastering.masterTrack(baseline);
+        } else {
+            if (player.isRemote) throw new Error("Turn on Server processing to master this server project. Import a local file to work entirely on this device.");
+            result = await dsp.call("master", { settings: JSON.stringify(baseline) });
+        }
         ensureCurrent();
         if (source !== trackRevision) return;
-        const buffer = toBuffer(
+        const buffer = remote ? result.buffer : toBuffer(
             player.context(),
             result.samples,
             player.original.numberOfChannels,
@@ -373,6 +401,12 @@ async function master() {
         );
         report = result.report;
         analysis = report.input;
+        if (remote && !player.isRemote) {
+            player.useRemote(true); player.setOriginal(remoteMastering.original); plots.setAudio(player.original);
+            $("filemeta").textContent = `${time(Math.round(player.original.duration))} · server · ${player.original.sampleRate.toLocaleString()} Hz`;
+            player.local.setOriginal(null);
+            dsp.cancel();
+        }
         $("steps").hidden = true;
         player.setMaster(
             buffer,
@@ -385,8 +419,7 @@ async function master() {
         masterBaseline = baseline;
         masterReference = referenceFile;
         // Persist only numeric measurements, never a server credential/job URL.
-        masterServerMetadata = remote ? Object.fromEntries(["target_lufs", "ceiling_dbtp", "processing_seconds",
-            "punch_loss_db", "safety_attempts", "limiter"].map((key) => [key, result.report[key]])) : null;
+        masterServerMetadata = null;
         player.select("master");
         metrics("input-metrics", analysis);
         metrics("output-metrics", report.output);
@@ -400,7 +433,7 @@ async function master() {
         reportView(report);
         eqChanged();
         status(
-            `Master ready${remote ? " · processed on server" : ""}. Play B, tweak EQ, then Export WAV or MP3.${cleanupPending ? " Server cleanup is pending; retry deletion in the server info menu." : ""}`,
+            `Master ready${remote ? " · processed on server" : ""}. Play B, tweak EQ, then Export WAV or MP3.${remote ? " Full-resolution audio stays on the server; download a session ZIP to keep your work." : ""}`,
         );
     });
 }
@@ -419,6 +452,16 @@ async function exportAudio(bundle = false) {
             if (source !== trackRevision || version !== revision || masterKey !== masterSignature())
                 throw new Error("Settings changed during export. Export again to save your latest settings.");
         };
+        if (player.isRemote) {
+            const extension = bundle ? "zip" : selected === "mp3" ? "mp3" : "wav";
+            const name = `${currentFile.name.replace(/\.[^.]+$/, "")}_master.${extension}`;
+            status("Rendering and verifying the full-resolution export on the server…");
+            const result = await remoteMastering.export(snapshot, selected, bundle, name);
+            ensureSnapshot();
+            if (result) { report = result; report.file = currentFile.name; reportView(report); metrics("output-metrics", report.output); }
+            status("Server download started. Your phone saves the file without decoding the full song.");
+            return;
+        }
         controller = new AbortController();
         exportAbort = controller;
         status("Resolving final EQ and verifying the saved audio…");
@@ -571,10 +614,11 @@ $("reset-eq").onclick = () => {
     eqChanged();
 };
 $("suggest").onclick = () =>
-    job(async () => {
-        const result = await dsp.call("suggest", {
-            settings: JSON.stringify(settings),
-        });
+    job(async (ensureCurrent) => {
+        if (serverProcessing.enabled || player.isRemote) await ensureRemoteSource(ensureCurrent);
+        const result = serverProcessing.enabled || player.isRemote ? await remoteMastering.suggest(settings)
+            : await dsp.call("suggest", { settings: JSON.stringify(settings) });
+        ensureCurrent();
         settings.manual_eq = result;
         buildBands(settings, eqChanged, player.ctx?.sampleRate || 48000);
         eqChanged();
@@ -617,6 +661,15 @@ $("reference-file").onchange = () =>
             throw new Error("Add your mix before choosing a reference.");
         const file = $("reference-file").files[0];
         if (!file) return;
+        if (serverProcessing.enabled || player.isRemote) {
+            await ensureRemoteSource(ensureCurrent, false);
+            status("Measuring the reference on the server…");
+            await remoteMastering.reference(file); ensureCurrent();
+            referenceFile = file; ++referenceRevision; settings.reference = "browser-reference";
+            $("reference-name").textContent = `Reference: ${file.name} · server`;
+            directionChanged(); $("reference-file").value = "";
+            status("Reference measured on the server. Master again to use it."); return;
+        }
         status("Decoding the reference locally…");
         const buffer = await player.decode(file);
         ensureCurrent();
@@ -653,7 +706,6 @@ $("save-report").onclick = () => {
 };
 $("cancel").onclick = async () => {
     exportAbort?.abort();
-    serverProcessing.cancel();
     restoring = true;
     jobRevision++;
     busy = false;
@@ -662,6 +714,7 @@ $("cancel").onclick = async () => {
     trackRevision++;
     status("Processing cancelled. Restoring the original track…");
     try {
+        if (player.isRemote || serverProcessing.enabled) await remoteMastering.cancel();
         if (player.original) await loadWorker();
         status(
             "Cancelled. Your original is ready; Master again to create a new preview.",
@@ -673,8 +726,12 @@ $("cancel").onclick = async () => {
         syncControls();
     }
 };
-$("clear").onclick = () => {
-    serverProcessing.cancel();
+$("clear").onclick = async () => {
+    if (player.isRemote) {
+        await job(async () => { status("Removing the temporary server project…"); await remoteMastering.close(); });
+        if (remoteMastering.project.id) return;
+        player.clear(); player.useRemote(false);
+    }
     jobRevision++;
     dsp.cancel();
     trackRevision++;
@@ -739,6 +796,7 @@ connectRecovery({
             let adopted = false;
             return {
                 commit() {
+                    player.useRemote(false);
                     studio.pause(); player.stop(); dsp.stop(); dsp = staged.client; adopted = true;
                     ++trackRevision; ++referenceRevision; ++jobRevision;
                     settings = staged.settings; referenceFile = staged.reference;

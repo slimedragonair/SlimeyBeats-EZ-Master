@@ -121,7 +121,7 @@ export function wireLearning(preferences) {
         openedManually = true;
         mode = "help";
         if (guide) { help(); return; }
-        frame("Loading guidance…", "Local mastering keeps audio on your device. The top Server processing switch is optional: checks send no audio. Turn it on, then use the usual Master button to process on the server and load the result here. Public server availability is not guaranteed.", "Help & learning");
+        frame("Loading guidance…", "Local processing keeps new audio on your device. The optional top Server processing switch sends no audio by itself. With it on, importing uploads the original; Analyze, Master, heavy Studio tools and exports run on the server. Download a session ZIP before leaving a temporary server project. Public server availability is not guaranteed.", "Help & learning");
         try { await load(); if (dialog.open) help(); }
         catch (error) {
             if (!dialog.open) return;

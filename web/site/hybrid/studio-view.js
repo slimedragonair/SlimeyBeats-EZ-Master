@@ -31,9 +31,7 @@ export function createStudioView(host) {
             ? "A server request failed. Your audio and settings are kept. Retry the connection, or use local processing. Check ⓘ for pending cleanup." : "";
         byId("availability").title = availabilityDetail(session, controller) || "Audio stays on this device.";
         byId("availability-detail").textContent = enabled ? availabilityDetail(session, controller) : "";
-        byId("storage").textContent = session.caps
-            ? `Server audio is deleted after the result is loaded. Interrupted jobs expire within ${Math.ceil(session.caps.privacy.retention_seconds / 60)} minutes. If deletion fails, retry it here.`
-            : "Server audio uses temporary storage, with automatic expiry. Results load into this editor; export to save your work.";
+        byId("storage").textContent = "Server projects retain audio temporarily while you edit. Use Clear or Close workspace to delete the corresponding project; projects expire within one hour. Download a session ZIP before leaving. Local recovery does not back up streamed audio.";
         byId("destination").textContent = `Server: ${availability?.endpoint || ""}`;
         const pending = !!session.job;
         byId("job-note").hidden = !pending;

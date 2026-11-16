@@ -13,7 +13,7 @@ export function stemPeaks(buffer) {
     });
 }
 
-function levels(bank, settings) {
+export function stemLevels(bank, settings) {
     const solo = settings.tracks.some((track) => track.solo);
     const targets = settings.tracks.map((track) => {
         const stem = bank.get(track.kind);
@@ -39,7 +39,7 @@ function levels(bank, settings) {
 }
 
 const ramps = new WeakMap();
-function smooth(param, value, now, immediate) {
+export function smoothStemGain(param, value, now, immediate) {
     if (immediate) param.setValueAtTime(value, now);
     else {
         const previous = ramps.get(param);
@@ -94,10 +94,10 @@ export class StudioStemMixer {
         }
     }
     update(settings, immediate = false) {
-        const targets = levels(this.bank, settings);
+        const targets = stemLevels(this.bank, settings);
         const now = this.context.currentTime;
         for (const [kind, { gains }] of this.tracks)
-            gains.forEach((gain, ch) => smooth(
+            gains.forEach((gain, ch) => smoothStemGain(
                 gain.gain, targets.get(kind)[ch], now, immediate,
             ));
     }

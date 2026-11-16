@@ -3,6 +3,16 @@
 const BLOCK_FRAMES = 128;
 
 function buildEnvelope(buffer) {
+    if (buffer.remote) return {
+        range(first, last) {
+            const peaks = buffer.waveform || [], count = peaks.length;
+            const start = Math.max(0, Math.floor(first / buffer.length * count));
+            const end = Math.min(count, Math.max(start + 1, Math.ceil(last / buffer.length * count)));
+            let low = 0, high = 0;
+            for (let i = start; i < end; i++) { low = Math.min(low, peaks[i][0]); high = Math.max(high, peaks[i][1]); }
+            return [low, high];
+        },
+    };
     const channels = Array.from({ length: buffer.numberOfChannels }, (_, channel) => buffer.getChannelData(channel));
     const count = Math.ceil(buffer.length / BLOCK_FRAMES);
     const low = new Float32Array(count), high = new Float32Array(count);

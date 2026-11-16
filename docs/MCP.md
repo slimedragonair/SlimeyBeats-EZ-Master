@@ -1,12 +1,46 @@
 # AI assistant connection — desktop MCP preview
 
-**Hybrid development:** current source adds `get_help(topic="hybrid")` and capability guidance for the separate optional browser/server preview. This companion remains local stdio, keeps 45 tools and does not upload audio or forward jobs to that service. Never expose it as a public HTTP endpoint. [Hybrid Studio boundary](HYBRID_STUDIO.md). Hotfix4 binaries retain their shipped help; source guidance does not update an installed companion.
+**Hybrid v2 — source candidate:** `get_help(topic="hybrid")` explains the separate browser/server workflow: original-file imports upload audio; Analyze, Master, supported heavy Studio tools and full-resolution exports run remotely, with 192 kbps listening previews by default. Live deployment verification is pending. This companion remains local stdio, keeps 45 tools and does not upload audio or forward jobs to that service. [Workflow and limits](HYBRID_STUDIO.md) · [v2 protocol](HYBRID_REMOTE_PROTOCOL.md) · [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md). Hotfix4 binaries retain their shipped help; source guidance does not update an installed companion.
 
 SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **45 tools in Hotfix4 and current source builds** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**, build revision **2026111501**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
 
 **Hotfix4 includes `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`, for 45 tools. The earlier stem-editor checkpoint had 43; historical Hotfix3 has 42; Hotfix 2 has 40.** Source changes do not by themselves update earlier binaries. See [Hotfix4 scope](HOTFIX4.md) and the external [HOTFIX4-VALIDATION.json](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json) for release-binary discovery, workflow outcomes and installer scope. Reports use a preview/review/save flow; [privacy and review requirements](#private-support-reports) apply even though saving is local.
 
 The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) hosts Hotfix4 packages with the matching desktop, companion and VST3 worker. Follow [Windows installation](INSTALLATION.md) or [build from the Hotfix4 source ZIP or main](BUILDING.md#get-the-source); the original beta.3 tag retains its earlier source. Linux currently requires a source build. **The stable v0.4.2 fallback does not include MCP or session handoff.** Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
+
+## Browser server mode and the local MCP boundary
+
+The v2 browser candidate keeps full-resolution originals and editable audio on
+the server. New imports upload the original file instead of requiring whole-track
+phone decoding; reference imports upload reference audio. Supported Studio tools
+include bank import/mixing, voice cleanup, spectral/time edits, Doctor scans/repairs,
+bounded history and optional real two/four-stem separation when advertised.
+Browser A/B, live EQ/faders and volume use compressed preview streams; requested
+exports render from full-resolution audio, independently of the preview bitrate.
+
+Source defaults admit at most **one hour per audio input**, with separate
+**2 GiB upload and 2 GiB decoded Float32 PCM budgets**. Both duration and bytes
+must fit, with additional working-memory/disk quotas; this is not guaranteed
+maximum-size capacity. Neural separation retains its separate **512 MiB decoded
+PCM** cap. Previews default to **192 kbps MP3**; exports use selected output settings.
+Runtime, live HTTP and physical-device acceptance are separate from a source
+candidate or operator CPU benchmark.
+
+Remote projects expire within **one hour**, shortened by guest expiry or restart.
+Download a full export/session ZIP before leaving. ZIPs preserve rendered audio,
+selected stems and settings/report metadata as applicable, not a permanent server
+account or a promise of full source/reference/history restoration. Local browser
+recovery remains for local PCM and does not download full streamed projects or
+store guest credentials. Closing a tab forgets access, not confirmed deletion.
+
+These browser capabilities add **no remote MCP tools**. `get_capabilities` keeps
+`hybrid_studio.remote_processing_from_mcp: false` and `public_http_transport: false`.
+Continue using local `load_audio`, analysis/mastering/Studio tools, audition and
+explicit exports for authorized local libraries. Browser project IDs and tokens
+cannot be passed as MCP source/preview IDs. Do not expose the companion as an
+HTTP server, read private server/recovery caches, or upload audio based on names,
+metadata or this explanatory help. The AI client's metadata privacy remains
+separate from local DSP.
 
 ## In-app setup preview
 

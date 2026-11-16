@@ -9,6 +9,7 @@ export function wireStemImport({
     job,
     mutate,
     isCancelled,
+    remote,
     notice,
 }) {
     const importer = new StemImporter();
@@ -28,7 +29,7 @@ export function wireStemImport({
             if (isCancelled()) return;
             const file = await entry.read();
             if (isCancelled()) return;
-            const buffer = await playback.decode(file);
+            const buffer = await (playback.local || playback).decode(file);
             if (isCancelled()) return;
             bytes += buffer.length * buffer.numberOfChannels * 4;
             if (bytes > 128 * 1024 * 1024)
@@ -59,6 +60,11 @@ export function wireStemImport({
     const openFiles = (files) =>
         job("Grouping stem files locally…", async () => {
             if (!files.length) return;
+            if (remote?.enabled()) {
+                const accepted = await remote.load(files.map(file => ({ file })), "wav");
+                if (accepted) importer.clear();
+                return;
+            }
             if (files.some((file) => file.name.toLowerCase().endsWith(".zip")))
                 throw new Error(
                     "Choose one stem ZIP at a time, or select only loose audio stems.",
@@ -81,6 +87,11 @@ export function wireStemImport({
     const openZip = (file) =>
         job("Reading stem ZIP contents locally…", async () => {
             if (!file) return;
+            if (remote?.enabled()) {
+                const accepted = await remote.load([{ file }], "wav");
+                if (accepted) importer.clear();
+                return;
+            }
             if (file.size > 128 * 1024 * 1024)
                 throw new Error(
                     "Browser stem ZIP exceeds 128 MiB. Use desktop Studio for larger archives.",
@@ -118,6 +129,12 @@ export function wireStemImport({
     $("import-batch").onclick = () =>
         job("Importing selected stems locally…", async () => {
             const parts = importer.selection();
+            if (remote?.enabled()) {
+                const entries = [];
+                for (const part of parts) entries.push({ file: await importer.file(part, client), kind: part.kind, name: part.display_name });
+                if (await remote.load(entries, $("bulk-format").value)) importer.clear();
+                return;
+            }
             const accepted = await decode(
                 parts.map((part) => ({
                     kind: part.kind,
@@ -150,6 +167,10 @@ export function wireStemImport({
                 throw new Error(
                     "Choose every file for this preset, or select Custom stem set and leave unused slots empty.",
                 );
+            if (remote?.enabled()) {
+                await remote.load(chosen.map(input => ({ file: input.files[0], kind: input.dataset.kind })), "wav");
+                return;
+            }
             await decode(
                 chosen.map((input) => ({
                     kind: input.dataset.kind,

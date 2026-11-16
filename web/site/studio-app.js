@@ -1,5 +1,9 @@
 import { StudioClient } from "./studio-client.js";
-import { StudioPlayback } from "./studio-player.js";
+import { createStudioPlaybackRouter } from "./hybrid/studio-playback-router.js";
+import { RemoteProject } from "./hybrid/remote-project.js";
+import { RemoteStudioClient } from "./hybrid/remote-studio-client.js";
+import { serverProcessing } from "./hybrid/main-controls.js";
+import { migrateLocalStudio } from "./hybrid/studio-migration.js";
 import { studioTemplate } from "./studio-template.js";
 import {
     selection,
@@ -13,6 +17,7 @@ import { wireSelection } from "./studio-selection.js";
 import { wireStudioExports } from "./studio-export-actions.js";
 import { wireStemImport } from "./studio-import-actions.js";
 import { interleave } from "./dsp-client.js";
+import { uploadWav } from "./hybrid/pcm-transfer.js";
 import { time } from "./view.js";
 import { wireStudioFeedback } from "./studio-feedback.js";
 import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
@@ -34,9 +39,12 @@ export function createStudio({
     onState,
 }) {
     document.getElementById("studio-tools").innerHTML = studioTemplate;
+    const remoteProject = new RemoteProject({ progress: (_, text) => notice(text) });
+    const remoteClient = new RemoteStudioClient(remoteProject);
     let activeClient = new StudioClient();
-    const client = { call: (...args) => activeClient.call(...args), stop: (...args) => activeClient.stop(...args) },
-        playback = new StudioPlayback((error) => {
+    const client = { call: (...args) => activeClient.call(...args), stop: (...args) => activeClient.stop(...args),
+            get remote() { return activeClient === remoteClient; }, get project() { return remoteProject; } },
+        playback = createStudioPlaybackRouter((error) => {
             if (error) notice(error.message, true);
             sync();
         }, pauseMain);
@@ -46,6 +54,10 @@ export function createStudio({
         busy = false,
         cancelled = false,
         committing = false,
+        cancelPending = null,
+        migrating = false,
+        migrationAbort,
+        pendingClient,
         active = false,
         image,
         chart,
@@ -56,7 +68,7 @@ export function createStudio({
     const feedback = wireStudioFeedback(() => active);
     const previewStatus = wireStudioPreviewStatus();
     const timeline = createStudioTimeline($("editor"), {
-        getState: () => ({ info, busy, pendingMix, active }),
+        getState: () => ({ info, busy: busy || !!cancelPending, pendingMix, active }),
         getStems: () => playback.stems,
         position: () => playback.position(),
         seek: (seconds) => playback.seek(seconds),
@@ -68,8 +80,13 @@ export function createStudio({
         notice,
     });
     const doctor = wireStudioDoctor({ client,
-        getState: () => ({ info, busy, pendingMix, filename }),
-        job, mutate, seek: seconds => playback.seek(seconds), draw, sync });
+        getState: () => ({ info, busy: busy || !!cancelPending, pendingMix, filename }),
+        job, mutate, seek: seconds => playback.seek(seconds), draw, sync,
+        prepare: async () => {
+            if (!serverProcessing.enabled || client.remote || !info.loaded) return;
+            await job("Preparing this workspace on the server…", migrateCurrent, false, false, false);
+            if (!client.remote) throw new Error("The server workspace could not be prepared. Your local work is kept.");
+        } });
     function notice(text, error = false) {
         if (pendingMix && !error && text !== MIX_PENDING_NOTICE)
             text = `${text} ${MIX_PENDING_NOTICE}`;
@@ -85,6 +102,7 @@ export function createStudio({
         timeline.draw();
     }
     function sync() {
+        const locked = busy || !!cancelPending;
         document.getElementById("studio-tools").dataset.loaded = String(info.loaded);
         const hasStems = info.stems.length > 0;
         $("stem-views").hidden = !hasStems;
@@ -92,33 +110,38 @@ export function createStudio({
         $("mixer-view").hidden = hasStems && stemView === "timeline";
         for (const view of ["mixer", "timeline"]) {
             const button = $("view-" + view);
-            button.disabled = busy || !hasStems;
+            button.disabled = locked || !hasStems;
             button.classList.toggle("selected", stemView === view);
             button.setAttribute("aria-pressed", String(stemView === view));
         }
         for (const input of document.querySelectorAll(
             "#studio-tools input, #studio-tools select",
         ))
-            input.disabled = busy;
+            input.disabled = locked;
         for (const id of ["source", "use-main", "import"])
-            $(id).disabled = busy;
+            $(id).disabled = locked;
         for (const button of $("stem-files").querySelectorAll("button"))
-            button.disabled = busy;
-        importer.sync(busy);
+            button.disabled = locked;
+        importer.sync(locked);
+        $("separation").hidden = !serverProcessing.enabled && !info.remote;
+        $("separate").disabled = locked || !info.loaded || !serverProcessing.enabled;
+        $("engine-note").textContent = serverProcessing.enabled || info.remote
+            ? "Server Studio keeps full-resolution audio on the server. Your browser streams previews and live faders; heavy tools and exports run remotely. Download a session ZIP to keep your work."
+            : "Local Studio keeps audio on this device, with a 128 MiB decoded bank limit. Turn on Server processing for larger files and neural stem separation.";
         $("use-main").disabled ||= !getMainAudio();
-        $("close").disabled = busy;
-        $("cancel").disabled = (!busy && !doctor.scanning) || committing || (busy && cancelled);
-        $("undo").disabled = busy || pendingMix || !info.can_undo;
-        $("redo").disabled = busy || pendingMix || !info.can_redo;
-        $("spectrum").disabled = busy || !info.loaded;
+        $("close").disabled = locked;
+        $("cancel").disabled = (!locked && !doctor.scanning) || committing || (locked && cancelled);
+        $("undo").disabled = locked || pendingMix || !info.can_undo;
+        $("redo").disabled = locked || pendingMix || !info.can_redo;
+        $("spectrum").disabled = locked || !info.loaded;
         for (const id of ["voice", "repair", "export", "export-session", "promote"])
-            $(id).disabled = busy || pendingMix || !info.loaded;
+            $(id).disabled = locked || pendingMix || !info.loaded;
         for (const id of ["mix", "export-stems"])
-            $(id).disabled = busy || !info.stems.length;
+            $(id).disabled = locked || !info.stems.length;
         $("apply-stem").disabled =
             busy || pendingMix || !(info.direct_edit_stems || []).includes($("target").value);
         for (const id of ["play", "stop", "before", "after", "seek"])
-            $(id).disabled = busy || !info.loaded;
+            $(id).disabled = locked || !info.loaded;
         $("play").textContent = playback.playing ? "Pause" : "Play";
         $("before").classList.toggle("selected", playback.side === "before");
         $("after").classList.toggle("selected", playback.side === "after");
@@ -140,8 +163,21 @@ export function createStudio({
         sync();
         return false;
     }
-    async function job(text, action, requiresMix = false, keepPlaying = false) {
-        if (busy) return;
+    async function migrateCurrent() {
+        if (!serverProcessing.enabled || client.remote || !info.loaded) return;
+        const localClient = activeClient, previousControls = structuredClone(controls), wasPending = pendingMix, wasDirty = dirty;
+        migrating = true; migrationAbort = new AbortController();
+        try {
+            const result = await migrateLocalStudio(localClient, remoteClient, { signal: migrationAbort.signal });
+            if (cancelled) throw new DOMException("Migration cancelled", "AbortError");
+            const buffers = playback.remote.prepareAudio(result);
+            activeClient = remoteClient; playback.useRemote(true); publish(result, buffers, false, filename);
+            if (wasPending) { controls = previousControls; pendingMix = true; dirty = wasDirty; playback.setMix(controls); mixFaders(controls, mixChanged, info.channels, info.stem_names); }
+            localClient.stop(); playback.local.clear();
+        } finally { migrating = false; migrationAbort = null; }
+    }
+    async function job(text, action, requiresMix = false, keepPlaying = false, migrate = true) {
+        if (busy || cancelPending) return;
         feedback.begin();
         if (requiresMix && !requireUpdatedMix()) return;
         busy = true;
@@ -156,6 +192,7 @@ export function createStudio({
         onState();
         try {
             defaults ??= (await client.call("init")).defaults;
+            if (!cancelled && migrate) await migrateCurrent();
             if (!cancelled) await action();
             if (cancelled)
                 notice("Cancelled. Your previous Studio preview is unchanged.");
@@ -177,25 +214,36 @@ export function createStudio({
         transfer = [],
         reset = false,
         label = filename,
+        using = activeClient,
     ) {
         // Non-mix revisions must not discard the uncommitted live controls.
         if (action !== "mix" && !requireUpdatedMix()) return false;
-        const result = await client.call(action, values, transfer);
+        pendingClient = using;
+        let result;
+        try { result = await using.call(action, values, transfer); }
+        finally { pendingClient = null; }
         if (cancelled) {
-            await client.call("discard", { proposal: result.proposal });
+            await using.call("discard", { proposal: result.proposal });
             return false;
         }
         let buffers;
         try {
-            buffers = playback.prepareAudio(result);
+            buffers = (result.remote ? playback.remote : playback.local).prepareAudio(result);
         } catch (error) {
-            await client.call("discard", { proposal: result.proposal });
+            await using.call("discard", { proposal: result.proposal });
             throw error;
         }
         committing = true;
         sync();
-        await client.call("commit", { proposal: result.proposal });
+        await using.call("commit", { proposal: result.proposal });
+        const previousClient = activeClient;
+        activeClient = using;
+        playback.useRemote(!!result.remote);
         publish(result, buffers, reset, label);
+        if (previousClient !== using) {
+            previousClient.stop();
+            if (result.remote) playback.local.clear();
+        }
         changedRecovery();
         return true;
     }
@@ -266,8 +314,12 @@ export function createStudio({
     }
     async function load(file) {
         if (!file) return;
-        await job("Decoding Studio audio locally…", async () => {
-            const buffer = await playback.decode(file);
+        await job(serverProcessing.enabled ? "Uploading Studio audio to the server…" : "Decoding Studio audio locally…", async () => {
+            if (serverProcessing.enabled) {
+                await mutate("load-file", { file }, [], true, file.name, remoteClient); return;
+            }
+            const using = client.remote ? new StudioClient() : activeClient;
+            const buffer = await playback.local.decode(file);
             if (cancelled) return;
             const samples = interleave(buffer);
             await mutate(
@@ -280,8 +332,9 @@ export function createStudio({
                 [samples.buffer],
                 true,
                 file.name,
+                using,
             );
-        }, true);
+        }, true, false, false);
     }
     $("source").onclick = () => $("file").click();
     $("file").onchange = async () => {
@@ -293,6 +346,12 @@ export function createStudio({
             const buffer = getMainAudio();
             if (!buffer)
                 throw new Error("Load a mix first, or choose Studio audio.");
+            if (serverProcessing.enabled) {
+                const action = buffer.remote ? "clone-audio" : "load-file";
+                const values = buffer.remote ? { audio: buffer } : { file: uploadWav(buffer) };
+                await mutate(action, values, [], true, "Mastering mix", remoteClient); return;
+            }
+            if (buffer.remote) throw new Error("Turn on Server processing to use this server mix in Studio.");
             const samples = interleave(buffer);
             await mutate(
                 "load",
@@ -305,7 +364,7 @@ export function createStudio({
                 true,
                 "Loaded mix",
             );
-        }, true);
+        }, true, false, false);
     strengthReadouts();
     for (const event of ["input", "change"])
         document.getElementById("studio-tools").addEventListener(event, (event) => {
@@ -315,15 +374,24 @@ export function createStudio({
     const importer = wireStemImport({
         client,
         playback,
-        job,
-        mutate,
+        job: (text, action, requiresMix = false, keepPlaying = false) => job(text, action, requiresMix, keepPlaying, false),
+        mutate: (action, values, transfer = [], reset = false, label = filename) => mutate(action, values, transfer,
+            reset, label, !serverProcessing.enabled && client.remote ? new StudioClient() : activeClient),
         notice,
         isCancelled: () => cancelled,
+        remote: {
+            enabled: () => serverProcessing.enabled,
+            async load(entries, preference) { return mutate("import-files", { entries, preference }, [], true, "Imported stems", remoteClient); },
+        },
     });
     $("mix").onclick = () =>
         job("Rendering the stem balance…", async () => {
             await mutate("mix", { settings: structuredClone(controls) });
         });
+    $("separate").onclick = () => job("Separating stems on the server…", async () => {
+        if (!client.remote) throw new Error("Choose Studio audio with Server processing on before separating stems.");
+        await mutate("separate", { mode: $("separation-mode").value });
+    }, true);
     for (const kind of ["voice", "repair"])
         $(kind).onclick = () =>
             job(
@@ -377,24 +445,38 @@ export function createStudio({
         draw();
         sync();
     };
-    const exportActions = wireStudioExports({ getState: () => ({ busy, cancelled, info }),
+    const exportActions = wireStudioExports({ getState: () => ({ busy: busy || !!cancelPending, cancelled, info }),
         client, playback, job, promote, notice });
     $("cancel").onclick = () => {
-        if (!busy && doctor.scanning) { doctor.cancel(); return; }
+        if (!busy && doctor.scanning) {
+            doctor.cancel();
+            if (client.remote) cancelPending = remoteClient.cancel().catch(error => notice(error.message, true)).finally(() => { cancelPending = null; sync(); onState(); });
+            return;
+        }
         exportActions.cancel();
         cancelled = true;
+        if (client.remote || pendingClient === remoteClient || migrating) {
+            migrationAbort?.abort(new DOMException("Migration cancelled", "AbortError"));
+            cancelPending = remoteClient.cancel().catch(error => notice(error.message, true)).finally(() => { cancelPending = null; sync(); onState(); });
+        }
         notice(
             "Cancelling after the current processing step. Keeping your previous preview…",
         );
         sync();
     };
-    $("close").onclick = () => {
+    $("close").onclick = async () => {
+        if (client.remote) {
+            await job("Deleting the temporary Studio project…", () => remoteClient.close(), false, false, false);
+            if (remoteProject.id) return;
+        }
         doctor.invalidate("Choose a source, then scan.");
         exportActions.cancel();
         cancelled = true;
         client.stop();
         importer.clear();
         playback.clear();
+        playback.useRemote(false);
+        if (client.remote) activeClient = new StudioClient();
         info = EMPTY;
         controls = null;
         image = null;
@@ -467,6 +549,7 @@ export function createStudio({
             frame = requestAnimationFrame(animate);
     };
     mixFaders({ tracks: [] }, mixChanged);
+    serverProcessing.subscribe(sync);
     sync();
     return {
         activate(value) {
@@ -503,7 +586,7 @@ export function createStudio({
             );
         },
         get busy() {
-            return busy;
+            return busy || !!cancelPending;
         },
         get loaded() {
             return info.loaded;
@@ -521,11 +604,12 @@ export function createStudio({
                 const staged = await prepareStudioRecovery(StudioClient, value, playback, current);
                 let adopted = false;
                 let buffers;
-                try { buffers = playback.prepareAudio(staged.result); }
+                try { buffers = playback.local.prepareAudio(staged.result); }
                 catch (error) { staged.client.stop(); throw error; }
                 return {
                     commit() {
                         playback.stop(); pauseMain();
+                        playback.useRemote(false);
                         client.stop(); activeClient = staged.client; adopted = true;
                         publish(staged.result, buffers, true, typeof value.filename === "string" ? value.filename.slice(0, 200) : "Recovered Studio");
                         restoreStudioFields(value.fields);

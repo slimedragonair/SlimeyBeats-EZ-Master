@@ -1,7 +1,7 @@
 import { serverEndpoint } from "./endpoint-policy.js";
 import { capabilities, snapshot } from "./protocol.js";
 import { ArtifactDownloadError, checkArtifactDownload, readArtifactDownload } from "./artifact-download.js";
-import { readBoundedJson, JsonResponseError, AUTHENTICATED_JSON_LIMIT_BYTES } from "./bounded-json.js";
+import { readBoundedJson, JsonResponseError, AUTHENTICATED_JSON_LIMIT_BYTES, PROJECT_JSON_LIMIT_BYTES } from "./bounded-json.js";
 import { readMasterWav } from "./pcm-transfer.js";
 
 export class ServerClient {
@@ -33,9 +33,32 @@ export class ServerClient {
         this.#requests.clear();
     }
     disconnect() { ++this.#epoch; this.cancelPending(); this.#token = ""; }
+    get connectionRevision() { return this.#epoch; }
+    replyMediaAccess(port, path) {
+        if (!/^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/(?:assets\/[A-Za-z0-9_-]{1,128}\/(?:preview|audio)|artifacts\/[A-Za-z0-9_-]{1,128})$/.test(path))
+            throw new Error("Invalid server media path.");
+        port.postMessage({ path, endpoint: this.endpoint, token: this.#token });
+    }
+    remoteRequest(path, { method = "GET", body, binary = false, signal } = {}) {
+        if (!/^\/v2\/(?:capabilities|projects(?:\/[A-Za-z0-9_/?=&.-]+)?)$/.test(path))
+            throw new Error("Invalid server project path.");
+        const options = { method, signal };
+        if (body !== undefined) {
+            options.body = binary ? body : JSON.stringify(body);
+            options.headers = { "Content-Type": binary ? "application/octet-stream" : "application/json" };
+        }
+        return this.#request(path, options, (response, signal) => readBoundedJson(response, { maxBytes: PROJECT_JSON_LIMIT_BYTES, signal })).catch(error => {
+            if (signal?.aborted) throw signal.reason;
+            this.onRemoteFailure?.(error); throw error;
+        });
+    }
     async #request(path, options, read, timeoutMs = 120000) {
         if (!this.#token) throw new Error("Connect with your owner or invite token first.");
         const controller = new AbortController();
+        const external = options?.signal;
+        const stop = () => controller.abort();
+        external?.addEventListener("abort", stop, { once: true });
+        if (external?.aborted) stop();
         this.#requests.add(controller);
         const timeout = setTimeout(() => controller.abort(), timeoutMs);
         try {
@@ -58,7 +81,7 @@ export class ServerClient {
             // Never reflect an exception/response body that could echo a token.
             if (error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
             throw new Error("The server could not be reached or its response could not be read. Check network, server CORS and the site's connection policy, then retry.");
-        } finally { clearTimeout(timeout); this.#requests.delete(controller); }
+        } finally { clearTimeout(timeout); external?.removeEventListener("abort", stop); this.#requests.delete(controller); }
     }
     #json(path, method = "GET", body) {
         return this.#request(path, { method, ...(body === undefined ? {} : {

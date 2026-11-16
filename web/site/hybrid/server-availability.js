@@ -85,8 +85,8 @@ export class ServerAvailability {
             else if (value.status === "disabled" && !this.operatorAccess) this.#publish("disabled", "The server is reachable, but public processing is disabled. No upload can start. Turn the switch off to use local processing.");
             else this.#publish(value.guest_access || this.operatorAccess ? "online" : "access", value.guest_access || this.operatorAccess
                 ? this.operatorAccess && !value.guest_access
-                    ? "Private operator connection available. Choose Master to process the current track."
-                    : "Server available. Use the normal Master button; the result loads into the editor."
+                    ? "Private operator connection available. Use the normal import and editing controls."
+                    : "Server available. Import audio and use the normal Analyze, Master and Studio tools."
                 : "Guest access is unavailable. An operator can connect in advanced settings.");
         } catch (error) {
             if (generation === this.#generation) this.reportFailure(error);

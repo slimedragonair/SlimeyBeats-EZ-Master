@@ -9,6 +9,14 @@ const envelopes = new WeakMap();
 function peaks(buffer, width) {
     const cached = envelopes.get(buffer);
     if (cached?.width === width) return cached.values;
+    if (buffer.remote) {
+        const bins = buffer.waveform || [], values = new Float32Array(width);
+        for (let x = 0; x < width; x++) {
+            const first = Math.floor(x / width * bins.length), last = Math.max(first + 1, Math.ceil((x + 1) / width * bins.length));
+            for (let i = first; i < Math.min(last, bins.length); i++) values[x] = Math.max(values[x], Math.abs(bins[i][0]), Math.abs(bins[i][1]));
+        }
+        envelopes.set(buffer, { width, values }); return values;
+    }
     const channels = Array.from(
         { length: buffer.numberOfChannels },
         (_, channel) => buffer.getChannelData(channel),

@@ -17,12 +17,14 @@ export function restoreStudioFields(fields) {
         document.getElementById(`s-${key}`).dispatchEvent(new Event("input"));
 }
 export function studioRecoverySize(playback) {
+    if (playback.after?.remote) return 0;
     // Conservative reservation includes the retained origin and current preview.
     const bank = [...(playback.stems?.values() || [])].reduce((sum, stem) => sum + audioSize(stem.buffer), 0);
     return audioSize(playback.before) + audioSize(playback.after) + bank;
 }
 export async function captureStudioRecovery(client, playback, state) {
     if (!state.info.loaded) return null;
+    if (playback.after?.remote) throw new Error("Server Studio projects need a session ZIP backup. Local recovery does not download full server audio or save server access tokens.");
     checkBudget(studioRecoverySize(playback));
     const recipe = await client.call("recovery-snapshot");
     return { recipe, preview: audioRecord(playback.after), fields: studioFields(),

@@ -1,62 +1,72 @@
 # Server processing in the normal editor
 
-`studio.js` wires a single top-bar switch and contextual information. It checks
-availability and acquires a scoped guest credential, but never intercepts the
-main file picker, drag/drop or Master button. `main-controls.js` exposes only
-engine selection, explicit mastering and cancellation. It never overrides editor
-settings, transport, export labels or the editor's busy locks.
+The top switch selects the processing engine. It checks availability and obtains
+a scoped, temporary guest credential without transferring audio. The normal
+import, Analyze, Master, Studio and Export controls perform the requested work.
+There is no second upload form or consent checkbox and no silent engine fallback.
 
-`app.js` always imports/decodes the original into the same browser Session and
-player. Analyze stays local. Its ordinary Master action snapshots settings and
-chooses either local DSP or `runServerMaster`. The latter uploads the original
-as a segmented float WAV, using `browser-track.wav` instead of a source filename.
-The normal profile/blend, mode, target, ceiling, intensity and safety settings
-are sent. An optional reference is sent as validated measurements only.
+## Responsibilities and data flow
 
-`pcm-transfer.js` streams a float WAV result directly into one bounded PCM array,
-checking MIME, RIFF/chunk lengths, float representation, finite samples and exact
-sample rate/channel/frame identity. The editor's 15-minute/384-MiB decoded budget
-still applies; it does not use the legacy generic artifact-download budget.
-`Session.adopt_master` installs this pre-manual-EQ audio atomically after local
-analysis, retaining only bounded numeric server metadata. A/B playback, live EQ,
-suggestions, WAV/MP3 and ZIP export then use the same paths as a local master.
-Re-mastering always starts from the unchanged original.
+- `studio.js`, `processing-controller.js` and `server-availability.js` own the
+  switch, guest access and bounded health checks. `main-controls.js` exposes
+  selection, the authenticated connection and availability failures.
+- `remote-project.js` owns one v2 project per workspace, encoded-file chunk
+  upload, command revision/polling, cancellation, metadata and confirmed cleanup.
+  Only the original encoded file is uploaded; it need not fit a browser PCM heap.
+- `remote-mastering.js` and `remote-studio-client.js` translate the established
+  editor actions to server commands. Shared native DSP performs analysis,
+  mastering, final EQ/export, issues, repair, voice/spectral tools, mixing, region
+  edits and optional two/four-stem separation.
+- `studio-migration.js` can move an existing local Studio origin plus its edit
+  recipe. It publishes only after successful replay; pending live faders survive.
+  Failure preserves the local workspace. Full local PCM is released after adoption.
+- `remote-media-worker.js` and `remote-media-bridge.js` authenticate native media
+  Range requests using a MessageChannel to the initiating editing tab. Credentials
+  remain in memory and never enter URLs, audio caches, preferences or recovery.
+  A short-lived artifact-to-tab route handles native downloads with no clientId.
+  An attachment navigation streams downloads without an entire JavaScript Blob;
+  Chromium's `a[download]` path can bypass the Service Worker.
+- `StreamingPlayer` and `RemoteStudioPlayback` stream 192 kbps MP3 previews.
+  AudioWorklet EQ and stem AudioParams process current playback blocks locally.
+  Final downloads are rendered from full-resolution server audio. The player
+  routers retain the existing fully local path when that engine is selected.
 
-After receiving the result, the client requests deletion. Failure keeps the
-completed master plus its job/credential for an explicit cleanup retry in the
-info panel; it never claims deletion without acknowledgement. On processing
-failure, the original, settings and prior preview are preserved. Cancel aborts
-requests; a retained job must be deleted before a subsequent upload. The switch
-is locked while the editor is busy. Turning it off after completion keeps the
-received master editable. No failure silently chooses another engine.
+Server projects have immutable audio assets, atomic revisions and two audio
+undo/redo checkpoints. Read-only scans, suggestions and exports do not consume
+audio history. Authoritative `before_id`, `preview_is_mix` and `edit_origin_kind`
+prevent solo-stem previews from being mistaken for a complete bank mix.
 
-`processing-controller.js` obtains access only on explicit opt-in or Retry.
-`server-availability.js` uses bounded unauthenticated status checks every 30 seconds
-while enabled and visible. Health recovery never creates, uploads, runs or
-replays an audio job. The ordinary Master action may reconnect before starting.
-A stale 401/404 job can be forgotten locally by Retry before new guest access;
-forgetting does not confirm remote deletion. Interrupted files otherwise expire
-under the service's advertised retention.
+## Boundaries
 
-Only the explicit switch plus normal Master action authorize transfer. The
-protocol's `consent:true` records that action; there is no additional checkbox.
-Credentials and job references remain in tab memory. Nothing is saved in URLs,
-preferences or local recovery. Recovery stores exact received PCM and bounded
-numeric processing metadata, restoring locally without network calls or a fresh
-master. The received master does not require the original encoded File to be
-reselected; a later explicit server Master can serialize the recovered original.
+Default source admission is one hour / 2 GiB encoded and decoded, with a 16 GiB
+project disk budget. These are admission ceilings, not promises that every
+maximum-size workload fits available memory. Neural separation separately
+accepts at most 512 MiB decoded PCM. The server has one shared heavy worker;
+queue, tool limits and the operator's CPU/memory quotas still apply. Preview
+stream count and live rendering also depend on the browser/device.
 
-`PUBLIC_API_ORIGIN` is the exact deployment pin shared by health/access and the
-visible info panel. CSP also permits only exact configured origins, not a
-provider wildcard. Public requests have a five-second deadline and 16-KiB JSON
-budget. Authenticated metadata uses 64 KiB; control/chunk requests have 120-second
-deadlines and the bounded float result has 15 minutes for slower connections.
-All artifact requests carry Authorization headers, never bearer URLs.
+Switching off prevents new remote edits but retains access to existing streams
+and downloads. Import a smaller local file for completely local processing.
+Clear/Close requests deletion of that workspace's server project and requires
+acknowledgement; expiry is at most one hour, also bounded by guest expiry.
 
-Node tests cover transfer bounds, settings snapshots, cancellation, cleanup
-acknowledgement, availability and session isolation. DSP tests cover atomic PCM
-adoption, reference preservation, EQ export and recovery. The browser verifier
-runs the ordinary editor against an actual owned CLI/service; its exact-origin
-API adapter is a transport fixture, not evidence of public deployment or phone
-listening. The shared editor still needs its local WASM/AudioWorklet engine even
-when heavy mastering is remote. Studio and MCP remain local.
+Local recovery intentionally does not store streamed server audio or access
+tokens. Download a session ZIP before leaving; it contains full-resolution audio
+and numeric/settings metadata, not a persistent remote login or complete undo
+history. Browser/OS download behavior and physical phone listening need their
+own qualification.
+
+## Compatibility and verification
+
+The original v1 Master-only bridge (`master-runner.js`, `pcm-transfer.js`) remains
+available for protocol compatibility and its focused tests. The current editor
+uses v2. V1 metadata remains bounded at 64 KiB; v2 manifests use an explicit
+1 MiB ceiling. Public health/access JSON remains bounded at 16 KiB.
+
+See [the protocol](../../../docs/HYBRID_REMOTE_PROTOCOL.md),
+[deployment and privacy](../../../docs/HYBRID_STUDIO.md), and
+[measured performance](../../../hybrid/deploy/remote-tools/BENCHMARK.md).
+Native/API tests, isolated three-engine transport/UI checks, actual hosted
+service checks and physical-device listening establish different evidence.
+The separate MCP companion remains a local stdio service and is never exposed
+as this public processing API.

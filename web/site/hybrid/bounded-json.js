@@ -1,5 +1,6 @@
 export const PUBLIC_JSON_LIMIT_BYTES = 16 * 1024;
 export const AUTHENTICATED_JSON_LIMIT_BYTES = 64 * 1024;
+export const PROJECT_JSON_LIMIT_BYTES = 1024 * 1024;
 
 // Messages are authored here, never derived from an untrusted response body.
 export class JsonResponseError extends Error {
@@ -7,7 +8,7 @@ export class JsonResponseError extends Error {
 }
 
 export async function readBoundedJson(response, { maxBytes = AUTHENTICATED_JSON_LIMIT_BYTES, signal } = {}) {
-    if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > AUTHENTICATED_JSON_LIMIT_BYTES)
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > PROJECT_JSON_LIMIT_BYTES)
         throw new RangeError("Invalid JSON response budget.");
     let reader;
     const cancel = () => {

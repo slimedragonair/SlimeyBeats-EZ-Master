@@ -5,7 +5,7 @@ export const TOPICS = [
 ];
 // The shared guide also serves the native app. Qualify browser-only privacy at
 // rendering time instead of changing the desktop's local-workflow promises.
-export const BROWSER_PRIVACY_NOTE = "Audio stays on this device by default. Want server mastering? Turn on the top Server processing switch, then use the usual Master button. The result opens in the same player and live EQ; Export saves it when you are ready. The info icon explains uploads and temporary storage. This tour never connects or processes audio for you.";
+export const BROWSER_PRIVACY_NOTE = "Audio stays on this device by default. With the top Server processing switch on, importing uploads the original. Analyze, Master, heavy Studio tools and final exports run on the server; the same player streams previews with live EQ and faders. Download a session ZIP before leaving a temporary server project. The info icon explains limits and storage. This tour never connects or processes audio for you.";
 export function textElement(tag, text, className) {
     const node = document.createElement(tag);
     node.textContent = text;

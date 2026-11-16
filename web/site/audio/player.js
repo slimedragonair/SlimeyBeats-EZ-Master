@@ -1,4 +1,5 @@
 import { validateFile, validateDecoded } from "./import-validation.js";
+import { createLiveEqNode } from "./live-eq-node.js";
 import { readMp3Timing, normalizeMp3Timing } from "./mp3-gapless.js";
 
 export class Player {
@@ -92,76 +93,14 @@ export class Player {
         if (this.offset >= this.original.duration - 0.01) this.offset = 0;
         let worklet;
         if (this.master) {
-            if (!context.audioWorklet)
-                throw new Error(
-                    "Real-time EQ needs AudioWorklet on HTTPS or localhost.",
-                );
-            if (!this.workletReady)
-                this.workletReady = (async () => {
-                    const response = await fetch(
-                        new URL("../pkg/dsp_bg.wasm", import.meta.url),
-                    );
-                    if (!response.ok)
-                        throw new Error("Cannot load the live EQ engine.");
-                    const module = await WebAssembly.compile(
-                        await response.arrayBuffer(),
-                    );
-                    await context.audioWorklet.addModule(
-                        new URL("./eq-processor.js", import.meta.url),
-                    );
-                    return module;
-                })();
-            const module = await this.workletReady;
-            if (generation !== this.generation) return;
-            worklet = new AudioWorkletNode(context, "slimey-eq", {
-                numberOfInputs: 1,
-                numberOfOutputs: 1,
-                outputChannelCount: [this.original.numberOfChannels],
-                processorOptions: {
-                    module,
-                    channels: this.original.numberOfChannels,
-                    analysis: this.analysis,
-                    settings: this.settings,
-                },
+            const prepared = await createLiveEqNode(context, this.original.numberOfChannels, this.analysis, this.settings, {
+                onDelta: delta => { this.delta = delta; this.updateGains(); },
+                onError: error => { this.onError?.(error); this.pause(); },
             });
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(
-                    () =>
-                        reject(
-                            new Error(
-                                "Live EQ could not start in this browser.",
-                            ),
-                        ),
-                    10000,
-                );
-                worklet.onprocessorerror = () => {
-                    clearTimeout(timeout);
-                    reject(new Error("The live EQ worklet stopped."));
-                    this.onError?.(new Error("The live EQ worklet stopped."));
-                    this.pause();
-                };
-                worklet.port.onmessage = ({ data }) => {
-                    if (data.error) {
-                        clearTimeout(timeout);
-                        reject(new Error(data.error));
-                        this.onError?.(new Error(data.error));
-                        this.pause();
-                    }
-                    if (data.ready) {
-                        clearTimeout(timeout);
-                        this.delay = data.delay / context.sampleRate;
-                        resolve();
-                    }
-                    if (data.delta !== undefined) {
-                        this.delta = data.delta;
-                        this.updateGains();
-                    }
-                };
-            });
+            worklet = prepared.node;
+            this.delay = prepared.delay;
             if (generation !== this.generation) {
-                worklet.disconnect();
-                worklet.port.close();
-                return;
+                worklet.port.postMessage({ stop: true }); worklet.disconnect(); worklet.port.close(); return;
             }
         } else this.delay = 0;
         this.worklet = worklet;

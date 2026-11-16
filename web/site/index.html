@@ -80,7 +80,7 @@
                 </div>
                 <details id="preview-details" class="preview-details">
                     <summary>Build details</summary>
-                    <p>Preview choices and local recovery are separate from the main site. Local mastering keeps audio on your device. Turn on Server processing to use the same Master workflow on the server; the Master button sends the track and loads the result here.</p>
+                    <p>Preview choices and local recovery are separate from the main site. Local processing keeps audio on your device. With Server processing on, choosing audio uploads the original; Analyze, Master, Studio tools and final exports run on the server. Your browser streams previews and keeps EQ and faders live.</p>
                     <dl>
                         <dt>Branch</dt><dd>current-work</dd>
                         <dt>Preview commit</dt><dd id="preview-commit">Unavailable</dd>
@@ -267,8 +267,9 @@
                         </ol>
                         <p class="local-note">
                             ♧ Local mastering keeps your audio here. The optional
-                            Server processing switch uses the same Master button
-                            and editor. Master sends audio only when the switch is on.
+                            Server processing switch uses the same editor.
+                            With it on, importing audio uploads the original and
+                            heavy tools run on the server. Switching it on alone sends no audio.
                         </p>
                     </div>
                     <div id="eq" class="page" hidden>

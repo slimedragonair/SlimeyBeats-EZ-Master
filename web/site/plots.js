@@ -30,6 +30,7 @@ export class Plots {
     setAudio(buffer) {
         this.peaks = [];
         if (!buffer) return;
+        if (buffer.remote) { this.peaks = buffer.waveform || []; return; }
         const count = 850,
             stride = Math.max(1, Math.floor(buffer.length / count));
         for (let start = 0; start < buffer.length; start += stride) {
