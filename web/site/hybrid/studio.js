@@ -28,6 +28,8 @@ export function wireServerStudio(host, options = {}) {
         if (active) throw new Error("Wait for the current server master.");
         const operation = active = new AbortController();
         try {
+            if (session.canForgetUnavailableJob) controller.forgetUnavailableJob();
+            else if (!session.job && availability.state === "access") controller.disconnect();
             if (!session.connected || !session.available) await controller.check();
             operation.signal.throwIfAborted();
             return await runServerMaster(session, audio, settings, reference, { signal: operation.signal, progress });

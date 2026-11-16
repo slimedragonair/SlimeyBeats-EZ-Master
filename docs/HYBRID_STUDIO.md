@@ -109,8 +109,12 @@ A busy response is recoverable; wait before reconnecting. Sessions and audio
 expire within one hour, and service restarts invalidate guest sessions and
 remove temporary jobs. Download your results before leaving the page.
 
-The older standalone-job panel capture is historical; the current preview uses
-the top switch and ordinary editor. Current browser validation is recorded below.
+<img src="images/hybrid-shared-editor-desktop.png" width="900" alt="Server processing enabled in the normal editor with the usual mastering direction, report, player and export controls">
+
+Current Linux WebKit capture with synthetic audio and an owned native API fixture.
+[Phone layout](images/hybrid-shared-editor-phone.png). The older standalone-job
+panel is historical; the current preview uses the top switch and ordinary editor.
+Current browser validation is recorded below.
 Physical phone listening remains a separate acceptance check.
 
 The editable master is streamed directly into one bounded float PCM allocation,
@@ -406,7 +410,7 @@ Deployment scaffold validation on November 15, 2026:
 
 ## Funnel and guest-access validation, November 15, 2026
 
-This follow-up supersedes the earlier milestone's pending-public-ingress status.
+Historical record: this follow-up superseded the earlier milestone's pending-public-ingress status. The November 16 shared-editor section describes the current UI.
 
 | Check | Result and scope |
 | --- | --- |
@@ -441,24 +445,30 @@ original session is valid whenever possible.
 
 ## Shared editor validation — November 16, 2026
 
-The first integrated candidate passed **93 hybrid Node tests**, **31 browser-DSP
+The first integrated candidate passed **94 hybrid Node tests**, **7 recovery-identity tests**, **31 browser-DSP
 unit tests**, **24 web build/documentation tests**, and **56 MCP tests** (one
 existing optional other-volume test skipped). The native backend passed **72
 Linux tests**; Windows passed 71 with one Unix-only skip. Twelve additional
 native parity repeats passed for settings, blend/reference matching and float
 geometry. The CLI reference-analysis path matched reference-WAV output PCM.
 
-Chromium passed **21/21 end-to-end checks** against a real native CLI fixture:
+Chromium, Firefox and Linux WebKit each passed **21/21 end-to-end checks** against a real native CLI fixture:
 normal import/analysis/master controls in both modes; shared settings/reference;
 AudioWorklet EQ response; WAV/MP3/ZIP outputs; unchanged original; re-mastering;
-cancellation/outage behavior; and local recovery. Layout captures at 320, 390
+cancellation/outage behavior. Separate browser recovery checks cover saved PCM and reference staleness. Layout captures at 320, 390
 and 1440 px use synthetic audio. The fixture adapts only the exact API transport;
 it does not simulate DSP or establish public connectivity.
 
 Separately, the deployed Funnel endpoint completed an actual public job with a
 profile blend, reference measurements, custom target, ceiling and intensity.
 The float result loaded into the normal editor and exported through its normal
-WAV and MP3 controls. Recovery and additional browser-engine results are being
-checked and will be recorded with the final preview checkpoint. Physical
+WAV and MP3 controls. The received public master also passed exact float-WAV export recovery with
+reference and EQ, without any API requests during restoration. Physical
 Android/iPhone listening, long-track memory and network resilience remain
 unqualified; synthetic-sink and layout checks do not establish those results.
+
+The initial preview publication gate caught a 320 px header overflow at 200%
+text. The label now wraps and the info popup stays inside the viewport; the
+actual Issue Detector/Stem Doctor touch/layout verifier passes at both 100%
+and 200% text, at 320 and 390 px. Reference-only recovery staleness and an
+inaccessible retained job after pagehide are covered by focused regressions.

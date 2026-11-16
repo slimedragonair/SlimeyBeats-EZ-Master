@@ -132,7 +132,7 @@ def synthetic_audio(path, reference=False):
                   + 800 * math.sin(2 * math.pi * 80 * frame / 16000))) for frame in range(16000 * 4)))
 
 
-def uploaded_pcm(data):
+def uploaded_pcm(data, frames):
     assert data[:4] == b'RIFF' and data[8:12] == b'WAVE'
     assert struct.unpack_from('<I', data, 4)[0] + 8 == len(data)
     offset, layout, pcm = 12, None, None
@@ -148,15 +148,16 @@ def uploaded_pcm(data):
             assert pcm is None
             pcm = memoryview(data)[offset:offset + count]
         offset += count + (count & 1)
-    assert layout == (RATE, CHANNELS) and pcm is not None and len(pcm) == FRAMES * CHANNELS * 4
+    assert layout == (RATE, CHANNELS) and pcm is not None and len(pcm) == frames * CHANNELS * 4
     assert all(math.isfinite(value) for value, in struct.iter_unpack('<f', pcm))
-    return dict(rate=RATE, channels=CHANNELS, frames=FRAMES, sha256=hashlib.sha256(pcm).hexdigest())
+    return dict(rate=RATE, channels=CHANNELS, frames=frames, sha256=hashlib.sha256(pcm).hexdigest())
 
 
 class ApiTransport:
     """Forward the exact API to a real fixture; observe and fault transport."""
     def __init__(self, origin):
         self.origin, self.status = origin, 'online'
+        self.frames = FRAMES
         self.fail_create = self.corrupt_audio = False
         self.requests, self.jobs, self.reports, self.errors, self.tokens = [], {}, [], [], []
 
@@ -199,7 +200,7 @@ class ApiTransport:
                     job['uploaded'].extend(payload)
                 elif request.method == 'POST':
                     assert len(job['uploaded']) == job['request']['bytes']
-                    job['pcm'] = uploaded_pcm(job['uploaded'])
+                    job['pcm'] = uploaded_pcm(job['uploaded'], self.frames)
                     job['uploaded'].clear()
             if request.method == 'DELETE' and remote.ok:
                 assert remote.json().get('deleted') is True
@@ -247,14 +248,14 @@ def latest_report(page, action):
     return page.evaluate('(action) => __hybridVerify.replies.filter(item => item.action === action && item.report).at(-1)', action)
 
 
-def assert_report(report, settings):
+def assert_report(report, settings, frames=FRAMES):
     for key, value in settings.items():
         assert report['configuration'][key] == value, (key, report['configuration'][key], value)
     assert report['ceiling_dbtp'] == settings['ceiling_dbtp']
     for name in ('input', 'output'):
         analysis = report[name]
         assert analysis['sample_rate'] == RATE and analysis['channels'] == CHANNELS
-        assert abs(analysis['duration_s'] - FRAMES / RATE) <= 1 / RATE
+        assert abs(analysis['duration_s'] - frames / RATE) <= 1 / RATE
 
 
 def download(page, selector, destination):
@@ -265,7 +266,7 @@ def download(page, selector, destination):
     assert destination.stat().st_size > 0
 
 
-def verify_audio(path, lossy=False):
+def verify_audio(path, lossy=False, frames=FRAMES):
     probe = subprocess.run(['ffprobe', '-v', 'error', '-show_streams', '-of', 'json', str(path)],
                            capture_output=True, check=True, text=True, timeout=30)
     info = json.loads(probe.stdout)['streams'][0]
@@ -273,12 +274,12 @@ def verify_audio(path, lossy=False):
     decoded = subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-i', str(path),
         '-f', 'f32le', '-acodec', 'pcm_f32le', 'pipe:1'], capture_output=True, check=True, timeout=30).stdout
     assert len(decoded) % (CHANNELS * 4) == 0
-    frames = len(decoded) // (CHANNELS * 4)
-    assert (FRAMES <= frames <= FRAMES + RATE // 4) if lossy else frames == FRAMES
+    decoded_frames = len(decoded) // (CHANNELS * 4)
+    assert (frames <= decoded_frames <= frames + RATE // 4) if lossy else decoded_frames == frames
     assert all(math.isfinite(value) for value, in struct.iter_unpack('<f', decoded))
     lufs, peak = independent_measurements(path)
     assert math.isfinite(lufs) and math.isfinite(peak) and peak <= SETTINGS['ceiling_dbtp'] + 0.15, (lufs, peak)
-    return dict(frames=frames, rate=RATE, channels=CHANNELS, lufs=lufs, true_peak_dbtp=peak,
+    return dict(frames=decoded_frames, rate=RATE, channels=CHANNELS, lufs=lufs, true_peak_dbtp=peak,
                 decoded_pcm_sha256=hashlib.sha256(decoded).hexdigest())
 
 
@@ -313,7 +314,7 @@ def exports(page, transport, out, label, settings):
         control(page, '#format').select_option(fmt)
         destination = out / f'{label}-master.{extension}'
         download(page, '#mobile-export' if page.locator('#mobile-export').is_visible() else '#export', destination)
-        audio[fmt] = verify_audio(destination, lossy=fmt == 'mp3')
+        audio[fmt] = verify_audio(destination, lossy=fmt == 'mp3', frames=transport.frames)
     control(page, '#format').select_option('wav32f')
     control(page, '#tab-report').click()
     bundle = out / f'{label}-session.zip'
@@ -332,7 +333,7 @@ def exports(page, transport, out, label, settings):
         assert session['original_audio_included'] is False and session['reference_audio_included'] is False
     report_path = out / f'{label}-report.json'
     download(page, '#save-report', report_path)
-    assert_report(json.loads(report_path.read_text(encoding='utf-8')), settings)
+    assert_report(json.loads(report_path.read_text(encoding='utf-8')), settings, transport.frames)
     assert transport.writes() == writes, 'Local exports must not request another server master'
     return audio, {'entries': sorted(names), 'settings_match': True, 'report': report_path.name}
 
@@ -350,7 +351,9 @@ def screenshots(page, out, args, label):
         page.locator('.masthead').screenshot(path=str(prefix) + '-header.png')
         page.screenshot(path=str(prefix) + '-viewport.png')
         page.screenshot(path=str(prefix) + '-full.png', full_page=True)
-        records.append(dict(width=width, height=height, geometry=geometry))
+        records.append(dict(label=label, width=width, height=height, geometry=geometry,
+            server_enabled=page.locator('#hybrid-enabled').is_checked(),
+            server_status=page.locator('#hybrid-availability').inner_text()))
     page.set_viewport_size({'width': args.width, 'height': args.height})
     return records
 
@@ -382,9 +385,18 @@ def run_workflow(page, args, transport, result, source, reference):
     expect(page.locator('#status')).to_contain_text('Analysis complete', timeout=30000)
     page.wait_for_function('() => __hybridVerify.calls.some(x => x.action === "load" && x.sha256)')
     loaded = page.evaluate('__hybridVerify.calls.find(x => x.action === "load")')
-    assert (loaded['samples'], loaded['rate'], loaded['channels']) == (FRAMES * CHANNELS, RATE, CHANNELS)
+    result['decoded_source'] = loaded
+    assert (loaded['rate'], loaded['channels']) == (RATE, CHANNELS), loaded
+    assert loaded['samples'] % CHANNELS == 0, loaded
+    frames = loaded['samples'] // CHANNELS
+    # Linux WebKit 26's 16 -> 48 kHz decoder drops two tail frames for this
+    # fixture. Record that import behavior; masters must still match its exact
+    # immutable AudioBuffer, with no trimming/padding at the exchange boundary.
+    assert frames in ((FRAMES - 2, FRAMES) if args.browser == 'webkit' else (FRAMES,)), loaded
+    transport.frames = frames
     assert not transport.requests
-    passed('local_import_analysis', dict(encoded_rate=16000, decoded_rate=RATE, frames=FRAMES, original_sha256=loaded['sha256']))
+    passed('local_import_analysis', dict(encoded_rate=16000, decoded_rate=RATE, frames=frames,
+        nominal_frames=FRAMES, decoder_frame_delta=frames - FRAMES, original_sha256=loaded['sha256']))
     control(page, '#controls-advanced').click()
     control(page, '#profile').select_option('neutral')
     control(page, '#blend-profile').select_option('edm'); slider(page, '#blend', 40)
@@ -401,8 +413,8 @@ def run_workflow(page, args, transport, result, source, reference):
     primary(page, 'master').click()
     expect(page.locator('#export')).to_be_enabled(timeout=TIMEOUT)
     local = latest_report(page, 'master')
-    assert local['samples'] == FRAMES * CHANNELS
-    assert_report(local['report'], SETTINGS)
+    assert local['samples'] == frames * CHANNELS
+    assert_report(local['report'], SETTINGS, frames)
     assert not transport.requests
     passed('local_master', 'Real WASM; exact geometry and selected settings')
     passed('local_live_eq', live_eq(page, transport))
@@ -419,8 +431,8 @@ def run_workflow(page, args, transport, result, source, reference):
     expect(page.locator('#status')).to_contain_text('Master ready', timeout=TIMEOUT)
     expect(page.locator('#export')).to_be_enabled(timeout=TIMEOUT)
     adopted = latest_report(page, 'adopt-master')
-    assert adopted['samples'] == FRAMES * CHANNELS
-    assert_report(adopted['report'], SETTINGS)
+    assert adopted['samples'] == frames * CHANNELS
+    assert_report(adopted['report'], SETTINGS, frames)
     job = next(iter(transport.jobs.values()))
     assert job['pcm']['sha256'] == loaded['sha256'], 'Upload must use original, not local master'
     assert job['request']['filename'] == 'browser-track.wav' and job['request']['format'] == 'wav32f'
@@ -431,6 +443,9 @@ def run_workflow(page, args, transport, result, source, reference):
     assert job['request']['reference_analysis'] == measured_reference
     assert transport.reports[-1]['reference_supplied'] is True and job['deleted']
     passed('server_master', dict(native_report_matches=True, reference_matches=True, upload_pcm=job['pcm'], deletion_confirmed=True))
+    expect(page.locator('#hybrid-enabled')).to_be_checked()
+    expect(page.locator('#hybrid-availability')).to_have_text('[Server online]')
+    result['screenshots'] += screenshots(page, args.out, args, 'server-enabled-complete')
     output = page.locator('#output-metrics').inner_text()
     page.locator('#hybrid-enabled').uncheck()
     expect(page.locator('#master-source')).to_be_enabled(); expect(page.locator('#export')).to_be_enabled()
@@ -492,16 +507,20 @@ def run_workflow(page, args, transport, result, source, reference):
     primary(page, 'master').click()
     expect(page.locator('#status')).to_contain_text('Master ready', timeout=TIMEOUT)
     expect(page.locator('#job')).to_be_hidden(timeout=TIMEOUT)
-    assert_report(latest_report(page, 'adopt-master')['report'], remaster_settings)
+    assert_report(latest_report(page, 'adopt-master')['report'], remaster_settings, frames)
     final_job = list(transport.jobs.values())[-1]
     assert final_job['pcm']['sha256'] == loaded['sha256'] == job['pcm']['sha256']
     assert final_job['request']['safety'] is True and transport.reports[-1]['safety'] is True
     assert all(item['deleted'] for item in transport.jobs.values())
     passed('remaster_original', dict(original_sha256=loaded['sha256'], safety_snapshot=True, all_jobs_deleted=True))
-    page.locator('#hybrid-enabled').uncheck(); page.locator('#original').click(); page.locator('#play').click()
-    page.wait_for_function('() => __hybridVerify.starts.at(-1)?.hashes')
+    page.locator('#hybrid-enabled').uncheck(); page.locator('#original').click()
+    previous_starts = page.evaluate('__hybridVerify.starts.length')
+    page.locator('#play').click()
+    page.wait_for_function('''count => __hybridVerify.starts.length > count &&
+        __hybridVerify.starts.slice(count).every(item => item.hashes)''', arg=previous_starts)
     page.locator('#stop').click()
     starts = page.evaluate('__hybridVerify.starts')
+    result['playback_sources'] = starts
     originals = [item for item in starts if item['id'] == starts[0]['id']]
     assert len(originals) >= 3 and all(item.get('hashes') == originals[0]['hashes'] for item in originals)
     passed('source_immutable', dict(buffer_identity=originals[0]['id'], planar_sha256=originals[0]['hashes']))
@@ -534,6 +553,9 @@ def main():
     token = secrets.token_urlsafe(36)
     try:
         policy = (args.site / 'hybrid/endpoint-policy.js').read_text(encoding='utf-8')
+        index = (args.site / 'index.html').read_text(encoding='utf-8')
+        build = re.search(r'hybrid/studio\.js\?v=([a-f0-9]+)', index)
+        result['site_build'] = build[1] if build else 'unknown'
         configured = re.search(r'export const PUBLIC_API_ORIGIN\s*=\s*"([^"]+)"', policy)
         assert configured and configured[1] == PUBLIC_API, 'Candidate must use the exact Funnel pin'
         help_text = subprocess.run([str(args.cli.resolve()), '--help'], capture_output=True, check=True,
@@ -565,6 +587,7 @@ def main():
                 time.sleep(0.1)
             with sync_playwright() as playwright:
                 browser = getattr(playwright, args.browser).launch(headless=True)
+                result['browser_version'] = browser.version
                 try:
                     context = browser.new_context(viewport={'width': args.width, 'height': args.height}, accept_downloads=True)
                     context.add_init_script(OBSERVE_APP)

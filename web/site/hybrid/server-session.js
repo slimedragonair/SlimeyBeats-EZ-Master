@@ -35,7 +35,11 @@ export class ServerSession {
         return this.processingEnabled && this.available && this.connected && !this.busy && !this.unavailableJobStatus && !!this.file && this.consent &&
             (!this.job || (this.sameServer && this.job.state === "uploading"));
     }
-    get canForgetUnavailableJob() { return !!this.job && [401, 404].includes(this.unavailableJobStatus) && !this.busy; }
+    get canForgetUnavailableJob() {
+        // A BFCache return can retain a job after pagehide cleared its only
+        // credential. Explicit Retry/Master may retire that inaccessible handle.
+        return !!this.job && !this.busy && (!this.connected || [401, 404].includes(this.unavailableJobStatus));
+    }
     #notify(message, error = false) {
         this.message = message; this.error = error; this.onChange(this);
     }

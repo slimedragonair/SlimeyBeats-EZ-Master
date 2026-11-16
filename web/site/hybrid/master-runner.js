@@ -58,6 +58,9 @@ export async function runServerMaster(session, audio, settings, reference, { sig
         // not throw away a completed master if that cleanup request fails.
         await session.delete(); current();
         return { samples, metadata, cleanupPending: !!session.job };
+    } catch (error) {
+        current();
+        throw error;
     } finally {
         session.onChange = notify;
         signal?.removeEventListener("abort", abort);

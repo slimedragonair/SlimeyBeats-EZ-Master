@@ -119,3 +119,23 @@ test("unavailable jobs can be forgotten after advanced Disconnect while the main
     behavior.failure = 0; await controller.check();
     assert.equal(session.connected, true); assert.equal(session.file, selected); assert.equal(session.consent, false);
 });
+
+// pagehide clears secrets even if this page later returns from BFCache.
+test("a disconnected retained job can be retired explicitly without a fake 401 or remote deletion", async () => {
+    const { session, controller, calls, behavior, selected } = await fixture();
+    const previous = session.job;
+    controller.disconnect();
+    assert.equal(session.unavailableJobStatus, 0);
+    assert.equal(session.canForgetUnavailableJob, true);
+    const before = calls.length;
+    assert.equal(controller.forgetUnavailableJob(), true);
+    assert.equal(calls.length, before);
+    assert.equal(session.job, null);
+    assert.equal(session.file, null);
+    assert.deepEqual(session.forgottenJob, { endpoint: PUBLIC_API_ORIGIN, expires_at: previous.expires_at });
+    await controller.check();
+    assert.equal(session.connected, true);
+    assert.equal(session.file, selected);
+    assert.equal(session.consent, false);
+    assert.equal(calls.slice(before).some((call) => call.method === "PUT" || call.method === "DELETE" || call.url.endsWith("/run")), false);
+});

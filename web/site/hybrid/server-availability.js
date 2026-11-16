@@ -82,7 +82,7 @@ export class ServerAvailability {
                 typeof value.guest_access !== "boolean") throw new PublicServerError(200);
             this.guestAccess = value.guest_access;
             if (value.status === "busy") this.#publish("busy", "The server is busy. Retry later; no audio is sent by reconnecting.");
-            else if (value.status === "disabled" && !this.operatorAccess) this.#publish("disabled", "The server is reachable, but public processing is disabled. No upload can start. Use local processing, or connect privately in advanced operator settings.");
+            else if (value.status === "disabled" && !this.operatorAccess) this.#publish("disabled", "The server is reachable, but public processing is disabled. No upload can start. Turn the switch off to use local processing.");
             else this.#publish(value.guest_access || this.operatorAccess ? "online" : "access", value.guest_access || this.operatorAccess
                 ? this.operatorAccess && !value.guest_access
                     ? "Private operator connection available. Choose Master to process the current track."

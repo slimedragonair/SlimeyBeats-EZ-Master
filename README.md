@@ -201,7 +201,9 @@ The browser screenshot above uses generated test audio in the current app. [Open
 
 By default, audio and measurements stay in tab memory until downloaded. Opting into local recovery stores audio/settings in this site's IndexedDB beyond tab lifetime, with explicit disable/delete controls and separate size limits. Local mode performs no audio uploads or server DSP. The hybrid beta uploads only after the top server switch is on and Master is pressed. Temporary guest sessions isolate jobs; local recovery can restore a received server master but never its server credential or job. Without a completed recovery point, reloading/closing the tab discards the local session; export important work first. Input codec support and available memory depend on the browser/device. Native Android/iOS packages are not included.
 
-**Optional hybrid beta:** the top server switch feeds the same player, live EQ and local export controls. [Try current-work](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) · [Privacy, beta limits and validation](docs/HYBRID_STUDIO.md). Server stem separation and wider Studio parity are future work.
+<img src="docs/images/hybrid-shared-editor-phone.png" width="270" alt="Top server switch with a received master in the ordinary editor, separate Re-master and Export controls, and A/B playback">
+
+**Optional hybrid beta:** this Linux WebKit capture uses synthetic audio and real native server DSP through an owned API fixture. The top server switch feeds the same player, live EQ and local export controls. [Try current-work](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) · [Privacy, beta limits and validation](docs/HYBRID_STUDIO.md). Server stem separation and wider Studio parity are future work.
 
 ## Evidence and limits
 

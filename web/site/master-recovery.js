@@ -1,5 +1,6 @@
 import { audioSize, audioRecord, audioBuffer } from "./recovery-format.js";
 import { interleave, DspClient } from "./dsp-client.js";
+import { recoverMasterIdentity } from "./master-recovery-identity.js";
 export function masterRecoverySize(player, reference, baselineReference) {
     return audioSize(player.original) + audioSize(player.master) + (reference?.size || 0) + (baselineReference?.size || 0);
 }
@@ -7,7 +8,8 @@ export function captureMasterRecovery(state) {
     if (!state.player.original) return null;
     return { source: audioRecord(state.player.original), preview: audioRecord(state.player.master),
         settings: structuredClone(state.settings), baseline: structuredClone(state.baseline),
-        signature: state.signature, reference: state.reference || null, baselineReference: state.baselineReference || null,
+        signature: state.signature, currentSignature: state.currentSignature,
+        reference: state.reference || null, baselineReference: state.baselineReference || null,
         serverMetadata: state.player.master ? structuredClone(state.serverMetadata || null) : null,
         name: state.file?.name || "Recovered mix.wav", format: state.format };
 }
@@ -48,14 +50,10 @@ export async function prepareMasterRecovery(value, player, current, progress) {
                         throw new Error("Recovery preview differs with this engine. Keep the file and use the matching app build.");
             }
         }
-        let signature = null;
-        if (preview) {
-            signature = JSON.parse(value.signature);
-            if (!signature || typeof signature !== "object" || Array.isArray(signature)) throw new Error("Invalid recovery preview identity.");
-        }
+        const identity = preview ? await recoverMasterIdentity(value) : { signature: null, referenceStale: false };
         const reference = value.reference ? await loadReference(value.reference) : null;
         if (!current()) throw new Error("New work arrived while recovery was preparing. Current work was kept.");
-        return { client, source, preview, reference, result, signature, settings: structuredClone(settings) };
+        return { client, source, preview, reference, result, ...identity, settings: structuredClone(settings) };
     } catch (error) { client.stop(); throw error; }
 }
 function checkSettings(value, expected) {

@@ -1,6 +1,7 @@
 .hybrid-studio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; position: relative; }
 .hybrid-studio [hidden] { display: none !important; }
-.hybrid-switch { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; font-size: .875rem; font-weight: 600; white-space: nowrap; }
+.hybrid-switch { display: flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; cursor: pointer; font-size: .875rem; font-weight: 600; white-space: normal; }
+.hybrid-switch span { min-width: 0; }
 .hybrid-switch input { appearance: none; width: 40px; height: 24px; margin: 0; border: 1px solid var(--muted); border-radius: 14px; background: var(--bg); flex-shrink: 0; }
 .hybrid-switch input::before { content: ""; display: block; width: 16px; height: 16px; margin: 3px; border-radius: 50%; background: var(--muted); }
 .hybrid-switch input:checked { background: var(--teal); border-color: var(--teal); }
@@ -10,6 +11,8 @@
 #hybrid-availability { font-size: .75rem; color: var(--teal); }
 .hybrid-studio[data-availability="down"] #hybrid-availability, .hybrid-studio[data-availability="offline"] #hybrid-availability { color: #ffb3ca; }
 .hybrid-details summary { list-style: none; min-height: 44px; min-width: 44px; display: grid; place-items: center; cursor: pointer; color: var(--violet); }
+.hybrid-details { position: static; }
+.hybrid-details:not([open]) .hybrid-info { display: none; }
 .hybrid-details summary::-webkit-details-marker { display: none; }
 .hybrid-info { position: absolute; z-index: 30; top: 100%; right: 0; width: min(340px, calc(100vw - 40px)); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; box-shadow: 0 8px 28px #000a; color: var(--ink); font-size: .875rem; text-align: start; max-height: 65dvh; overflow-y: auto; }
 .hybrid-info p { margin: 0 0 10px; overflow-wrap: anywhere; }
@@ -24,5 +27,5 @@
     .header-actions { display: contents; }
     .header-actions > #analyze { order: 1; margin-left: auto; }
     #server-studio-host { flex-basis: 100%; order: 2; z-index: 2; }
-    .hybrid-info { right: auto; left: 0; }
+    .hybrid-info { position: fixed; top: auto; right: 20px; left: 20px; width: auto; }
 }

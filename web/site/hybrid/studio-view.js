@@ -28,7 +28,7 @@ export function createStudioView(host) {
         byId("check").disabled = !!controller?.connecting;
         byId("status").hidden = !enabled || !session.error;
         byId("status").textContent = session.error
-            ? "Server processing stopped. Your track and settings are kept. Retry, or turn the switch off to master locally." : "";
+            ? "A server request failed. Your audio and settings are kept. Retry the connection, or use local processing. Check ⓘ for pending cleanup." : "";
         byId("availability").title = availabilityDetail(session, controller) || "Audio stays on this device.";
         byId("availability-detail").textContent = enabled ? availabilityDetail(session, controller) : "";
         byId("storage").textContent = session.caps

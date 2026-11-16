@@ -22,6 +22,7 @@ import { wireJobFeedback } from "./job-feedback.js";
 import { wireWorkspaceNavigation } from "./workspace-navigation.js";
 import { connectRecovery, changedRecovery } from "./recovery-bridge.js";
 import { masterRecoverySize, captureMasterRecovery, prepareMasterRecovery, restoreMasterFields } from "./master-recovery.js";
+import { rebindMasterSignature } from "./master-recovery-identity.js";
 import { verifiedMp3 } from "./audio/verified-mp3-export.js";
 import { eqProfileJson } from "./session-export.js";
 import { packageSession } from "./session-export-client.js";
@@ -730,6 +731,7 @@ connectRecovery({
         get preview() { return !!player.master; },
         estimate: () => masterRecoverySize(player, referenceFile, masterReference),
         capture: () => captureMasterRecovery({ player, settings, baseline: masterBaseline, signature: masterKey,
+            currentSignature: masterSignature(),
             serverMetadata: masterServerMetadata,
             reference: referenceFile, baselineReference: masterReference, file: currentFile, format: $("format").value }),
         async prepare(value, current) {
@@ -750,10 +752,7 @@ connectRecovery({
                         masterBaseline = structuredClone(value.baseline || settings);
                         masterReference = value.baselineReference;
                         masterServerMetadata = value.serverMetadata || null;
-                        // Reference identities are document-local. Rebind only that field.
-                        const signature = staged.signature;
-                        signature.reference_revision = referenceRevision;
-                        masterKey = JSON.stringify(signature);
+                        masterKey = rebindMasterSignature(staged.signature, referenceRevision, staged.referenceStale);
                         player.source = "master";
                         metrics("input-metrics", analysis); metrics("output-metrics", report.output); reportView(report);
                     }
