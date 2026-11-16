@@ -22,7 +22,7 @@ service and physical-device acceptance.
 | Engine guidance | Source candidate after that build passed native-backed import/Master, local/server label changes, retained streamed-source export guidance and 320/390-pixel layout without page errors |
 | Existing local work → server | Five actual-UI migration checks passed in each of Chromium 143, Firefox 144 and Linux WebKit 26: original/edit PCM, pending faders, required mix commit, native tools and original-based main Re-Master; old local worker and playback references were released |
 | Long public song | **Passed:** 150-second preflight and **18-minute, 48 kHz stereo MP3**, through actual published Pages/Funnel: import, Analyze, Master, captured stream/Stop and complete WAV/MP3/session ZIP downloads; originals retained exact geometry and all owned projects were removed |
-| Browser control/state regressions | **129 Node checks** passed; two classic-worker build checks are included in 26 Python publication/build checks |
+| Browser control/state regressions | **129 Node checks** passed; classic-worker build and bounded audio-startup checks are included in **27 Python publication/build checks** |
 | Documentation bundles | **15 payload + 3 link tests** passed on Windows and WSL after adding the v2 guides/screenshots to the reviewed public allowlists; unreviewed private files remain excluded |
 | Existing local reference/export bug | Reproduced on baseline `be3fcde` and fixed in the WASM Session: changed references refuse stale exports while preserving recovery PCM; unchanged reference reloads stay valid. Chromium/Firefox/WebKit passed **14 DSP checks each**; Chromium recovery passed **17 checks**, including A→B refusal and retained-PCM adoption. **31 binding tests**, formatting and strict Clippy passed |
 
@@ -37,6 +37,14 @@ message ports.
 The first final hosted smoke encountered HTTP 503 for one decorative crest image
 and was recorded as failed. A subsequent direct asset request returned 200, and
 a fresh complete hosted smoke passed without ignoring errors or changing source.
+
+Linux CI later exposed a probe startup assumption: media could be buffered while
+the headless PulseAudio clock had not produced PCM within the fixed 400 ms wait.
+One reproduced start needed 1,007 ms. The verifiers now wait for measured PCM and
+audio-clock settling within a strict deadline, retain the same gain/restoration
+and silence thresholds, and fail permanently silent or nonfinite output. All
+13 media checks passed in each engine with PulseAudio/two-core constraints; the
+18 full UI Chromium checks also passed. Production app code was unchanged.
 
 ## Actual deployed service
 

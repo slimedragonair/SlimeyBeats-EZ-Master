@@ -52,8 +52,9 @@ import {StreamingPlayer} from './audio/streaming-player.js';
 import init, {defaults, LiveEq} from './pkg/dsp.js';
 import {RemoteMediaBridge} from './hybrid/remote-media-bridge.js';
 import {serverProcessing} from './hybrid/main-controls.js';
+import {waitForMeasuredAudio,waitForAudioSilence} from './remote_audio_startup.mjs';
 const state = {requests:[], decodeCalls:0, blobReads:0, objectUrls:0, fullMediaReads:0,
-    playError:null, started:false, stopped:false, progress:[], accessMessages:0,workerFetches:[]};
+    playError:null, started:false, stopped:false, progress:[], accessMessages:0,workerFetches:[],mediaEvents:[]};
 const secrets = [];
 const nativeFetch = globalThis.fetch.bind(globalThis);
 globalThis.fetch = async (input, options) => {
@@ -82,6 +83,8 @@ navigator.serviceWorker.addEventListener('message', event => {
 });
 let project,client,api,asset,ctx,analyser,source,audio,artifact,remote,eqPlayer,eqSettings,eqRawAnalysis,eqFlatRms;
 const delay = ms => new Promise(resolve=>setTimeout(resolve,ms));
+const EQ_STARTUP_SETTLE_SECONDS = 0.25;
+const EQ_SETTINGS_SETTLE_SECONDS = 0.35;
 const demand = (test,message) => {if(!test) throw new Error(message);};
 async function guest() {
     const response = await fetch(api+'/v1/session',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -92,6 +95,14 @@ async function guest() {
 function rms() {
     const samples=new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(samples);
     return Math.sqrt(samples.reduce((sum,v)=>sum+v*v,0)/samples.length);
+}
+function audioState(context, element) {
+    return {wall_ms:performance.now(),context:context?.state,context_time:context?.currentTime,
+        current_time:element?.currentTime,paused:element?.paused,ended:element?.ended,
+        ready_state:element?.readyState,network_state:element?.networkState,cross_origin:element?.crossOrigin,
+        error:element?.error ? {code:element.error.code,message:element.error.message} : null,
+        buffered:element ? Array.from({length:element.buffered.length},(_,index)=>[
+            element.buffered.start(index),element.buffered.end(index)]) : []};
 }
 document.getElementById('play').onclick = () => {
     state.playError=null;
@@ -112,6 +123,15 @@ async function averageEqRms() {
     let sum=0;
     for(let index=0;index<12;index++){sum+=eqRms();await delay(40);}
     return sum/12;
+}
+function waitEqClock(seconds,trace,label,silent=false) {
+    const clockStart=eqPlayer.ctx.currentTime;
+    Object.assign(trace,{settle_audio_seconds:seconds,clock_start:clockStart});
+    return (silent ? waitForAudioSilence : waitForMeasuredAudio)({measure:eqRms,
+        ready:()=>eqPlayer.ctx.state==='running' && eqPlayer.ctx.currentTime-clockStart>=seconds
+            && (silent ? !eqPlayer.playing : eqPlayer.playing && !!eqPlayer.worklet && eqPlayer.source==='master'),
+        snapshot:()=>({...audioState(eqPlayer.ctx,eqPlayer.activeEntry?.audio),worklet:!!eqPlayer.worklet,
+            position:eqPlayer.position(),source:eqPlayer.source}),trace,error:()=>state.eqPlayError,label});
 }
 window.probe = {
     async initialize(endpoint) {
@@ -138,7 +158,9 @@ window.probe = {
         demand(asset.remote && !('samples' in asset) && !('buffer' in asset),'Remote asset contains client PCM');
         demand(asset.waveform.length>0 && asset.waveform.length<=1024,'Invalid waveform envelope');
         demand(asset.channelPeaks.length===asset.channels,'Missing per-channel peaks');
-        audio=document.getElementById('audio');audio.src=asset.mediaUrl;
+        audio=document.getElementById('audio');audio.crossOrigin='anonymous';audio.src=asset.mediaUrl;
+        for(const type of ['loadedmetadata','canplay','playing','waiting','stalled','suspend','error','ended'])
+            audio.addEventListener(type,()=>state.mediaEvents.push({type,...audioState(ctx,audio)}));
         demand(NativeContext,'Browser has no Web Audio context');
         ctx=new NativeContext(); analyser=ctx.createAnalyser();analyser.fftSize=2048;
         source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination);
@@ -167,14 +189,21 @@ window.probe = {
         return {unauthenticated:missing.status,cross_guest:cross.status,cross_guest_preview:crossMedia.status};
     },
     async played() {
-        if(state.playError) throw new Error(state.playError);
-        let maximum=0;
-        for(let i=0;i<10;i++){maximum=Math.max(maximum,rms());await delay(40);}
-        demand(!audio.paused && audio.currentTime>0 && maximum>0.0001,'Streamed HTML audio produced no measurable samples');
-        return {rms:maximum,current_time:audio.currentTime,paused:audio.paused,context:ctx.state};
+        state.rawAudioStartup={};
+        const measured=await waitForMeasuredAudio({measure:rms,
+            ready:()=>ctx.state==='running' && !audio.paused && audio.currentTime>0,
+            snapshot:()=>audioState(ctx,audio),trace:state.rawAudioStartup,
+            error:()=>state.playError || audio.error?.message,label:'Streamed HTML audio'});
+        demand(!audio.paused && audio.currentTime>0 && measured.rms>0.0001,'Streamed HTML audio produced no measurable samples');
+        return {...measured,current_time:audio.currentTime,paused:audio.paused,context:ctx.state};
     },
     async silence() {
-        await delay(350);let maximum=0;
+        const clockStart=ctx.currentTime;
+        state.rawStop={};
+        await waitForAudioSilence({measure:rms,
+            ready:()=>audio.paused && audio.currentTime===0 && ctx.state==='running' && ctx.currentTime-clockStart>=.35,
+            snapshot:()=>audioState(ctx,audio),trace:state.rawStop,error:()=>state.playError,label:'Streamed HTML Stop'});
+        let maximum=0;
         for(let i=0;i<5;i++){maximum=Math.max(maximum,rms());await delay(30);}
         demand(audio.paused && audio.currentTime===0 && maximum<1e-7,'Stop did not return captured samples to silence');
         return {rms:maximum,current_time:audio.currentTime,paused:audio.paused};
@@ -203,27 +232,32 @@ window.probe = {
             direct_live_eq_constructor:state.direct_live_eq_constructor};
     },
     async eqPlayed() {
-        if(state.eqPlayError)throw new Error(state.eqPlayError+'; constructor: '+state.direct_live_eq_constructor);
-        await delay(250);eqFlatRms=await averageEqRms();
+        state.eqAudioStartup={};
+        const measured=await waitEqClock(EQ_STARTUP_SETTLE_SECONDS,state.eqAudioStartup,'Actual StreamingPlayer LiveEq');
+        eqFlatRms=await averageEqRms();
         demand(eqPlayer.playing && !!eqPlayer.worklet && eqPlayer.source==='master' && eqFlatRms>0.0001,
             'Actual StreamingPlayer LiveEq produced no measurable master output');
-        return {rms:eqFlatRms,worklet:!!eqPlayer.worklet,delay_seconds:eqPlayer.delay,
+        return {rms:eqFlatRms,startup_ms:measured.elapsed_ms,worklet:!!eqPlayer.worklet,delay_seconds:eqPlayer.delay,
             wet_gain:eqPlayer.wetGain.gain.value,dry_gain:eqPlayer.dryGain.gain.value,
             context:eqPlayer.ctx.state,position:eqPlayer.position(),source:eqPlayer.source};
     },
     async eqChange() {
         const changed=structuredClone(eqSettings);changed.eq_output_db=-6;
-        eqPlayer.updateSettings(changed,1);await delay(350);
+        eqPlayer.updateSettings(changed,1);state.eqCutSettling={};
+        await waitEqClock(EQ_SETTINGS_SETTLE_SECONDS,state.eqCutSettling,'Live EQ cut settling');
         const quieter=await averageEqRms(),ratio=quieter/eqFlatRms;
         demand(eqPlayer.playing && ratio>.43 && ratio<.59,'Live EQ -6 dB setting did not change captured worklet output');
-        eqPlayer.updateSettings(eqSettings,2);await delay(350);
+        eqPlayer.updateSettings(eqSettings,2);state.eqRestoreSettling={};
+        await waitEqClock(EQ_SETTINGS_SETTLE_SECONDS,state.eqRestoreSettling,'Live EQ restore settling');
         const restored=await averageEqRms();
         demand(restored/eqFlatRms>.9 && restored/eqFlatRms<1.1,'Live EQ restoration did not return to the same output level');
         return {flat_rms:eqFlatRms,cut_rms:quieter,cut_ratio:ratio,restored_rms:restored,
             decoding_calls:state.decodeCalls,context_unchanged:true};
     },
     async eqSilence() {
-        await delay(350);const measured=eqRms();
+        state.eqStop={};
+        await waitEqClock(.35,state.eqStop,'Actual StreamingPlayer Stop',true);
+        const measured=eqRms();
         demand(!eqPlayer.playing && eqPlayer.offset===0 && measured<1e-7,'Actual StreamingPlayer Stop did not silence output');
         return {rms:measured,playing:eqPlayer.playing,offset:eqPlayer.offset};
     },
@@ -403,6 +437,7 @@ def browser_fixture(result, live):
                     result["probe_audit"] = page.evaluate("probe.audit(false)")
                     result["redacted_failure"] = page.evaluate("text=>probe.redact(text)",str(error))
                     result["errors"] = json.loads(page.evaluate("text=>probe.redact(text)",json.dumps(result["errors"])))
+                    result["audio_console"] = json.loads(page.evaluate("text=>probe.redact(text)",json.dumps(result.get("audio_console",[]))))
                 except Exception:
                     pass
             raise
@@ -426,6 +461,8 @@ def main():
               "candidate": "unchanged isolated copy with generated probe; no full app/WASM startup",
               "diagnostic_worker_observer": args.observe_worker_events,
               "transport": "native un-intercepted loopback cross-origin HTTP",
+              "audio_environment": {"pulse_sink":os.environ.get("PULSE_SINK"),
+                                    "pulse_server_configured":bool(os.environ.get("PULSE_SERVER"))},
               "physical_device_audio": "not_run", "full_app_ui": "not_run"}
     owner = secrets.token_urlsafe(40)
     backend = site = context = browser = page = None
@@ -442,6 +479,7 @@ def main():
         # Never overlay web/site/remote-media-worker.js onto a built candidate.
         result["worker_preserved_from_build"] = sha(candidate / "remote-media-worker.js") == sha(args.site / "remote-media-worker.js")
         (candidate / "probe.html").write_text(HTML, encoding="utf-8")
+        shutil.copy2(Path(__file__).with_name("remote_audio_startup.mjs"), candidate / "remote_audio_startup.mjs")
         # Built candidates version their import graph. Attach the exact same
         # main-controls module instance that RemoteProject actually imports.
         project_source=(candidate / "hybrid/remote-project.js").read_text(encoding="utf-8")
@@ -450,6 +488,8 @@ def main():
             raise RuntimeError("Cannot identify candidate RemoteProject controller import")
         controls_import="./hybrid/"+controls[1][2:]
         (candidate / "probe.js").write_text(PROBE.replace("./hybrid/main-controls.js",controls_import), encoding="utf-8")
+        result["probe_sha256"] = sha(candidate / "probe.js")
+        result["startup_helper_sha256"] = sha(candidate / "remote_audio_startup.mjs")
         result["controller_import"]=controls_import
         result["module_sha256"] = {name: sha(candidate / name) for name in MODULES}
         if args.observe_worker_events:
@@ -504,6 +544,9 @@ self.addEventListener('fetch', event => {
                 result["service_worker_responses"] = service_worker_responses
                 page.on("framenavigated", lambda frame: navigations.append(frame.url) if frame == page.main_frame else None)
                 page.on("pageerror", lambda error: result["errors"].append(str(error)))
+                result["audio_console"] = []
+                page.on("console", lambda message: result["audio_console"].append({"type":message.type,"text":message.text})
+                        if message.type in ("warning","error") and re.search(r"audio|media|cors|cross.origin|autoplay",message.text,re.I) else None)
                 page.on("response", lambda response: service_worker_responses.append({"url":response.url,"status":response.status})
                         if "/remote-media/" in response.url and response.from_service_worker else None)
                 page.goto(origin + "/probe.html")
@@ -567,6 +610,7 @@ self.addEventListener('fetch', event => {
                 assert len(navigations) == 1 and service_worker_responses
                 assert not result["errors"], result["errors"]
                 result["service_worker_responses"] = service_worker_responses
+                result["audio_console"] = json.loads(page.evaluate("text=>probe.redact(text)",json.dumps(result["audio_console"])))
                 page.evaluate("probe.close()")
                 assert sha(source) == source_hash
                 result["source_unchanged"] = True

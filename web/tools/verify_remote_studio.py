@@ -73,12 +73,15 @@ AUDIT = r'''(() => {
         node.addEventListener('processorerror',()=>++state.workletErrors);return node;}});
     const level=()=>Math.max(0,...state.meters.map(meter=>{const v=new Float32Array(meter.fftSize);meter.getFloatTimeDomainData(v);
         return Math.sqrt(v.reduce((sum,n)=>sum+n*n,0)/v.length);}));
-    globalThis.__remoteUiAudit={level,events:()=>state.events,manifests:()=>state.manifests,
+    const audioSnapshot=()=>{const context=state.meters.at(-1)?.context;
+        return {context:context?.state,context_time:context?.currentTime,meters:state.meters.length};};
+    globalThis.__remoteUiAudit={level,audioSnapshot,events:()=>state.events,manifests:()=>state.manifests,
         summary(){const stored=JSON.stringify({local:{...localStorage},session:{...sessionStorage},cookie:document.cookie});
         const urls=[location.href,...Array.from(document.querySelectorAll('[src],[href]'),e=>e.src||e.href||'')];
         return {decodeCalls:state.decodeCalls,serverDecodeCalls:state.serverDecodeCalls,blobReads:state.blobReads,
             objectUrls:state.objectUrls,fullMediaReads:state.fullMediaReads,workerAudio:state.workerAudio,
             workletReady:state.workletReady,workletErrors:state.workletErrors,observerErrors:state.observerErrors,
+            audio_waits:globalThis.__remoteAudioWaits||[],
             credentials_memory_only:[...secrets].every(s=>!stored.includes(s)&&urls.every(u=>!String(u?.baseVal||u).includes(s))),level:level()};},
         redact(text){for(const secret of secrets)text=text.split(secret).join('[credential removed]');return text;}};
 })();'''
@@ -142,6 +145,17 @@ class UiRun:
     def level(self):
         return self.page.evaluate('__remoteUiAudit.level()')
 
+    def wait_audio(self, label, seconds=.35, silent=False):
+        return self.page.evaluate('''async ({label,seconds,silent})=>{
+            const {waitForMeasuredAudio,waitForAudioSilence}=await import('/remote_audio_startup.mjs');
+            const clockStart=__remoteUiAudit.audioSnapshot().context_time;
+            const trace={label,settle_audio_seconds:seconds,clock_start:clockStart};
+            (globalThis.__remoteAudioWaits??=[]).push(trace);
+            return (silent?waitForAudioSilence:waitForMeasuredAudio)({measure:__remoteUiAudit.level,
+                ready:()=>{const value=__remoteUiAudit.audioSnapshot();return value.context==='running'
+                    && value.context_time-clockStart>=seconds;},snapshot:__remoteUiAudit.audioSnapshot,trace,label});
+        }''',{'label':label,'seconds':seconds,'silent':silent})
+
     def download(self,selector,name,operation):
         start=len(self.events)
         with self.page.expect_download(timeout=120000) as event:
@@ -178,11 +192,11 @@ def workflow(run,args,files):
     page.locator('#playback-details').evaluate('(e)=>e.open=true')
     page.locator('#match').uncheck()
     page.locator('#play').click();expect(page.locator('#play')).to_have_text('Pause',timeout=20000)
-    page.wait_for_timeout(300);before=max(run.level() for _ in range(3));assert before>1e-4
-    page.locator('#tab-eq').click();range_value(page,'#eq-output',-6);page.wait_for_timeout(450)
+    run.wait_audio('Main live EQ startup',.3);before=max(run.level() for _ in range(3));assert before>1e-4
+    page.locator('#tab-eq').click();range_value(page,'#eq-output',-6);run.wait_audio('Main -6 dB settling',.45)
     after=run.level();assert .4<after/before<.65,(before,after)
-    range_value(page,'#eq-output',0);page.wait_for_timeout(300)
-    page.locator('#stop').click();page.wait_for_timeout(350);assert run.level()<1e-7
+    range_value(page,'#eq-output',0);run.wait_audio('Main EQ restore settling',.3)
+    page.locator('#stop').click();run.wait_audio('Main Stop silence',silent=True);assert run.level()<1e-7
     run.passed('actual_main_stream_live_eq',{'before_rms':before,'cut_rms':after,'ratio':after/before,'stopped_rms':run.level()})
     for fmt,suffix in [('wav24','wav'),('mp3','mp3')]:
         page.locator('#format').select_option(fmt)
@@ -261,14 +275,14 @@ def workflow(run,args,files):
     run.passed('studio_session_zip',{'bytes':archive.stat().st_size})
     page.locator('#s-view-mixer').click()
     page.locator('#s-play').click();expect(page.locator('#s-play')).to_have_text('Pause',timeout=15000)
-    page.wait_for_timeout(350);level_before=run.level();assert level_before>1e-4
+    run.wait_audio('Studio live mix startup');level_before=run.level();assert level_before>1e-4
     page.get_by_role('checkbox',name='vocals mute',exact=True).check()
     page.get_by_role('checkbox',name='instrumental mute',exact=True).check()
-    page.wait_for_timeout(350);level_muted=run.level();assert level_muted<1e-7
+    run.wait_audio('Studio both stems muted',silent=True);level_muted=run.level();assert level_muted<1e-7
     page.get_by_role('checkbox',name='vocals mute',exact=True).uncheck()
     page.get_by_role('checkbox',name='instrumental mute',exact=True).uncheck()
-    page.wait_for_timeout(300);assert run.level()>1e-4
-    page.locator('#s-stop').click();page.wait_for_timeout(350)
+    run.wait_audio('Studio stems unmuted',.3);assert run.level()>1e-4
+    page.locator('#s-stop').click();run.wait_audio('Studio Stop silence',silent=True);assert run.level()<1e-7
     studio=run.click('#s-mix','mix')
     run.passed('studio_live_stem_controls',{'before_rms':level_before,'both_muted_rms':level_muted})
     start=len(run.fixture.requests);page.locator('#s-close').click()
@@ -308,6 +322,7 @@ def main():
         digests={name:sha(path) for name,path in files.items()}
         with RemoteBrowserFixture(args) as fixture:
             result['fixture']=fixture.provenance
+            shutil.copy2(Path(__file__).with_name('remote_audio_startup.mjs'),fixture.site/'remote_audio_startup.mjs')
             with sync_playwright() as pw:
                 browser=getattr(pw,args.browser).launch(headless=True)
                 result['browser_version']=browser.version
