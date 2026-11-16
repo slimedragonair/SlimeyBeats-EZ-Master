@@ -1,0 +1,16 @@
+# Proposal only. Parent deploys with the v2 backend after acceptance.
+# /etc/systemd/system/slimeybeats-hybrid-preview.service.d/heavy-tools.conf
+[Service]
+CPUQuota=800%
+MemoryHigh=24G
+MemoryMax=32G
+MemorySwapMax=0
+TasksMax=256
+Environment=RAYON_NUM_THREADS=4
+Environment=OPENBLAS_NUM_THREADS=1
+Environment=OMP_NUM_THREADS=4
+Environment=MKL_NUM_THREADS=4
+# Keep the verified model and interpreter immutable to the service.
+ReadOnlyPaths=/mnt/exparements/slimeybeats-hybrid-preview/remote-tools/runtime
+# Keep existing jobs/runtime-state writable paths and network restrictions.
+# Use StemRuntime::configured; RuntimePaths conversion opens engine.lock writable.
