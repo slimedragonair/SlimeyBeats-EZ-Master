@@ -131,7 +131,7 @@ function syncControls() {
     $("analyze").disabled = document.body.classList.contains("studio-mode")
         ? studio.busy || !studio.loaded
         : locked || !loaded;
-    $("master").disabled = locked || !loaded;
+    $("master").disabled = locked || !loaded || serverProcessing.preparing;
     $("export").disabled = locked || !mastered || stale;
     $("save-session").disabled = $("export").disabled;
     $("save-eq").disabled = locked || !ready;

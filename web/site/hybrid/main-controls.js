@@ -5,6 +5,10 @@ let controller, runMaster, cancelMaster, locked = false;
 
 export const serverProcessing = {
     get enabled() { return !!controller?.enabled; },
+    get preparing() {
+        return this.enabled && !controller.session?.connected &&
+            (!!controller.connecting || controller.availability?.state === "checking");
+    },
     attach(value, run, cancel) { controller = value; runMaster = run; cancelMaster = cancel; },
     subscribe(listener) { listeners.add(listener); },
     changed() { for (const listener of listeners) listener(); this.renderMainControls(); },

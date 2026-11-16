@@ -42,3 +42,17 @@ test("top switch has contextual help without another file picker, settings form,
         assert.equal(studioTemplate.includes(obsolete), false, obsolete);
     assert.match(studioTemplate, /Analyze → Master → tweak → Export/);
 });
+
+test("Master readiness waits for first server access, without interrupting an already connected editor", () => {
+    const controller = { enabled: true, connecting: false, session: { connected: false }, availability: { state: "checking" } };
+    serverProcessing.attach(controller, () => {});
+    assert.equal(serverProcessing.preparing, true);
+    controller.availability.state = "online"; controller.connecting = true;
+    assert.equal(serverProcessing.preparing, true);
+    controller.session.connected = true;
+    assert.equal(serverProcessing.preparing, false);
+    controller.availability.state = "checking";
+    assert.equal(serverProcessing.preparing, false, "Background health checks do not interrupt connected editing");
+    controller.enabled = false;
+    assert.equal(serverProcessing.preparing, false);
+});

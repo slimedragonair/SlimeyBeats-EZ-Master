@@ -445,7 +445,7 @@ original session is valid whenever possible.
 
 ## Shared editor validation — November 16, 2026
 
-The first integrated candidate passed **94 hybrid Node tests**, **7 recovery-identity tests**, **31 browser-DSP
+The first integrated candidate passed **95 hybrid Node tests**, **7 recovery-identity tests**, **31 browser-DSP
 unit tests**, **24 web build/documentation tests**, and **56 MCP tests** (one
 existing optional other-volume test skipped). The native backend passed **72
 Linux tests**; Windows passed 71 with one Unix-only skip. Twelve additional
