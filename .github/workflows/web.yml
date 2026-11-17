@@ -1,9 +1,12 @@
+# Full release coverage runs in isolated shards; browser aggregates all required results.
 name: Browser preview
-on:
+'on':
   push:
-    branches: [main, current-work]
-  pull_request:
-  workflow_dispatch:
+    branches:
+      - main
+      - current-work
+  pull_request: null
+  workflow_dispatch: null
 permissions:
   contents: read
 concurrency:
@@ -12,11 +15,15 @@ concurrency:
 jobs:
   scope:
     uses: ./.github/workflows/change-scope.yml
-  browser:
+  build:
     needs: scope
     if: needs.scope.outputs.web == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 25
+    outputs:
+      artifact_id: ${{ steps.bundle.outputs.artifact-id }}
+      bundle_sha256: ${{ steps.seal.outputs.bundle_sha256 }}
+      build_attempt: ${{ steps.seal.outputs.build_attempt }}
     steps:
       - uses: actions/checkout@v6
       - name: Set up Rust and WebAssembly
@@ -24,6 +31,17 @@ jobs:
           rustup default stable
           rustup target add wasm32-unknown-unknown
           rustup component add rustfmt clippy
+      - id: rust
+        run: echo "version=$(rustc -V | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v5
+        with:
+          path: |-
+            ~/.cargo/registry
+            ~/.cargo/git
+            web/dsp/target
+            rust/target
+          key: web-build-${{ runner.os }}-${{ steps.rust.outputs.version }}-${{ hashFiles('web/dsp/Cargo.lock', 'rust/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: web-build-${{ runner.os }}-${{ steps.rust.outputs.version }}-${{ hashFiles('web/dsp/Cargo.lock', 'rust/Cargo.lock') }}-
       - name: Install matching wasm-bindgen CLI
         run: |
           curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
@@ -37,100 +55,133 @@ jobs:
           cargo test --locked --manifest-path web/dsp/Cargo.toml --lib
           node --test web/site/master-recovery-identity.test.mjs web/site/eq-suggestions.test.mjs web/site/session-export-metadata.test.mjs web/site/arrangement-studio-pane.test.mjs web/site/session-trace.test.mjs
           python3 -m unittest discover -s web/tools -p 'test_*.py'
+
+          node --test web/tools/timeline_state.test.mjs web/tools/doctor_state_checks.js web/tools/doctor_controller_checks.js
       - name: Build static site and license inventory
         run: python3 web/tools/build.py
-      - name: Install browser test tools
-        run: |
+      - name: Build fixed native workers once
+        run: cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
+      - name: Seal exact commit and run payload
+        id: seal
+        run: |-
+          python3 web/tools/ci_artifact.py create --root . --kind web --sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" --manifest ci-artifact.json
+          tar -czf browser-build.tar.gz ci-artifact.json web/dist rust/target/release/slimeybeats-ez-master-cli rust/target/release/slimeybeats_hybrid_worker
+          echo "bundle_sha256=$(sha256sum browser-build.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "build_attempt=$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        id: bundle
+        with:
+          name: browser-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: browser-build.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+  shards:
+    needs:
+      - scope
+      - build
+    if: needs.scope.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        browser:
+          - chromium
+          - firefox
+          - webkit
+        group:
+          - core
+          - studio
+          - learning
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: ci-build
+          merge-multiple: true
+      - name: Verify exact build before executing
+        env:
+          EXPECTED_BUNDLE_SHA256: ${{ needs.build.outputs.bundle_sha256 }}
+          BUILD_ATTEMPT: ${{ needs.build.outputs.build_attempt }}
+        run: |-
+          echo "$EXPECTED_BUNDLE_SHA256  ci-build/browser-build.tar.gz" | sha256sum --check
+          tar -xzf ci-build/browser-build.tar.gz
+          python3 web/tools/ci_artifact.py verify --root . --kind web --sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$BUILD_ATTEMPT" --manifest ci-artifact.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: browser-pip-${{ runner.os }}-py312-playwright1570-numpy252
+      - name: Install isolated browser audio tools
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: |-
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
           pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_test'
           echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
           python3 -m pip install playwright==1.57.0 numpy==2.5.2
-          python3 -m playwright install --with-deps chromium firefox webkit
-      - name: Verify recovery and private reporting in three engines
-        run: |
-          python3 web/tools/verify_recovery_browser.py --site web/dist --browser chromium --out '${{ runner.temp }}/browser-checks/recovery-chromium'
-          python3 web/tools/verify_recovery_browser.py --site web/dist --browser firefox --out '${{ runner.temp }}/browser-checks/recovery-firefox'
-          python3 web/tools/verify_recovery_browser.py --site web/dist --browser webkit --out '${{ runner.temp }}/browser-checks/recovery-webkit'
-      - name: Verify MP3 timing against independent decoded PCM
-        run: |
-          python3 web/tools/verify_gapless.py --out '${{ runner.temp }}/browser-checks/gapless-chromium'
-          python3 web/tools/verify_gapless.py --browser firefox --out '${{ runner.temp }}/browser-checks/gapless-firefox'
-          python3 web/tools/verify_gapless.py --browser webkit --out '${{ runner.temp }}/browser-checks/gapless-webkit'
-      - name: Verify long WAV and MP3 imports in three engines
-        run: |
-          python3 web/tools/verify_imports.py --out '${{ runner.temp }}/browser-checks/imports-chromium'
-          python3 web/tools/verify_imports.py --browser firefox --out '${{ runner.temp }}/browser-checks/imports-firefox'
-          python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
-      - name: Verify Chromium
-        run: python3 web/tools/verify_browser.py --out '${{ runner.temp }}/browser-checks/chromium'
-      - name: Build fixed hybrid workers and verify streaming Studio in three engines
-        run: |
-          cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
-          for browser in chromium firefox webkit; do
-            python3 web/tools/verify_remote_media.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-media-$browser"
-            python3 web/tools/verify_remote_studio.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-studio-$browser"
-            python3 web/tools/verify_remote_migration.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-migration-$browser"
-          done
-      - name: Verify Firefox
-        run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'
-      - name: Verify WebKit
-        run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
-      - name: Verify bounded live EQ and portable exports in three engines
-        run: |
-          for browser in chromium firefox webkit; do
-            python3 web/tools/verify_bootstrap_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/bootstrap-$browser"
-            python3 web/tools/verify_eq_preview.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-$browser.json"
-            python3 web/tools/verify_eq_suggestions.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-suggestions-$browser"
-            python3 web/tools/verify_mp3_export.py --integration --browser "$browser" --out "${{ runner.temp }}/browser-checks/mp3-$browser"
-            python3 web/tools/verify_session_export.py --browser "$browser"
-            python3 web/tools/verify_export_workflows.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/exports-$browser"
-          done
-          python3 web/tools/verify_session_export_lifecycle.py
-      - name: Verify repeated track replacement and export
-        run: python3 web/tools/verify_memory.py --tracks 4 --seconds 10 --out '${{ runner.temp }}/browser-checks/replacement'
-      - name: Verify Studio editing in three engines
-        run: |
-          python3 web/tools/verify_studio_browser.py --out '${{ runner.temp }}/browser-checks/studio-chromium'
-          python3 web/tools/verify_studio_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-firefox'
-          python3 web/tools/verify_studio_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-webkit'
-      - name: Verify browser stem timeline and shared time edits
-        run: |
-          node --test web/tools/timeline_state.test.mjs
-          for browser in chromium firefox webkit; do
-            python3 web/tools/verify_region_edit_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/stem-editor-$browser"
-          done
-      - name: Verify shared Issue Detector and Stem Doctor in three engines
-        run: |
-          node --test web/tools/doctor_state_checks.js web/tools/doctor_controller_checks.js
-          for browser in chromium firefox webkit; do
-            python3 web/tools/verify_doctor_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/doctor-$browser"
-          done
-      - name: Verify Studio replacement and decoded input bounds
-        run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
-      - name: Verify audible live stems and exclusive playback in three engines
-        run: |
-          python3 web/tools/verify_studio_live.py --out '${{ runner.temp }}/browser-checks/studio-live-chromium'
-          python3 web/tools/verify_studio_live.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-live-firefox'
-          python3 web/tools/verify_studio_live.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-live-webkit'
-      - name: Verify learning, persistent choices and compact layouts
-        run: |
-          python3 web/tools/verify_learning_browser.py --out '${{ runner.temp }}/browser-checks/learning-chromium'
-          python3 web/tools/verify_learning_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/learning-firefox'
-          python3 web/tools/verify_learning_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/learning-webkit'
+          python3 -m playwright install --with-deps "$BROWSER"
+      - name: Run unchanged full test inventory for shard
+        env:
+          BROWSER: ${{ matrix.browser }}
+          GROUP: ${{ matrix.group }}
+          OUT: ${{ runner.temp }}/browser-checks
+        run: python3 web/tools/run_browser_shard.py --browser "$BROWSER" --group "$GROUP" --out "$OUT"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: SlimeyBeats-browser-validation
+          name: SlimeyBeats-browser-validation-${{ matrix.browser }}-${{ matrix.group }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/browser-checks
           if-no-files-found: warn
+  browser:
+    needs:
+      - scope
+      - build
+      - shards
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.web != 'false')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require every shard and exact build
+        env:
+          SCOPE: ${{ needs.scope.result }}
+          BUILD: ${{ needs.build.result }}
+          SHARDS: ${{ needs.shards.result }}
+        run: |-
+          test "$SCOPE" = success
+          test "$BUILD" = success
+          test "$SHARDS" = success
+      - uses: actions/checkout@v6
+        if: github.ref == 'refs/heads/main'
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: ci-build
+          merge-multiple: true
+        if: github.ref == 'refs/heads/main'
+      - name: Verify exact build before executing
+        env:
+          EXPECTED_BUNDLE_SHA256: ${{ needs.build.outputs.bundle_sha256 }}
+          BUILD_ATTEMPT: ${{ needs.build.outputs.build_attempt }}
+        run: |-
+          echo "$EXPECTED_BUNDLE_SHA256  ci-build/browser-build.tar.gz" | sha256sum --check
+          tar -xzf ci-build/browser-build.tar.gz
+          python3 web/tools/ci_artifact.py verify --root . --kind web --sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$BUILD_ATTEMPT" --manifest ci-artifact.json
+        if: github.ref == 'refs/heads/main'
       - uses: actions/upload-pages-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
           path: web/dist
   deploy:
     if: github.ref == 'refs/heads/main' && needs.scope.outputs.web == 'true'
-    needs: [scope, browser]
+    needs:
+      - scope
+      - browser
     runs-on: ubuntu-24.04
     concurrency:
       group: pages-publication
