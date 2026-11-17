@@ -175,6 +175,18 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/v1/status" and self.command == "GET":
                 self.json_response(200, self.server.store.public_status())
                 return
+            if self.path == "/v1/maintenance/drain" and self.command in ("GET", "POST"):
+                principal = authenticate(self)
+                if not principal.is_owner:
+                    raise ApiError(403, "owner_required")
+                enabled = None
+                if self.command == "POST":
+                    value = self.body(16384, json_body=True)
+                    if not isinstance(value, dict) or set(value) != {"enabled"} or type(value["enabled"]) is not bool:
+                        raise ApiError(400, "invalid_fields")
+                    enabled = value["enabled"]
+                self.json_response(200, self.server.store.maintenance(enabled))
+                return
             if self.path == "/v1/session" and self.command == "POST":
                 if not self.server.config.public_enabled:
                     raise ApiError(403, "Public guest access is disabled")
@@ -183,7 +195,7 @@ class Handler(BaseHTTPRequestHandler):
                 key = client_key(self)
                 if self.body(16384, json_body=True) != {}:
                     raise ApiError(400, "Session accepts an empty JSON object")
-                self.json_response(201, self.server.store.sessions.mint(key))
+                self.json_response(201, self.server.store.mint_guest(key))
                 return
             if path == "/v2" or path.startswith("/v2/"):
                 from .project_http import dispatch

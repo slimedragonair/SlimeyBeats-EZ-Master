@@ -89,6 +89,7 @@ export class ServerClient {
                     let value;
                     try { value = await readBoundedJson(response, { signal: controller.signal }); } catch { /* Keep the generic bounded failure below. */ }
                     const limits = {
+                        maintenance_draining: "The server is preparing for maintenance and is temporarily not accepting new sessions or projects. Existing work is preserved. Please try again later.",
                         arrangement_capacity: "All server arrangement slots are occupied by retained sessions. Your local work is preserved. Wait for a slot, or save your work before deleting your own server project. Refreshing or switching Server Off does not release retained sessions.",
                         project_capacity: "The server has reached its retained-project capacity. Your local work is preserved. Wait for a slot, or save your work before deleting your own server project.",
                         guest_job_limit: "This guest session has used its processing allowance. Current work is kept in this tab, but the session cannot start another processing job.",

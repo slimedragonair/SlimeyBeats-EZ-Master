@@ -38,6 +38,7 @@ class ProjectStore:
             self.jobs.sessions.validate(principal)
             if self.jobs.stopping:
                 raise ApiError(503, "service_stopping")
+            self.jobs.check_admission()
             entries = self.jobs.retained()
             owned = [entry for entry in entries if entry.principal_id == principal.id]
             if len(entries) >= self.config.max_jobs or not principal.is_owner and len(owned) >= 2:
