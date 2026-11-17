@@ -109,12 +109,22 @@ def verify(browser, base, width, args, result, source):
             expect(page.locator('#s-play')).to_have_text('Play')
             page.locator('#s-seek').fill('2.7')
             page.locator('#s-play').click(); expect(page.locator('#s-play')).to_have_text('Pause')
+            # A stopped/reseeked generation has no stale pre-edit queue. Use
+            # fresh-playback settling, not the live-edit drain, to stay inside
+            # the short 2.5–3.5s EQ range without choosing samples by amplitude.
             # Freeze the first settled block window; later browser automation
             # must not move the measured tail past the section's exclusive end.
-            page.evaluate('()=>arrangementAudit.reset(18000)')
+            page.evaluate('()=>arrangementAudit.reset(18000, {freshPlayback:true})')
             page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=10000)
-            live = page.evaluate('()=>arrangementAudit.measure()')
+            evidence = page.evaluate('()=>arrangementAudit.captureEvidence()')
+            live = evidence['measurement']
+            captured = np.asarray(evidence.pop('pcm'), dtype='<f4').T.copy()
+            captured.tofile(args.out / f'{width}-live.f32')
+            (args.out / f'{width}-live.json').write_text(json.dumps(evidence, indent=2)+'\n')
             row['live_capture'] = live
+            assert live['capture_gaps'] == 0, live
+            assert not any(event.get('underrun_frames', 0) for event in evidence['source_clock']), evidence
+            # Clock evidence is retained with PCM, never used to select a louder window.
         else:
             # Hosted sites have no private observer module. Keep that pass to
             # real transport progress and saved PCM, with no live-PCM claim.
