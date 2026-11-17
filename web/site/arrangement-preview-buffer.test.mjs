@@ -41,3 +41,25 @@ test('real preview primes bounded queue before run and refills only consumed slo
         assert.equal(transport.facade.playing,false); assert.equal(transport.facade.positionFrame(),0);
     } finally { transport?.facade.clear(); globalThis.AudioContext=original.context; globalThis.AudioWorkletNode=original.node; }
 });
+
+test('audio audit distinguishes a fresh generation from queued live edits', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { runInNewContext } = await import('node:vm');
+    class AudioNode { connect() {} }
+    class Anchor { click() {} }
+    const scope = { window: { Worker: class {}, AudioWorkletNode: class {} },
+        URL: { createObjectURL() {} }, HTMLAnchorElement: Anchor, AudioNode };
+    runInNewContext(await readFile(new URL('../tools/arrangement_audio_audit.js', import.meta.url), 'utf8'), scope);
+    const audit = scope.window.arrangementAudit;
+    audit.context = { currentTime: 2, sampleRate: 48000 };
+    audit.maxBufferedFrames = 16384;
+    audit.reset(18000);
+    assert.equal(audit.after, 2 + (16384 / 48000 + .003));
+    audit.reset(18000, {freshPlayback:true});
+    assert.equal(audit.after, 2.08);
+    assert.equal(audit.limitFrames, 18000);
+    assert.equal(audit.frames, 0);
+    assert.equal(audit.frozen, false);
+    audit.reset(18000); // Fresh mode is not sticky for subsequent live edits.
+    assert.equal(audit.after, 2 + (16384 / 48000 + .003));
+});

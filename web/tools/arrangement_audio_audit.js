@@ -73,8 +73,10 @@ audit.attach = async () => {
         output.arrangementAuditTap = tap; audit.context = context;
     }
 };
-audit.reset = (limitFrames = 0) => {
-    audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + Math.max(.08, (audit.maxBufferedFrames || 0) / (audit.context?.sampleRate || 48000) + .003);
+// Fresh stopped/reseeked playback primes a new generation, so no pre-edit PCM
+// needs draining. Live edits must still wait through the full bounded queue.
+audit.reset = (limitFrames = 0, { freshPlayback = false } = {}) => {
+    audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + (freshPlayback ? .08 : Math.max(.08, (audit.maxBufferedFrames || 0) / (audit.context?.sampleRate || 48000) + .003));
     audit.limitFrames = limitFrames; audit.frozen = false;
     audit.captureStart = audit.captureEnd = null; audit.captureGaps = 0;
     audit.sourceClock = [];
