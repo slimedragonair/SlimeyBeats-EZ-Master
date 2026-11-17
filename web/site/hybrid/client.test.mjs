@@ -125,3 +125,25 @@ test("download is authenticated and safely named; DELETE requires acknowledgemen
     const denied = new ServerClient({ pageUrl, fetchImpl: async () => new Response("secret", { status: 401 }) });
     await assert.rejects(denied.connect("https://api.slimedragon.net", "secret"), (error) => /401/.test(error.message) && !error.message.includes("secret"));
 });
+
+test("arrangement capacity preserves safe code and bounded retry timing without reflecting private response text", async () => {
+    for (const retry of ["60", "99999999", "bad-secret", null]) {
+        let connected = false;
+        const client = new ServerClient({ pageUrl, fetchImpl: async () => {
+            if (!connected) { connected = true; return new Response(JSON.stringify(CAPS), { headers: { "Content-Type": "application/json" } }); }
+            return new Response(JSON.stringify({ error: "arrangement_capacity", detail: "PRIVATE-TOKEN" }), {
+                status: 429, headers: { "Content-Type": "application/json", ...(retry === null ? {} : { "Retry-After": retry }) },
+            });
+        }});
+        await client.connect("https://api.slimedragon.net", "owner-token");
+        await assert.rejects(client.arrangementRequest("/v2/projects/project-1/arrangement", { method: "POST", body: { operation: "create" } }), error => {
+            assert.equal(error.status, 429);
+            assert.equal(error.code, "arrangement_capacity");
+            assert.match(error.message, /retained sessions/);
+            assert.match(error.message, /local work is preserved/);
+            assert.doesNotMatch(error.message, /PRIVATE-TOKEN|bad-secret/);
+            assert.equal(error.retryAfterSeconds, retry === "60" ? 60 : retry === "99999999" ? 86400 : undefined);
+            return true;
+        });
+    }
+});

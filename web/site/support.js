@@ -1,3 +1,5 @@
+import { wireSessionTrace } from "./session-trace.js";
+wireSessionTrace(document);
 // Independent entrypoint: Help/reporting is usable even if app.js or WASM fails.
 import { createRecovery } from "./recovery-controller.js";
 import { workspaceRecovery, subscribeRecovery } from "./recovery-bridge.js";

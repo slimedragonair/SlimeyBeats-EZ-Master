@@ -1,3 +1,4 @@
+import { traceFetch } from "../session-trace.js";
 import { serverEndpoint } from "./endpoint-policy.js";
 import { capabilities, snapshot } from "./protocol.js";
 import { ArtifactDownloadError, checkArtifactDownload, readArtifactDownload } from "./artifact-download.js";
@@ -11,7 +12,7 @@ export class ServerClient {
     #epoch = 0;
     #fetch;
     constructor({ fetchImpl = globalThis.fetch.bind(globalThis), pageUrl = globalThis.location?.href } = {}) {
-        this.#fetch = fetchImpl;
+        this.#fetch = traceFetch(fetchImpl);
         this.pageUrl = pageUrl;
         this.endpoint = "";
     }
@@ -88,6 +89,9 @@ export class ServerClient {
                     let value;
                     try { value = await readBoundedJson(response, { signal: controller.signal }); } catch { /* Keep the generic bounded failure below. */ }
                     const limits = {
+                        maintenance_draining: "The server is preparing for maintenance and is temporarily not accepting new sessions or projects. Existing work is preserved. Please try again later.",
+                        arrangement_capacity: "All server arrangement slots are occupied by retained sessions. Your local work is preserved. Wait for a slot, or save your work before deleting your own server project. Refreshing or switching Server Off does not release retained sessions.",
+                        project_capacity: "The server has reached its retained-project capacity. Your local work is preserved. Wait for a slot, or save your work before deleting your own server project.",
                         guest_job_limit: "This guest session has used its processing allowance. Current work is kept in this tab, but the session cannot start another processing job.",
                         guest_job_ip_limit: "This connection has reached the server's hourly processing allowance. Current work is kept; retry after the reported limit resets.",
                         public_job_limit: "The public server has reached its hourly processing allowance. Current work is kept; retry after the reported limit resets.",
@@ -96,7 +100,13 @@ export class ServerClient {
                     const code = value?.error === "Guest job rate limit reached" ? "guest_job_limit" : value?.error;
                     if (Object.hasOwn(limits, code)) {
                         const error = new Error(limits[code]);
-                        error.status = 429; error.code = code; error.serverQuota = true; throw error;
+                        error.status = 429; error.code = code; error.serverQuota = true;
+                        const retry = response.headers.get("Retry-After");
+                        if (/^\d{1,8}$/.test(retry ?? "")) {
+                            error.retryAfterSeconds = Math.min(86400, Number(retry));
+                            error.message += ` Retry in about ${error.retryAfterSeconds} seconds; availability is not guaranteed.`;
+                        }
+                        throw error;
                     }
                 }
                 const hint = response.status === 401 || response.status === 403 ? " Check your token." :

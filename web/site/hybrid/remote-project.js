@@ -1,3 +1,4 @@
+import { sessionTrace } from "../session-trace.js";
 import { serverProcessing } from "./main-controls.js";
 import { RemoteMediaBridge } from "./remote-media-bridge.js";
 
@@ -96,6 +97,7 @@ export class RemoteProject {
                 throw new Error("The server did not acknowledge this upload chunk. Current work was kept.");
             this.progress(.35 * end / file.size, `Uploading to the server · ${Math.round(100 * end / file.size)}%`);
         }
+        void sessionTrace.file(file, true);
         return upload.id;
     }
     async command(operation, values = {}, { signal, allowOff = false } = {}) {

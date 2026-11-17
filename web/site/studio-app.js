@@ -1,3 +1,4 @@
+import { traceAdapter, sessionTrace } from "./session-trace.js";
 import { StudioClient } from "./studio-client.js";
 import { createStudioPlaybackRouter } from "./hybrid/studio-playback-router.js";
 import { RemoteProject } from "./hybrid/remote-project.js";
@@ -45,8 +46,8 @@ export function createStudio({
     const remoteProject = new RemoteProject({ progress: (_, text) => notice(text) });
     const remoteClient = new RemoteStudioClient(remoteProject);
     let activeClient = new StudioClient();
-    const client = { call: (...args) => activeClient.call(...args), stop: (...args) => activeClient.stop(...args),
-            get remote() { return activeClient === remoteClient; }, get project() { return remoteProject; } },
+    const client = traceAdapter({ call: (...args) => activeClient.call(...args), stop: (...args) => activeClient.stop(...args),
+            get remote() { return activeClient === remoteClient; }, get project() { return remoteProject; } }, () => activeClient === remoteClient ? "server" : "local"),
         playback = createStudioPlaybackRouter((error) => {
             if (error) notice(error.message, true);
             sync();
@@ -102,6 +103,7 @@ export function createStudio({
     function notice(text, error = false) {
         if (pendingMix && !error && text !== MIX_PENDING_NOTICE)
             text = `${text} ${MIX_PENDING_NOTICE}`;
+        sessionTrace.message(text, error);
         $("status").textContent = text;
         $("status").classList.toggle("error", error);
         if (error) feedback.error(text);
