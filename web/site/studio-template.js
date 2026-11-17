@@ -3,9 +3,9 @@ import { doctorTemplate, doctorWaveOverlay } from "./studio-doctor-template.js";
 export const studioTemplate = `
 <div class="edit-heading"><div><span class="eyebrow teal">Private audio editing</span><h2>Your Studio workspace</h2></div><button id="s-close">Close Studio</button></div>
 <div id="s-status" class="edit-notice" role="status" aria-live="polite">Choose audio.</div>
+<div id="s-legacy-source-actions" class="edit-actions"><button id="s-source" aria-label="Choose Studio audio">Choose audio</button><input id="s-file" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a" hidden><button id="s-use-main">Use Mastering mix</button><button id="s-cancel" disabled>Cancel</button></div>
 <nav id="s-workspace-views" class="edit-actions" aria-label="Studio workspace" hidden><button id="s-legacy-entry" class="selected" aria-pressed="true">Stem tools</button><button id="s-arrange-entry" aria-pressed="false">Arrange tracks · Local</button></nav>
 <div id="s-legacy-workspace">
-<div class="edit-actions"><button id="s-source" aria-label="Choose Studio audio">Choose audio</button><input id="s-file" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a" hidden><button id="s-use-main">Use Mastering mix</button><button id="s-cancel" disabled>Cancel</button></div>
 <p id="s-engine-note" class="muted">Import aligned stems, rebalance, clean a voice, or repair a precise region. Local Studio has a 128 MiB decoded bank limit. Server processing adds larger files and neural separation.</p>
 <div id="s-separation" class="edit-actions" hidden><label>Separate this song<select id="s-separation-mode"><option value="vocal_instrumental">Vocals + instrumental</option><option value="four_stems">Vocals, drums, bass + other</option></select></label><button id="s-separate" class="primary" disabled>Separate stems</button><p class="small">Runs on the server. Separation is an estimate and may leave artifacts; the original stays intact.</p></div>
 ${bulkImportTemplate}
