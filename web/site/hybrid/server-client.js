@@ -85,7 +85,7 @@ export class ServerClient {
                 signal: controller.signal, credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer",
             });
             if (!response.ok) {
-                if (response.status === 429) {
+                if (response.status === 429 || response.status === 503) {
                     let value;
                     try { value = await readBoundedJson(response, { signal: controller.signal }); } catch { /* Keep the generic bounded failure below. */ }
                     const limits = {
@@ -98,9 +98,9 @@ export class ServerClient {
                         guest_admission_limit: "This guest session has used its track-admission allowance. Existing tracks and edits are kept.",
                     };
                     const code = value?.error === "Guest job rate limit reached" ? "guest_job_limit" : value?.error;
-                    if (Object.hasOwn(limits, code)) {
+                    if (Object.hasOwn(limits, code) && (response.status === 429 || code === "maintenance_draining")) {
                         const error = new Error(limits[code]);
-                        error.status = 429; error.code = code; error.serverQuota = true;
+                        error.status = response.status; error.code = code; error.serverQuota = response.status === 429; error.serverMaintenance = code === "maintenance_draining";
                         const retry = response.headers.get("Retry-After");
                         if (/^\d{1,8}$/.test(retry ?? "")) {
                             error.retryAfterSeconds = Math.min(86400, Number(retry));
@@ -121,7 +121,7 @@ export class ServerClient {
         } catch (error) {
             if (controller.signal.aborted) throw new Error("Request stopped or timed out. Server work or deletion may not have stopped; check the job before retrying.");
             // Never reflect an exception/response body that could echo a token.
-            if (error.serverQuota || error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
+            if (error.serverQuota || error.serverMaintenance || error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
             throw new Error("The server could not be reached or its response could not be read. Check network, server CORS and the site's connection policy, then retry.");
         } finally { clearTimeout(timeout); external?.removeEventListener("abort", stop); this.#requests.delete(controller); }
     }
