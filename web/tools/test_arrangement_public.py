@@ -1,10 +1,17 @@
 """Offline public-run boundaries; never contacts a server."""
 import argparse
 import unittest
-from verify_arrangement_public import JobBudget, PAGE_ROOT, checked_commit, checked_url, publication
+from verify_arrangement_public import JobBudget, PAGE_ROOT, checked_commit, checked_url, publication, same_runtime
 
 
 class PublicAcceptanceTests(unittest.TestCase):
+    def test_commit_advance_after_initial_gate_requires_identical_hosted_runtime(self):
+        initial = {'branch': 'current-work', 'commit': 'a' * 40, 'runtime_version': '0123456789abcdef'}
+        later = {**initial, 'commit': 'b' * 40}
+        self.assertEqual(same_runtime(later, initial), later)
+        for changed in [{**later, 'runtime_version': 'f' * 16}, {**later, 'commit': 'not-a-commit'}]:
+            with self.assertRaises(ValueError): same_runtime(changed, initial)
+
     def test_publication_requires_exact_commit_and_real_runtime_metadata(self):
         value = {'branch': 'current-work', 'commit': 'a' * 40, 'runtime_version': '0123456789abcdef'}
         self.assertEqual(publication(value, 'a' * 40), value)

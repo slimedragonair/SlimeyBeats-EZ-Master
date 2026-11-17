@@ -224,8 +224,8 @@ failed/partial input, expired projects and empty sources do not synthesize a
 tail. Normal previews receive no extra silence. The existing MP3 encoder and
 MP3/MP4 containers are retained.
 
-The browser requests playback before waiting for native buffering, preserves
-natural EOF until the media ended event, and retires readers/streams on rejected
+The browser fills the compressed reader's bounded startup buffer before native
+output, preserves natural EOF until the media ended event, and retires readers/streams on rejected
 starts or interruption. Generation and stream-ID guards keep an obsolete
 continuation from pausing newer playback. Seeking to the exact end stays paused;
 the next Play starts at zero. Listening volume uses the Studio 0–1 range and does

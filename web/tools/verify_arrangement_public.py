@@ -46,9 +46,16 @@ class JobBudget:
 
 def publication(metadata, expected):
     if (not isinstance(metadata, dict) or metadata.get('branch') != 'current-work' or
+            not re.fullmatch('[a-f0-9]{40}', str(metadata.get('commit', ''))) or
             metadata.get('commit') != expected or not re.fullmatch('[a-f0-9]{16}', str(metadata.get('runtime_version', '')))):
         raise ValueError('Publication metadata does not match the authorized commit/runtime')
     return metadata
+
+
+def same_runtime(metadata, initial):
+    value = publication(metadata, metadata.get('commit') if isinstance(metadata, dict) else '')
+    if value['runtime_version'] != initial['runtime_version']: raise ValueError('Publication runtime changed during acceptance')
+    return value
 
 
 def await_publication(args):
@@ -94,12 +101,12 @@ def ready(page, row, args):
     value = args.metadata if args.root_smoke else page.evaluate('''async()=>{
         const response=await fetch(new URL('preview-build.json',location.href),{cache:'no-store',credentials:'omit',redirect:'error'});
         if(!response.ok)throw new Error('Preview identity HTTP '+response.status);return response.json();}''')
-    publication(value, args.commit)
-    assert value['runtime_version'] == args.metadata['runtime_version'], 'Publication changed during acceptance'
+    same_runtime(value, args.metadata)
     versions = page.evaluate('''()=>Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"][href]'),
         element=>new URL(element.src||element.href).searchParams.get('v'))''')
     assert versions and all(version == value['runtime_version'] for version in versions), versions
     row['publication'] = value
+    row['initial_publication_commit'] = args.metadata['commit']
     if page.locator('#learning-dialog[open]').is_visible(): page.locator('#tutorial-decline').click()
     page.evaluate('()=>arrangementPublicAudit.unlock()')
 
@@ -137,6 +144,8 @@ def main():
     parser.add_argument('--root-smoke', type=Path, metavar='PASSED_PREVIEW_RECEIPT',
                         help='After main publication: same-runtime WebKit bridge/20ms check, zero heavy jobs')
     parser.add_argument('--short-only', action='store_true', help='Focused WebKit suffix diagnostics; zero heavy jobs')
+    parser.add_argument('--include-full-clip', action='store_true',
+                        help='Also verify gap-free 1.25s playback before the 20ms suffix; zero additional heavy jobs')
     args = parser.parse_args()
     if args.root_smoke: args.url = PAGE_ROOT
     elif args.url == PAGE_ROOT: parser.error('Root acceptance requires a passed --root-smoke preview receipt')
@@ -146,6 +155,7 @@ def main():
             'cleanup': 'Only witnessed POST /v2/projects HTTP 201 IDs with their original ordinary guest',
             'public_execution': 'Owner deployment/publication GO required; wait for other API acceptance to finish'}
     if args.root_smoke or args.short_only: plan.update(browsers=['webkit bridge / 20ms suffix'], planned_heavy_jobs=0)
+    plan['full_clip_prefill_control'] = args.include_full_clip
     if args.plan: print(json.dumps(plan, indent=2)); return
     if args.wait_seconds < 0: parser.error('wait-seconds must be nonnegative')
     args.out.mkdir(parents=True, exist_ok=False)
@@ -169,7 +179,7 @@ def main():
         args.archive_path = make_archive(args.out, sources, args.ffmpeg, 0)
         marked = args.out / 'markers.wav'; markers, digest = marked_source(marked, 60000)
         args.migration_only = args.cleanup_control = args.large_budget = False
-        args.suffix_only = True
+        args.suffix_only = not args.include_full_clip
         owned = SimpleNamespace(origin=args.url, requests=[])
         result['requests'] = owned.requests
         with native_browser_audio_environment(args.out) as audio, native_media_capture(args.out) as monitor, sync_playwright() as p:
@@ -184,6 +194,10 @@ def main():
                     if name == 'chromium': guest(browser, owned, args, result, sources, 390)
                     else: short(browser, owned, args, monitor, result, marked, 60000, markers, 390)
                     validate_case(result['cases'][-1], args.url)
+                    if name == 'webkit' and args.include_full_clip:
+                        media = result['cases'][-1]['public']['media_sources'][0]
+                        assert media['ready'] >= 1 and media['buffered'], media
+                        assert media['buffered'][-1][1] - media['buffered'][0][0] >= .5, media
                 finally: browser.close()
         assert [hashlib.sha256(path.read_bytes()).hexdigest() for path in sources] == hashes
         assert hashlib.sha256(marked.read_bytes()).hexdigest() == digest

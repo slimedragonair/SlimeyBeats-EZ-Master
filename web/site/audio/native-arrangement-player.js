@@ -74,12 +74,12 @@ export class NativeArrangementPlayer {
         entry.audio.addEventListener("playing", started);
         try {
             this.updateGains(); this.activeEntry = entry;
-            // Request playback before waiting for buffers; native media preserves
-            // that request while loading. Never seek an exact-frame server stream.
-            const loaded = metadata(entry.audio, abort.signal);
-            let playing;
-            try { playing = entry.audio.play(); } catch (error) { playing = Promise.reject(error); }
-            await Promise.all([loaded, entry.preview?.ready, playing]);
+            // Fill the compressed reader's bounded startup window before output;
+            // starting during that fill can expose network gaps as audio pauses.
+            // Exact-frame server streams must never receive a redundant seek.
+            await Promise.all([metadata(entry.audio, abort.signal), entry.preview?.ready]);
+            if (!current()) return;
+            await entry.audio.play();
             if (!current()) { entry.audio.pause(); return; }
             // `ended`/`pause` properties can change before their queued events.
             // Publishing stopped here would retire the media before `ended`

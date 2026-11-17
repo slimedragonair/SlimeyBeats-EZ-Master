@@ -429,3 +429,52 @@ before deleting the project. That expected failure is preserved separately.
 Current guest cases have clean canonical continuation with applied source-range
 EQ, stable IDs/history, paused position and raw unfinished fields, without such
 application errors.
+
+### Published HTTPS acceptance, November 17, 2026
+
+The focused public browser checks passed using ordinary guests and synthetic
+audio through the published application's real cross-origin HTTPS API and
+authenticated Service Worker media/download bridge. No local proxy, endpoint
+rewrite, owner credential or Web Audio media node was used.
+
+| Published case | Source identity | Result |
+| --- | --- | --- |
+| Chromium 143 at 390px: canonical continuation, ZIP, scoped Suggest/edit, live gain/A-B/volume/Stop/seek, MP3/WAV, Project Save and another tweak/export | Commit `ab948624a14fdcc3d4d5db3857a6ca15a059e7be`, runtime `bce88863508c8568` | Passed; six heavy jobs, actual native PCM, authenticated downloads and stable IDs/history |
+| WebKit 26 at 390px: import a 1.25s source and seek to its final 20 ms | Commit `5ffb8bc357272405b358ba4d3f36c01d758d0394`, runtime `d6b24e07bf543a34` | Passed; zero heavy jobs, marker peak 0.433899, native ended event, exact 1.25s final position and unchanged project |
+
+The Chromium proof is retained from the earlier commit with that explicit
+scope; it was not repeated after the EOF-only native-player fix. The WebKit
+descriptor preserved start frame 59,040, source end 60,000, priming 1,105 and
+transport padding 4,800. Each check deleted only its witnessed newly created
+project with HTTP 200 and reaped its capture processes. The published backend
+remained the qualified `3bbce76b...` payload. Physical mobile playback and the
+full private matrix are separate evidence scopes.
+
+The preserved pre-fix WebKit run played the marker but returned to 1.23s:
+the final Play continuation observed ended/paused properties before native
+events were delivered, emitted stopped state, and retired the media before the
+queued ended handler saved its offset. The fix leaves stopped/EOF transitions
+to native events while retaining immediate explicit Stop. The public recheck
+confirmed the event and exact endpoint without changing numeric assertions.
+
+`verify_arrangement_public.py` checks the full preview commit in
+`preview-build.json` and the hosted runtime entrypoints before unlocking API
+writes; it does not compare against a private compiler's WASM hash. After that
+initial gate, a commit advance is accepted only with the identical hosted
+runtime, recording the initial and actual case commits. Its guard
+honors advertised quotas, shares a 14-heavy-attempt ceiling across browsers,
+and admits cleanup only for project IDs witnessed in successful create replies
+under the original ordinary guest. Six Node and four Python guard tests pass.
+Run only after deployment/publication authorization and other acceptance
+projects have been cleaned up. Use fresh output directories:
+
+```sh
+python web/tools/verify_arrangement_public.py --commit <full-preview-commit> --out <scratch>/public --plan
+python web/tools/verify_arrangement_public.py --commit <full-preview-commit> --out <scratch>/public
+python web/tools/verify_arrangement_public.py --commit <full-preview-commit> --short-only --out <scratch>/suffix
+```
+
+After main publication, a same-runtime root bridge/suffix smoke can reuse the
+passed preview receipt with `--root-smoke <passed-preview-results.json>`.
+That zero-heavy smoke verifies the root path and exact EOF; main Git provenance
+still belongs to the publication receipt. Root publication acceptance is pending.

@@ -45,18 +45,20 @@ function fixture() {
     return { player, audio, previews, errors, states };
 }
 
-test("native server preview starts without a Web Audio graph, before buffering, and retains natural short EOF", async () => {
+test("native server preview waits for its startup buffer without a Web Audio graph and retains short EOF", async () => {
     const value = fixture(), { player } = value;
     player.setOriginal(asset());
     const pending = player.play(), media = value.audio[0];
-    assert.equal(media.plays, 1, "Native play request must not await the ready buffer");
+    assert.equal(media.plays, 0);
     assert.equal(player.ctx, undefined);
+    media.metadata(); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(media.plays, 0, "Metadata alone cannot bypass the compressed startup buffer");
+    value.previews[0].resolve(); await pending;
     assert.equal(player.playing, true);
     media.addEventListener("pause", () => {
         if (media.ended) assert.equal(player.playing, true, "Natural pause must wait for ended before retiring its stream");
     }, { once: true });
-    media.metadata(); media.end(.144); value.previews[0].resolve();
-    await pending;
+    media.end(.144);
     assert.equal(player.playing, false); assert.equal(player.position(), .144);
     assert.equal(value.errors.length, 0);
     player.clear(); assert.equal(value.previews[0].disposed, 1);
@@ -68,15 +70,20 @@ test("Stop during native buffering cannot start late audio or leave owned reader
     const media = value.audio[0]; player.pause(); player.releaseExcept([]);
     media.metadata(); value.previews[0].resolve(); await pending;
     assert.equal(player.playing, false); assert.equal(media.paused, true);
+    assert.equal(media.plays, 0);
     assert.equal(value.previews[0].disposed, 1); assert.equal(player.current, null);
     assert.equal(value.errors.length, 0);
 });
 
 test("a completed play promise cannot retire media before its queued ended event", async () => {
     const value = fixture(), { player } = value;
-    player.setOriginal(asset()); const pending = player.play(), media = value.audio[0];
-    media.metadata(); media.currentTime = .144; media.ended = true; media.paused = true;
-    value.previews[0].resolve(); await pending;
+    player.setOriginal(asset()); const media = player.entry().audio;
+    media.started = deferred(); const pending = player.play();
+    media.metadata(); value.previews[0].resolve();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(player.playing, true);
+    media.currentTime = .144; media.ended = true; media.paused = true;
+    media.started.resolve(); await pending;
     assert.equal(player.playing, true, "The queued native ended event still owns this transition");
     assert.equal(value.previews[0].disposed, 0);
     media.dispatchEvent(new Event("pause"));

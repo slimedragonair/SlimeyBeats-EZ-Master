@@ -14,7 +14,9 @@
         const play = HTMLMediaElement.prototype.play;
         HTMLMediaElement.prototype.play = function (...args) {
             const url = new URL(this.currentSrc || this.src, location.href);
-            stats.media_sources.push({ protocol: url.protocol, origin: url.origin, path: url.pathname, query: !!url.search });
+            stats.media_sources.push({ protocol: url.protocol, origin: url.origin, path: url.pathname, query: !!url.search,
+                ready: this.readyState, buffered: Array.from({ length: this.buffered?.length || 0 },
+                    (_, index) => [this.buffered.start(index), this.buffered.end(index)]) });
             return play.apply(this, args);
         };
         const pause = HTMLMediaElement.prototype.pause;
