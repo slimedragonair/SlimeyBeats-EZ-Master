@@ -1,11 +1,11 @@
-import { StreamingPlayer } from "../audio/streaming-player.js";
+import { NativeArrangementPlayer } from "../audio/native-arrangement-player.js";
 import { arrangementStreamFrame, checkedArrangementStream } from "./arrangement-stream-contract.js";
 
 // Native <audio> buffers compressed preview bytes. Rust owns mixing/EQ, and
 // every explicit seek requests an exact project frame in a new server stream.
 export function createArrangementStreamPreview({
     prepare, stop, mediaUrl, beforePlay = () => {}, onError = () => {},
-    createPlayer = (changed, failed) => new StreamingPlayer(changed, failed),
+    createPlayer = (changed, failed) => new NativeArrangementPlayer(changed, failed),
 }) {
     let snapshot, descriptor, side = "after", sideFrames = 0, frame = 0, operation = 0, disposed = false, preparing = false, starting = false;
     const listeners = new Set();
@@ -50,17 +50,28 @@ export function createArrangementStreamPreview({
     }
     async function start(token) {
         if (!descriptor?.side_duration_frames || token !== operation || disposed) { emit(); return; }
+        if (descriptor.start_frame >= descriptor.side_duration_frames) {
+            frame = descriptor.side_duration_frames;
+            const previous = descriptor; descriptor = null; retire(previous); emit(); return;
+        }
         const active = descriptor;
         starting = true; emit();
         try {
             player.setOriginal({ id: active.stream_id, remote: true, seekable: false, previewMime: active.preview_mime, mediaUrl: mediaUrl(active),
-                duration: (active.side_duration_frames - active.start_frame) / active.sample_rate + active.preview_priming_frames / active.preview_sample_rate,
+                duration: (active.side_duration_frames - active.start_frame) / active.sample_rate +
+                    (active.preview_priming_frames + active.preview_padding_frames) / active.preview_sample_rate,
                 sampleRate: active.preview_sample_rate, numberOfChannels: active.channels });
             await player.play();
-            if (token !== operation || disposed) { player.pause(); player.releaseExcept([]); return; }
+            if (token !== operation || disposed) {
+                if (player.original?.id === active.stream_id) { player.pause(); player.releaseExcept([]); }
+                return;
+            }
             player.activeEntry?.audio.addEventListener("ended", () => {
                 if (descriptor === active) { frame = sideFrames; descriptor = null; retire(active); emit(); }
             }, { once: true });
+        } catch (error) {
+            if (token === operation && descriptor?.stream_id === active.stream_id) pause();
+            throw error;
         } finally { if (token === operation) { starting = false; emit(); } }
     }
     const facade = {
@@ -103,7 +114,7 @@ export function createArrangementStreamPreview({
             if (await prepared(next, value, token)) { emit(); if (resume) await start(token); }
         },
         setVolume(value) {
-            if (!Number.isFinite(value) || value < 0 || value > 2) throw new Error("Listening volume must be between zero and two.");
+            if (!Number.isFinite(value) || value < 0 || value > 1) throw new Error("Listening volume must be between zero and one.");
             player.volume = value; player.updateGains();
         },
         subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },

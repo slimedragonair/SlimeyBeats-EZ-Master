@@ -3,6 +3,19 @@ PREVIEW_RATE = 48000
 PREVIEW_PRIMING_FRAMES = 1105
 PREVIEW_CONTAINERS = ('mp3', 'mp4')
 PREVIEW_MIME = {'mp3': 'audio/mpeg', 'mp4': 'audio/mp4; codecs="mp4a.6B"'}
+MIN_PREVIEW_SOURCE_NUMERATOR = 3
+MIN_PREVIEW_SOURCE_DENOMINATOR = 25
+
+
+def preview_padding(remaining_frames, sample_rate):
+    """Return input-rate zero frames and their ceiling-rounded 48 kHz duration."""
+    if type(remaining_frames) is not int or type(sample_rate) is not int or sample_rate <= 0:
+        raise ValueError('Invalid preview padding geometry')
+    if remaining_frames <= 0:
+        return 0, 0
+    minimum = (sample_rate * MIN_PREVIEW_SOURCE_NUMERATOR + MIN_PREVIEW_SOURCE_DENOMINATOR - 1) // MIN_PREVIEW_SOURCE_DENOMINATOR
+    tail = max(0, minimum - remaining_frames)
+    return tail, (tail * PREVIEW_RATE + sample_rate - 1) // sample_rate
 
 
 def encoder_arguments(config, descriptor):

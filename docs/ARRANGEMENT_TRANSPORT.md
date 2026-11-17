@@ -200,3 +200,34 @@ Native probes copy both CLI and worker to private fixture directories and record
 their hashes before launching. They never hold Windows' mutable build images
 open during other agents' builds. Existing server/mastering and aligned-bank
 APIs remain unchanged. No service restart or production rollout has occurred.
+
+
+## Native server-preview output and short suffixes
+
+Server arrangements use `audio/native-arrangement-player.js` for native HTML
+media output. Their mix, gains and scoped EQ are already rendered by the server;
+no MediaElementAudioSourceNode or second client DSP graph is added. The local
+AudioWorklet editor and legacy streaming-mastering player remain separate.
+
+Descriptors distinguish project-rate source frames from the 48 kHz compressed
+preview clock. `preview_priming_frames` describes encoder priming;
+`preview_padding_frames` describes a silent transport tail in preview-rate
+frames. An absent padding field is read as zero for older descriptors; malformed
+or more than 120 ms of padding is rejected. Seek still starts at the requested
+source frame, and the cursor clamps to the real source end after subtracting
+priming. No padding extends clips, projects, analysis or exported audio.
+
+Only positive suffixes shorter than 3/25 second receive enough zero input frames
+to reach that decoder minimum. The feeder appends them after every real frame
+has been consumed; it does not request extra frames from Rust. Cancellation,
+failed/partial input, expired projects and empty sources do not synthesize a
+tail. Normal previews receive no extra silence. The existing MP3 encoder and
+MP3/MP4 containers are retained.
+
+The browser requests playback before waiting for native buffering, preserves
+natural EOF until the media ended event, and retires readers/streams on rejected
+starts or interruption. Generation and stream-ID guards keep an obsolete
+continuation from pausing newer playback. Seeking to the exact end stays paused;
+the next Play starts at zero. Listening volume uses the Studio 0–1 range and does
+not enter an export. Device-specific media/volume behavior and physical-phone
+acceptance remain separate from synthetic native-output qualification.

@@ -1,6 +1,6 @@
 # Arrangement project persistence
 
-**Current-work discovery:** the main catalog has 33 organized tools. Use `project`
+**Current source discovery:** the main catalog has 33 organized tools. Use `project`
 actions `save_arrangement` / `open_arrangement`, and `open_desktop` action
 `arrangement`. The original names documented below remain compatibility aliases
 and are advertised by `--tool-profile legacy`. See

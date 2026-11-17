@@ -14,7 +14,7 @@ function harness(value = snapshot()) {
     const calls = [], stops = []; let latest = value, delay, notify = () => {};
     const player = { playing: false, seconds: 0, plays: 0, volume: .7, position() { return this.seconds; },
         pause() { this.playing = false; notify(); }, clear() { this.pause(); }, releaseExcept() {}, updateGains() {},
-        setOriginal(source) { this.source = source; this.seconds = 0; }, async play() { this.playing = true; this.plays++; notify(); } };
+        setOriginal(source) { this.original = this.source = source; this.seconds = 0; }, async play() { this.playing = true; this.plays++; notify(); } };
     const preview = createArrangementStreamPreview({ createPlayer: changed => { notify = changed; return player; }, mediaUrl: value => value.stream_path,
         stop: async value => stops.push(value.stream_id), prepare: async request => {
             calls.push(request); const current = latest;
@@ -41,6 +41,18 @@ test("stream admission rejects stale revision, layout mismatch and missing primi
         { preview_priming_frames: undefined }, { stream_id: "../secret" }, { start_frame: 999999 }])
         assert.throws(() => checkedArrangementStream({ ...stream, ...update }, value, "after"));
 });
+
+test("short-preview padding is bounded, explicit and never extends the logical source clock", () => {
+    const value = snapshot(48000, 0, 60000), base = descriptor(value, "after", 59040);
+    const old = checkedArrangementStream(base, value, "after");
+    assert.equal(old.preview_padding_frames, 0);
+    const padded = checkedArrangementStream({ ...base, preview_padding_frames: 4800 }, value, "after");
+    assert.equal(arrangementStreamFrame(padded, .024), 59040);
+    assert.equal(arrangementStreamFrame(padded, .144), 60000);
+    assert.equal(arrangementStreamFrame(padded, 999), 60000);
+    for (const invalid of [-1, null, .5, 5761, Infinity])
+        assert.throws(() => checkedArrangementStream({ ...base, preview_padding_frames: invalid }, value, "after"));
+});
 test("a Stop during server preparation cannot start late audio or reset the stopped frame", async () => {
     const h = harness(); await h.adopt(snapshot()); const release = h.hold();
     const start = h.facade.play(); await Promise.resolve(); await Promise.resolve(); h.facade.stop(); release(); await start;
@@ -54,6 +66,31 @@ test("Play immediately after a pending seek retains the exact requested frame", 
     const play = h.facade.play(); await Promise.resolve(); await Promise.resolve(); release();
     await Promise.all([seek, play]);
     assert.equal(h.calls.at(-1).start_frame, 88200); assert.equal(h.facade.playing, true); assert.equal(h.facade.pending, false);
+});
+
+test("a retired start continuation cannot silence a newer stream", async () => {
+    const h = harness(); await h.adopt(snapshot());
+    let release;
+    const first = new Promise(resolve => release = resolve), play = h.player.play;
+    h.player.play = async function () { await play.call(this); if (this.plays === 1) await first; };
+    const old = h.facade.play(); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.player.plays, 1);
+    h.facade.stop(); await h.facade.play();
+    const current = h.player.original.id;
+    release(); await old;
+    assert.equal(h.player.original.id, current); assert.equal(h.facade.playing, true);
+    h.facade.clear();
+});
+
+test("seek to the exact end remains paused and the next Play restarts at frame zero", async () => {
+    const value = snapshot(), h = harness(value); await h.adopt(value); await h.facade.play();
+    const plays = h.player.plays;
+    await h.facade.seekFrame(value.preview.frames);
+    assert.equal(h.player.plays, plays); assert.equal(h.facade.playing, false);
+    assert.equal(h.facade.pending, false); assert.equal(h.facade.positionFrame(), value.preview.frames);
+    await h.facade.play();
+    assert.equal(h.calls.at(-1).start_frame, 0); assert.equal(h.facade.playing, true);
+    h.facade.clear();
 });
 
 test("an internal media interruption retires the stream and preserves the stopped project frame", async () => {

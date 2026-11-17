@@ -14,7 +14,7 @@ from remote_browser_fixture import RemoteBrowserFixture
 from verify_arrangement_browser import fixture
 from arrangement_remote_files import verify_files, verify_guest_limit
 from arrangement_remote_archive import make_archive, verify_archive
-from browser_audio_environment import browser_audio_environment
+from native_media_capture import native_browser_audio_environment, native_media_capture
 
 
 def verify(browser, origin, width, args, result, sources, requests):
@@ -34,9 +34,8 @@ def verify(browser, origin, width, args, result, sources, requests):
     def edit(action):
         revision = snapshot()['revision']; remote(action).click(); return changed(revision)
     def measure(name, audible=True):
-        page.evaluate('()=>arrangementAudit.reset()')
-        page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=15000)
-        value = page.evaluate('()=>arrangementAudit.measure()')
+        if audible: page.wait_for_function('()=>arrangementRemoteAudit.mediaState().some(value=>!value.paused&&value.time>.25)', timeout=15000)
+        value = args.monitor.measure_tones()
         value['media'] = page.evaluate('()=>arrangementRemoteAudit.mediaState()')
         if audible: assert value['peak'] > 1e-5, value
         row['measurements'][name] = value; return value
@@ -73,6 +72,7 @@ def verify(browser, origin, width, args, result, sources, requests):
             return
         page.wait_for_function('()=>document.querySelector("#s-arrangement-server-page [data-arr=workspace]")?.getBoundingClientRect().height>0 || document.querySelector("#s-status.error")', timeout=45000)
         expect(remote('workspace')).to_be_visible(timeout=1000); expect(remote('layout')).to_contain_text('Server arrangement')
+        page.evaluate('()=>arrangementRemoteAudit.serverPhase=true')
         assert page.evaluate('()=>arrangementAudit.latest.arrangement') == local_doc
         expect(page.locator('#s-play')).to_be_disabled()
         remote('files').set_input_files([str(source) for source in sources]); expect(remote('import-parts').locator('input[type=checkbox]')).to_have_count(2)
@@ -83,7 +83,6 @@ def verify(browser, origin, width, args, result, sources, requests):
         page.locator('#s-before').click(); expect(page.locator('#s-play')).to_be_disabled(); expect(page.locator('#s-after')).to_be_enabled()
         page.locator('#s-after').click(); expect(page.locator('#s-play')).to_be_enabled()
         page.locator('#s-play').click(); expect(page.locator('#s-play')).to_have_text('Pause', timeout=45000)
-        page.wait_for_function('()=>arrangementAudit.outputs.length>0', timeout=15000); page.evaluate('()=>arrangementAudit.attach()')
         baseline = measure('initial server PCM'); assert baseline['first'] > .025 and baseline['second'] > .025, baseline
         remote('lane-select').select_option(lanes[0]['id']); remote('clip-select').select_option(lanes[0]['clips'][0]['id'])
         remote('lane-inspector').locator('summary').click(); remote('lane-gain').fill('-6'); current = edit('lane-update')
@@ -118,6 +117,7 @@ def verify(browser, origin, width, args, result, sources, requests):
         assert snapshot()['arrangement'] == current['arrangement']
         summary = page.evaluate('()=>arrangementRemoteAudit.summary()')
         assert summary['credentials_memory_only'] and summary['fullMediaReads'] == 0, summary
+        assert summary['clientDecodes'] == 0 and summary['serverMediaSourceConnections'] == 0, summary
         actions = page.evaluate('start=>arrangementAudit.actions.slice(start)', worker_mark)
         assert not any(action in ['stage-wav', 'stage-asset', 'render-block', 'export-wav', 'master', 'master_preview'] for action in actions), actions
         assert not row['downloads'] and not row['errors'], row
@@ -147,7 +147,10 @@ def verify(browser, origin, width, args, result, sources, requests):
 
 def run_browser(args, origin, result, sources, requests):
     with sync_playwright() as p:
-        browser = getattr(p, args.browser).launch(headless=True); result['browser'] = f'{args.browser} {browser.version}'
+        launch = {'headless': True}
+        if args.browser == 'chromium': launch['ignore_default_args'] = ['--mute-audio']
+        result['browser_launch'] = launch
+        browser = getattr(p, args.browser).launch(**launch); result['browser'] = f'{args.browser} {browser.version}'
         try:
             for width in [320, 390]: verify(browser, origin, width, args, result, sources, requests)
         finally: browser.close()
@@ -158,6 +161,7 @@ def main():
     parser.add_argument('--cli', type=Path, required=True); parser.add_argument('--worker', type=Path, required=True)
     parser.add_argument('--ffmpeg', type=Path, default=Path(shutil.which('ffmpeg') or 'ffmpeg'))
     parser.add_argument('--browser', choices=['chromium', 'firefox', 'webkit'], default='chromium')
+    parser.add_argument('--server-source', type=Path, help='Frozen matching backend source for qualification')
     parser.add_argument('--unavailable', action='store_true', help='Exercise the default-disabled server capability and preserve local work')
     parser.add_argument('--files', action='store_true', help='Also explicitly download WAV/MP3/project and restore the saved project')
     parser.add_argument('--archive', action='store_true', help='Also exercise server-owned ZIP review and atomic source admission')
@@ -177,8 +181,9 @@ def main():
             result['fixture'] = owned.provenance
             result['requests'] = owned.requests
             shutil.copy2(Path(__file__).with_name('studio_capture_processor.js'), owned.site / '__arrangement_capture.js')
-            with browser_audio_environment(args.out) as audio:
+            with native_browser_audio_environment(args.out) as audio, native_media_capture(args.out) as monitor:
                 result['audio_environment'] = audio
+                result['native_capture'] = monitor.evidence; args.monitor = monitor
                 run_browser(args, owned.origin, result, sources, owned.requests)
         assert [hashlib.sha256(path.read_bytes()).hexdigest() for path in sources] == hashes
         result['passed'] = True

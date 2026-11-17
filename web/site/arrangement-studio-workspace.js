@@ -4,8 +4,7 @@ import { time } from "./view.js";
 import { continueLocalArrangement, arrangementAssetBytes, LOCAL_ARRANGEMENT_PCM_BYTES } from "./arrangement-workspace-transfer.js";
 
 export const ARRANGEMENT_UI_ENABLED = true;
-// Release only after short previews, EOF and source-clock checks pass in every supported engine.
-export const ARRANGEMENT_SERVER_UI_ENABLED = false;
+export const ARRANGEMENT_SERVER_UI_ENABLED = true;
 
 // Server On selects the destination of the existing Arrange tracks action.
 // Each engine retains its own document; switching never uploads local assets.

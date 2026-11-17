@@ -8,7 +8,7 @@ import time
 from .arrangement_native import spawn_owned
 from .errors import ProcessingError
 from .processes import terminate_and_reap
-from .arrangement_preview_formats import PREVIEW_RATE, PREVIEW_PRIMING_FRAMES, encoder_arguments
+from .arrangement_preview_formats import PREVIEW_RATE, PREVIEW_PRIMING_FRAMES, encoder_arguments, preview_padding
 
 MAX_ENCODE_AHEAD_SECONDS = 0.15
 
@@ -54,16 +54,22 @@ class ArrangementStream:
                         or not all(type(value) in (int, float) and math.isfinite(value) for value in samples)):
                     raise ProcessingError('Invalid arrangement frame block')
                 if not count:
-                    break
+                    raise ProcessingError('Arrangement frame stream ended early')
                 if self.cancel.is_set():
                     break
                 pcm = array.array('f', samples)
                 if sys.byteorder != 'little':
                     pcm.byteswap()
-                self.process.stdin.write(pcm.tobytes())
-                self.process.stdin.flush()
+                self._write_pcm(pcm.tobytes())
                 sent += count
                 remaining -= count
+            if (remaining == 0 and sent > 0 and not self.failed and not self.cancel.is_set()
+                    and not self.state.closed and not self.state.project.deleting
+                    and self.state.project.deadline > time.monotonic()):
+                # Codec transport only: do not advance Rust or change source geometry.
+                tail, _ = preview_padding(sent, rate)
+                if tail:
+                    self._write_pcm(bytes(tail * channels * 4))
         except (OSError, ValueError, ProcessingError):
             self.failed = not self.cancel.is_set()
         finally:
@@ -71,6 +77,11 @@ class ArrangementStream:
                 self.process.stdin.close()
             except (OSError, ValueError):
                 pass
+
+    def _write_pcm(self, data):
+        if self.process.stdin.write(data) != len(data):
+            raise ProcessingError('Incomplete arrangement encoder input')
+        self.process.stdin.flush()
 
     def close(self):
         with self.lock:

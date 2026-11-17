@@ -14,7 +14,7 @@ from arrangement_remote_diagnostics import ArrangementRemoteDiagnostics
 from arrangement_remote_migration import prepare_local, assert_migrated, assert_pending
 from arrangement_remote_files import measure_delivery
 from arrangement_remote_budget import make_budget_sources, add_budget_sources
-from browser_audio_environment import browser_audio_environment
+from native_media_capture import native_browser_audio_environment, native_media_capture
 from remote_browser_fixture import RemoteBrowserFixture
 from verify_arrangement_browser import fixture
 
@@ -35,11 +35,11 @@ def verify(browser, owned, args, result, sources, width):
         expect(a('add-files')).to_be_enabled(timeout=30000); return snapshot()
     def edit(name):
         previous = snapshot()['revision']; a(name).click(); return ready(previous)
-    def measure(name):
-        page.wait_for_function('()=>arrangementRemoteAudit.mediaState().some(value=>!value.paused&&value.time>.25)', timeout=15000)
-        page.evaluate('()=>arrangementAudit.attach()'); page.evaluate('()=>arrangementAudit.reset(18000)')
-        page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=15000)
-        value = page.evaluate('()=>arrangementAudit.measure()'); assert value['peak'] > 1e-5, value
+    def measure(name, audible=True):
+        if audible: page.wait_for_function('()=>arrangementRemoteAudit.mediaState().some(value=>!value.paused&&value.time>.25)', timeout=15000)
+        value = args.monitor.measure_tones()
+        value['media'] = page.evaluate('()=>arrangementRemoteAudit.mediaState()')
+        if audible: assert value['peak'] > 1e-5, value
         row['measurements'][name] = value; return value
     def settled(name, predicate):
         started = time.monotonic(); samples = []
@@ -50,7 +50,10 @@ def verify(browser, owned, args, result, sources, width):
                 value['settle_samples'] = len(samples)
                 return value
             if len(samples) == 1:
-                row.setdefault('first_unsettled_capture', {})[name] = page.evaluate('()=>({pcm:arrangementAudit.pcm,media:arrangementRemoteAudit.mediaState(),stream:arrangementRemoteAudit.streams.at(-1)})')
+                raw = args.out / f'{width}-first-unsettled-{len(row.get("first_unsettled_capture", {}))}.f32'
+                raw.write_bytes(args.monitor.last_window.tobytes())
+                row.setdefault('first_unsettled_capture', {})[name] = {'pcm': str(raw), 'measurement': value,
+                    'stream': page.evaluate('()=>arrangementRemoteAudit.streams.at(-1)')}
         raise AssertionError({'buffered_preview_did_not_settle_within_seconds': 4, 'samples': samples})
     try:
         page.goto(owned.origin, wait_until='networkidle'); expect(page.locator('#engine-status')).to_have_text('RUST · LOCAL', timeout=45000)
@@ -90,13 +93,35 @@ def verify(browser, owned, args, result, sources, width):
         after = settled('guest B', lambda value: abs(value['first'] / live['first'] - 1) < .04)
         if args.cleanup_control:
             assert not row['errors'], row['errors']
-            row['cleanup'] = page.evaluate('()=>arrangementRemoteAudit.cleanup()')
+            row['cleanup'] = page.evaluate('()=>arrangementRemoteAudit.cleanup({retire:false})')
             page.wait_for_function('()=>arrangementRemoteAudit.events.some(value=>value.operation==="stop"&&value.status===404)', timeout=15000)
             row['cleanup_failures'] = page.evaluate('()=>({started:arrangementRemoteAudit.cleanupAt,requests:arrangementRemoteAudit.events.filter(value=>value.status>=400)})')
             assert all(value['operation'] == 'stop' and value['status'] == 404 and value['at'] >= row['cleanup_failures']['started'] for value in row['cleanup_failures']['requests'])
             row.update(passed=True, expected_failure_control=True)
             return
+        page.locator('#s-seek').fill('1.6'); expect(page.locator('#s-play')).to_have_text('Pause', timeout=45000)
+        running_id = next(value['id'] for value in page.evaluate('()=>arrangementRemoteAudit.mediaState()') if not value['paused'])
+        a('lane-gain').fill('-9'); current = edit('lane-update')
+        lower = settled('guest running gain', lambda value: abs(value['first'] / live['first'] - 10 ** (-3/20)) < .04 and abs(value['second'] / live['second'] - 1) < .04)
+        assert next(value['id'] for value in lower['media'] if not value['paused']) == running_id
+        a('lane-gain').fill('-6'); current = edit('lane-update')
+        settled('guest restored running gain', lambda value: abs(value['first'] / live['first'] - 1) < .04 and abs(value['second'] / live['second'] - 1) < .04)
+        document = current['arrangement']
+        row['checks'].append('running lane gain changes actual native output in the same stream, preserves the other lane and restores the export recipe')
+        page.locator('#s-seek').fill('1.6'); expect(page.locator('#s-play')).to_have_text('Pause', timeout=45000)
+        page.locator('#s-volume').evaluate('element=>{element.value="0.35";element.dispatchEvent(new Event("input",{bubbles:true}));}')
+        quieter = settled('guest listening volume', lambda value: abs(value['first'] / live['first'] - .5) < .04 and abs(value['second'] / live['second'] - .5) < .04)
+        assert all(abs(value['volume'] - .35) < .001 for value in quieter['media'] if not value['paused'])
+        page.locator('#s-volume').evaluate('element=>{element.value="0.7";element.dispatchEvent(new Event("input",{bubbles:true}));}')
+        settled('guest restored volume', lambda value: abs(value['first'] / live['first'] - 1) < .04 and abs(value['second'] / live['second'] - 1) < .04)
+        assert snapshot()['arrangement'] == document
+        row['checks'].append('existing listening volume controls actual native PCM without editing or rerendering the document')
         page.locator('#s-stop').click()
+        silent = measure('guest Stop silence', False); assert silent['peak'] < 1e-7, silent
+        page.locator('#s-seek').fill('2.12')
+        page.wait_for_function('()=>arrangementRemoteAudit.streams.at(-1)?.start_frame===101760', timeout=15000)
+        expect(page.locator('#s-play')).to_have_text('Play')
+        row['checks'].append('Stop produces actual sink silence and a precise paused seek prepares frame 101760 without starting playback')
         row['checks'].append('guest precise source-frame EQ and track edits change actual compressed PCM with exclusive running Before last edit/B')
         if not a('file-actions').evaluate('element=>element.open'): a('file-actions').locator('summary').click()
         for format, suffix in [('mp3', 'mp3'), ('wav32f', 'wav')]:
@@ -138,6 +163,7 @@ def verify(browser, owned, args, result, sources, width):
         expect(page.locator('#s-status')).to_contain_text('Existing server')
         row['checks'].append('Server Off restores untouched local drafts; returning to a populated server retains its edits without another upload or implicit merge')
         audit = page.evaluate('()=>arrangementRemoteAudit.summary()'); assert audit['credentials_memory_only'] and audit['fullMediaReads'] == 0 and audit['largeBlobReads'] == 0 and audit['clientDecodes'] == 0
+        assert audit['serverMediaSourceConnections'] == 0, audit
         assert page.evaluate('()=>arrangementAudit.renderBlocks') == block_mark
         actions = page.evaluate('mark=>arrangementAudit.actions.slice(mark)', worker_mark)
         assert not any(action in ['stage-wav', 'stage-asset', 'inspect-archive', 'extract-archive', 'export-wav', 'master', 'master_preview', 'measure-encoded'] for action in actions), actions
@@ -165,6 +191,7 @@ def main():
     parser.add_argument('--cli', type=Path, required=True); parser.add_argument('--worker', type=Path, required=True)
     parser.add_argument('--ffmpeg', type=Path, default=Path(shutil.which('ffmpeg') or 'ffmpeg'))
     parser.add_argument('--browser', choices=['chromium', 'firefox', 'webkit'], default='chromium')
+    parser.add_argument('--server-source', type=Path, help='Frozen matching backend source for qualification')
     parser.add_argument('--archive-mib', type=int, default=0); parser.add_argument('--migration-only', action='store_true')
     parser.add_argument('--large-budget', action='store_true', help='Also admit real server sources above the local 128 MiB budget and check Server Off before any download')
     parser.add_argument('--cleanup-control', action='store_true', help='Negative fixture control: delete its owned project while playing and attribute the resulting retired Stop 404')
@@ -177,9 +204,14 @@ def main():
         with RemoteBrowserFixture(args) as owned:
             result['fixture'] = owned.provenance; result['requests'] = owned.requests
             shutil.copy2(Path(__file__).with_name('studio_capture_processor.js'), owned.site / '__arrangement_capture.js')
-            with browser_audio_environment(args.out) as audio, sync_playwright() as p:
+            with native_browser_audio_environment(args.out) as audio, native_media_capture(args.out) as monitor, sync_playwright() as p:
                 result['audio_environment'] = audio
-                browser = getattr(p, args.browser).launch(headless=True); result['browser'] = f'{args.browser} {browser.version}'
+                result['native_capture'] = monitor.evidence; args.monitor = monitor
+                launch = {'headless': True}
+                # Playwright otherwise discards native HTMLAudio output in headless Chromium.
+                if args.browser == 'chromium': launch['ignore_default_args'] = ['--mute-audio']
+                result['browser_launch'] = launch
+                browser = getattr(p, args.browser).launch(**launch); result['browser'] = f'{args.browser} {browser.version}'
                 try:
                     for width in ([320] if args.cleanup_control else [320, 390]): verify(browser, owned, args, result, sources, width)
                 finally: browser.close()

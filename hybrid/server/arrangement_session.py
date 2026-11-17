@@ -8,7 +8,7 @@ from .arrangement_requests import parse
 from .errors import ApiError, ProcessingError
 from .project_limits import MAX_BANK_PCM_BYTES, processing_config
 from .studio_driver import safe_file
-from .arrangement_preview_formats import PREVIEW_CONTAINERS, PREVIEW_MIME
+from .arrangement_preview_formats import PREVIEW_CONTAINERS, PREVIEW_MIME, preview_padding
 
 
 class RemoteArrangement:
@@ -125,11 +125,13 @@ class RemoteArrangement:
         self.accept(self.native.call({'operation': 'read'}))
         stream_id = secrets.token_hex(16)
         container = request.get('preview_container', 'mp3')
+        _, padding = preview_padding(result['frames'] - result['position_frame'], result['sample_rate'])
         descriptor = {'stream_id': stream_id, 'stream_path': f'/v2/projects/{self.project.id}/arrangement/streams/{stream_id}',
             'identity': self.snapshot['preview']['identity'], 'prepared_revision': self.snapshot['revision'], 'epoch': self.snapshot['epoch'],
             'sample_rate': result['sample_rate'], 'channels': result['channels'], 'duration_frames': self.snapshot['preview']['frames'],
             'side_duration_frames': result['frames'], 'start_frame': result['position_frame'], 'side': request['side'],
             'preview_sample_rate': PREVIEW_RATE, 'preview_priming_frames': PREVIEW_PRIMING_FRAMES,
+            'preview_padding_frames': padding,
             'preview_container': container, 'preview_mime': PREVIEW_MIME[container]}
         self.stream = ArrangementStream(self, descriptor)
         return descriptor

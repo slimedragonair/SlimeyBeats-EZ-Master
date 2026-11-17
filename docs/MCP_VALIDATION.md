@@ -1,6 +1,6 @@
 # MCP preview validation
 
-**Current-work catalog:** [33 focused main tools](MCP_TOOL_CATALOG.md), with the
+**Current source catalog:** [33 focused main tools](MCP_TOOL_CATALOG.md), with the
 original 58-tool catalog available through `--tool-profile legacy`. Historical
 results and examples below retain the tool names/counts of their tested builds.
 

@@ -279,6 +279,15 @@ priming. Applied server edits can take a few seconds to reach buffered audio;
 the pane states that delay. Qualification keeps strict PCM ratios and a bounded
 four-second settling deadline. Backend encoder pacing is a different bound.
 
+Short compressed previews expose `preview_padding_frames`, an integer from 0
+to 5,760 in 48 kHz preview frames. A nonempty source suffix shorter than 120 ms
+is padded with transport-only zeros after successful real EOF; empty and longer
+previews report zero. This applies to MP3 and MP4, with the existing priming
+reported separately. Container playback duration includes padding, while the
+project clock stays clamped to the real source end. Arrangement metadata,
+immutable audio, processing and delivery exports never receive this padding.
+Cancellation or a failed source read must not flush it as successful audio.
+
 The configurable public guest defaults are 16 heavy jobs per session, 32 per
 IP address per hour and 128 globally per hour. ZIP review and commit use the
 separate admission-command budget (120 per session), while Open, suggestions
@@ -319,60 +328,104 @@ are synthetic. Physical mobile playback, real-device memory and deployed remote
 availability require separate acceptance. The production server arrangement
 feature stays opt-in and off by default.
 
-### Matching remote qualification, November 16, 2026
+### Matching remote qualification, November 16-17, 2026
 
-**Browser server arrangement editing is disabled** by
-`ARRANGEMENT_SERVER_UI_ENABLED = false`. Its existing action explains that
-qualification is unfinished and preserves local work and drafts. The local
-editor, native/MCP paths and legacy server mastering/Studio remain unchanged.
-The prepared remote CI steps are explicitly skipped until the full short/EOF
-and source-clock regression passes. Local MP3 and metadata checks remain active.
+Private browser qualification passed for frontend/WASM runtime
+`8486186ea3f9155f` paired with backend SHA-256
+`3bbce76b0ba301b166e5b37af3ebc8f6533428ca32e196e6acef0ef2f73da79a`.
+The site was built directly from the frozen working source, including rejected
+Play cleanup and the padding-duration contract. No post-build gate patch was
+used. Production rollout and deployed public acceptance remain separate;
+production arrangement support is an explicit server opt-in. Physical mobile
+playback is not established by these desktop-engine checks.
 
-The frozen frontend/WASM runtime `c3e701a510ecef7f` passed these headless Linux
-checks against an isolated owned HTTP service. Browser widths are 320 and 390
-logical pixels; they are responsive layout checks, not physical phone acceptance.
+Server arrangements use `audio/native-arrangement-player.js`: plain native
+HTMLAudio, with no MediaElementAudioSourceNode or Web Audio filter graph.
+Chromium and Firefox use progressive MP3; WebKit's MP4 MIME capability selects
+the bounded MP3-in-MP4 MSE reader. The facade maps encoder priming to project
+frames and preserves scoped edits, A/B and listening volume. Native pause at
+EOF does not retire the stream before ended, and a rejected start releases its
+owned descriptor and media reader. Local editing and legacy server playback
+retain their existing players.
+
+All UI cases below ran against the same isolated owned HTTP backend at 320 and
+390 logical pixels. There were 144 passing grouped checks and zero application
+errors across 24 UI contexts. Short-source contexts include an additional
+normal-control seek to the final 20 ms of the imported 1.25-second clip.
 
 | Check | Cases and grouped checks | Result |
 | --- | --- | --- |
-| Ordinary guest canonical continuation, ZIP review, scoped Suggest/edit, running A/B, MP3/WAV, Project Save, another tweak/export | Chromium 143, Firefox 144, WebKit 26; six cases, 54 groups | Passed; zero application errors in passing reports |
-| Matching local MP3 regression | Same engines and widths; six cases, 18 groups | Passed; independent 320 kbps decode, applied gain and unchanged other track |
-| Large guest ZIP and Server Off | Chromium, both widths; two cases, 18 groups | Passed; 322,103,609-byte synthetic ZIP uploaded once per session, 155,136,000 decoded source bytes checked before any Server Off download |
-| Timestamped MP4 buffering and cancellation | Actual WebKit decoder, two cases | Passed; paused reader count remained 11 across a further second; buffer ended at 1.08 seconds; active buffer covered 1.8–4.56 seconds at position 4.103 seconds; owned fetch aborted |
-| Metadata, transport and buffer lifecycle regressions | 42 Node tests; two Python diagnostic tests | Passed |
+| Ordinary guest continuation, ZIP, unapplied Suggest, scoped EQ, live gain, A/B, volume, Stop/seek, MP3/WAV, Project Save and another tweak/export | Chromium 143, Firefox 144, WebKit 26; six contexts, 72 groups | Passed with actual native sink PCM and independent delivery decode |
+| Normal UI short clips and paused near-EOF seeks | Same engines and widths; 0.12 and 1.25 seconds, then a 20 ms suffix; 12 contexts, 18 playbacks, 54 groups | Passed; all head/tail markers audible, normal marker spacing within two frames, Play and exact 1.25-second endpoint restored |
+| Matching local MP3 regression | Same engines and widths; six contexts, 18 groups | Passed; independent 320 kbps decode, applied gain, unchanged other track and separate canonical Project Save |
+| Native decoder 20 ms and meaningful one-frame suffixes | Same three engines; six cases | Passed; true source endpoint held through padding, gain 0.69996755-0.70002752, silent padding and post-EOF tails |
+| Focused native-player, stream-facade and rejected-start regressions | 18 Node tests | Passed |
 
-Reports remain in the private `SlimeyBeats-Arrangement-20261116/qualification-*`
-proof directories. Native CLI/worker snapshots and hashes are recorded in each
-fixture. The public native source fingerprint is
-`669ed07dd12261e01f3f1c3d77972f6e337057057a77cd0eb221216467bca1e6`;
-WebKit, Firefox and large-archive checks used the qualified Linux worker
+The normal UI cases assert zero padding for 0.12-second and 1.25-second starts.
+Seeking to source frame 59,040 of a clip ending at 60,000 yields 4,800 preview
+padding frames and plays the actual source marker at 59,744. The one-frame
+decoder case uses start 59,744 and end 59,745, with 5,759 padding frames.
+Independent decoders locate those markers at frames 1,809 and 1,105 respectively,
+including the unchanged 1,105-frame priming. All six decoder captures measured
+exactly zero in their distant final 20 ms of encoded padding and post-EOF sink
+windows. Source clocks remained clamped to 60,000 or 59,745 while transport
+padding drained. No PCM or timing tolerance was widened.
+
+`native_media_capture.py` captures the owned Pulse sink outside the browser.
+The remote audit observes media and API ownership without connecting audio
+nodes. Passing server cases require zero Web Audio media connections, zero
+client PCM decodes and no full preview-media reads. The helper refuses a
+desktop/WSLg sink, scopes the private daemon's default and alternate rates to
+48 kHz before startup, and restores the environment afterward. Headless Chromium
+removes only Playwright's default `--mute-audio` argument. Recordings, bounded
+failed windows and process-reaping evidence are retained; all owned capture
+processes were reaped after the passing matrix.
+
+The earlier muted Chromium capture and a separate 44.1-to-48 kHz resampling gain
+failure are preserved. Neither fixture correction changed ALSA, product audio
+or numeric thresholds. Failed harness attempts that selected a Stop reply as a
+prepare descriptor, or sought while Playback details was collapsed, also remain
+separate from the passing normal-control reruns. The unpadded WebKit 20 ms case
+had valid independently decoded PCM but an empty MSE range and zero sink PCM;
+the approved transport-only padding closed that reproduced failure.
+
+The large-archive and Server Off budget proof is reused from runtime
+`c3e701a510ecef7f`: Chromium passed both widths with a 322,103,609-byte
+synthetic ZIP uploaded once per session and 155,136,000 decoded source bytes
+checked before any Server Off download. Admission and download guards did not
+change with this player fix; the large fixture is manual CI work.
+The older foundation verifier was also migrated to native capture and passed
+eight groups in Chromium at both widths before the padding change. The current
+ordinary guest matrix covers the same transport and scoped-EQ controls with
+the final backend.
+
+The unchanged public native source fingerprint is
+`669ed07dd12261e01f3f1c3d77972f6e337057057a77cd0eb221216467bca1e6`.
+Every HTTP fixture records frozen native paths and hashes; the Linux worker
+hash is
 `a210a6d97d3fe0f1bd6d89a01571ce62b2befcdd7597e3e7114b112180c6e520`.
-Each run uses an owned 48 kHz Pulse null sink and reaps it afterward.
+Frontend, backend and verification-tool receipts accompany the private
+qualification reports. No production service was restarted for these checks.
 
-Chromium and Firefox use native progressive MP3. A positive MP4 MIME feature
-test selects the timestamped MP3-in-MP4 MSE path in WebKit, and an explicit
-server capability is required before creating a project. The compressed reader
-uses segments mode and bounded read-ahead/eviction, with the same server encoder
-and no extra browser PCM decode or remaster. Its implementation is
-`audio/compressed-preview-source.js`; lifecycle tests are beside it. The actual
-decoder probe is `verify_arrangement_stream_browser.py`, with test-only
-`arrangement_stream_browser_probe.js`. The short UI diagnostic is
-`verify_arrangement_short_ui.py`. None changes native code.
+The low-level probe is `verify_arrangement_stream_browser.py`, with
+`arrangement_stream_browser_probe.js`. It checks actual PCM, independently
+decoded encoded controls, source clocks, bounded read-ahead and cancellation.
+The normal UI counterpart is `verify_arrangement_short_ui.py`.
+Linux native capture needs the existing PulseAudio utilities `parec` and
+`pactl`. Use a fresh output directory for every attempt; optionally pin a frozen
+backend with `--server-source <source-root>`:
 
-**Remaining qualification failure:** the 0.12-second WebKit MP4 marker case has
-valid encoded audio (independent decoded peak 0.598) but zero captured output.
-The media clock jumps to EOF without captured Web Audio output. Private timing
-experiments are preserved and have not changed product code. Full short-source,
-EOF and source-clock qualification is therefore still pending; the CI commands
-above do not claim to establish it. One earlier 6% first-return-B amplitude
-shortfall also remains preserved without raw PCM sufficient to prove its cause;
-the current clean Firefox/WebKit captures use a frozen first 18,048-frame window
-and retain raw PCM on any first settling failure without changing tolerances.
+```sh
+python web/tools/verify_arrangement_short_ui.py --site <matching-build> --cli <cli> --worker <worker> --ffmpeg <ffmpeg> --browser webkit --out <scratch>/short-webkit
+python web/tools/verify_arrangement_stream_browser.py --site <matching-build> --cli <cli> --worker <worker> --ffmpeg <ffmpeg> --browser chromium --preview-container mp3 --out <scratch>/native-chromium
+python web/tools/verify_arrangement_stream_browser.py --site <matching-build> --cli <cli> --worker <worker> --ffmpeg <ffmpeg> --browser firefox --preview-container mp3 --out <scratch>/native-firefox
+python web/tools/verify_arrangement_stream_browser.py --site <matching-build> --cli <cli> --worker <worker> --ffmpeg <ffmpeg> --browser webkit --preview-container mp4 --out <scratch>/native-webkit
+```
 
-An independent negative cleanup control attributed a historical terminal 404 to
-`stop` issued 107 ms after the fixture began deleting its own playing project.
-The expected error and operation/epoch/stream evidence are retained in
-`qualification-cleanup-control`; it is not counted as an error-free user flow.
-Historical migration HTTP 400 entries lacked request bodies for conclusive
-attribution. The six current complete guest cases include clean canonical
-continuation with applied source-range EQ, stable IDs/history, paused position
-and raw unfinished fields, and produce no such errors.
+An independent negative cleanup control attributed a historical terminal 404
+to Stop issued 107 ms after the fixture began deleting its own playing project.
+Current cleanup stops playback and waits for owned metadata requests to settle
+before deleting the project. That expected failure is preserved separately.
+Current guest cases have clean canonical continuation with applied source-range
+EQ, stable IDs/history, paused position and raw unfinished fields, without such
+application errors.
