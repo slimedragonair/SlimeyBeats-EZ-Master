@@ -14,6 +14,9 @@ struct Arguments {
     /// Print the update identity without starting the GUI or opening any audio.
     #[arg(long, hide = true, conflicts_with_all = ["files", "session", "studio_session", "auto_master", "capture_ui"])]
     build_info: bool,
+    /// Machine-readable project support without opening a window or user data.
+    #[arg(long, hide = true, conflicts_with_all = ["files", "session", "studio_session", "auto_master", "capture_ui"])]
+    studio_project_capabilities: bool,
     /// Open a validated local session prepared by the MCP companion.
     #[arg(long, conflicts_with = "files")]
     session: Option<PathBuf>,
@@ -68,6 +71,12 @@ fn main() -> eframe::Result {
             serde_json::to_string(&mastercraft::app_update::current())
                 .expect("valid build identity")
         );
+        return Ok(());
+    }
+    if args.studio_project_capabilities {
+        println!("{}", serde_json::json!({"format":"slimeybeats-desktop-project-capabilities",
+            "version":1,"engine_version":env!("CARGO_PKG_VERSION"),"studio_project_versions":[1,2],
+            "arrangement_live_editing":true,"autoplay_on_project_open":false}));
         return Ok(());
     }
     let document = if let Some(path) = &args.session {

@@ -152,7 +152,7 @@ impl Companion {
         }))
     }
     #[tool(
-        description = "Explicitly save the current Studio voice/repair/stem-mix preview as a new WAV/FLAC/MP3 plus report. Requires current studio_preview_id and filename stem; no path or extension. Only on the user's export request. Existing files are preserved. Compressed output/resampling needs FFmpeg. Poll the job.",
+        description = "Legacy aligned stems and cleanup workspace ONLY: explicitly export its current voice/repair/plugin/stem-mix studio_preview_id as WAV/FLAC/MP3 plus report. Does not export the current Tracks clip recipe, even when both workspaces exist; for Tracks use export_arrangement with current session_id/expected_revision. Requires a filename stem, no path/extension, and an explicit export request. Existing files are preserved; compressed output/resampling needs FFmpeg. Poll the job.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn export_studio_audio(
@@ -303,7 +303,7 @@ impl Companion {
     }
 
     #[tool(
-        description = "Undo the last retained Studio edit, including the first voice/repair edit. Restores its audio and stem controls. Poll the job; inspect get_studio_session for the restored ID. Does not delete final exports.",
+        description = "Legacy aligned stems and cleanup history ONLY: undo its last retained Studio edit, including the first voice/repair edit. Restores legacy audio/stem controls; does not undo Tracks clip/EQ edits. For Tracks use undo_arrangement with current session_id/expected_revision. Poll this job and inspect get_studio_session for the restored legacy ID. Final exports remain intact.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn undo_studio_edit(&self) -> Result<Json<Value>, String> {
@@ -321,7 +321,7 @@ impl Companion {
     }
 
     #[tool(
-        description = "Redo a retained Studio edit after undo. A newly rendered edit clears redo. Poll, then use the returned/current Studio ID.",
+        description = "Legacy aligned stems and cleanup history ONLY: redo a retained Studio edit after undo. Does not redo Tracks clip/EQ edits; for Tracks use undo_arrangement with redo:true and current session_id/expected_revision. A new legacy edit clears legacy redo. Poll, then use the returned/current Studio ID.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn redo_studio_edit(&self) -> Result<Json<Value>, String> {

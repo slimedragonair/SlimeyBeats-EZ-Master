@@ -86,7 +86,7 @@ def project(client, output):
 
 def discovery(client):
     tools = client.request('tools/list', {})['result']['tools']
-    assert len(tools) == 55 and len({tool['name'] for tool in tools}) == 55
+    assert len(tools) == 58 and len({tool['name'] for tool in tools}) == 58
     capabilities = client.call('get_capabilities')
     assert capabilities['tool_count'] == len(tools)
     assert capabilities['stem_region_edit']['operations'] == list(OPERATIONS)

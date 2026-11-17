@@ -74,10 +74,11 @@ approximates older IIR history. Offline exports replay from the start.
 ## Validation status
 
 Implementation is on `current-work`. On November 16, 2026, the native library
-suite passed 438 tests with two optional external-tool tests ignored. A later
-focused run passed 27 editor state/widget/pointer/curve checks, including scope
+suite passed 457 tests with two optional external-tool tests ignored. Focused
+editor state/widget/pointer/curve checks passed, including scope
 translation, first-drag trims, Escape, exact effect identity, scrolling to clip
-fields and separating the time scrollbar from playback. Native v2 disk tests
+fields, focused Clip/Track properties and EQ scrolling with a pinned target and
+export dock. Native v2 disk tests
 passed exact Float32 recovery, tamper/path/budget rejection and content dedup.
 
 Actual renderer captures passed at logical 1100×720 and 1480×940 on Windows at
@@ -88,6 +89,23 @@ qualify the compact toolbar separately; they do not repeat the crash test.
 Audio tests use synthetic PCM. Physical-device listening and manual acceptance
 remain unqualified. This is not a claim of complete Audacity/DAW parity.
 
+
+## Continue a browser or MCP project
+
+For a browser **Save project** ZIP, extract it into a new folder and choose
+`arrangement.json` with desktop **Open project**. Keep the `assets` folder beside
+that manifest. Native folder projects normally use `project.json`; both names
+load the same v2 data. Sources, clip offsets, scoped EQ and retained history are
+verified before replacement. A real hosted-browser project and a real saved MCP
+project were opened by the native renderer with their expected track/clip/effect
+counts; the original browser archive remained unchanged. This is format/UI
+qualification, not a physical playback claim.
+
+The development companion also has explicit arrangement save, reopen and desktop
+handoff tools. Reopen can survive a new MCP connection when its configured output
+root is unchanged; legacy Studio save/export tools address their separate
+workspace. A desktop handoff checks v2 project capability before saving or
+launching, so an older same-version installer is not treated as compatible.
 
 ## Reviewed interface captures
 

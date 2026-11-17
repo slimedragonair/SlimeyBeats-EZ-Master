@@ -58,7 +58,7 @@ Native imports retain **512 MiB decoded per input by default**, with a separate 
 
 ![Development multitrack editor with independent clips and a focused Clip inspector](docs/images/arrangement-desktop.png)
 
-[Full-size editor](docs/images/arrangement-desktop.png) · [Compact editor](docs/images/arrangement-compact.png) · [Section EQ](docs/images/arrangement-eq-desktop.png). These actual source-build captures use generated test audio. The matching development MCP exposes **55 tools**; installed companions retain their older tools until replaced and reconnected.
+[Full-size editor](docs/images/arrangement-desktop.png) · [Compact editor](docs/images/arrangement-compact.png) · [Section EQ](docs/images/arrangement-eq-desktop.png). These actual source-build captures use generated test audio. The matching development MCP exposes **58 tools**, including editable-project save/reopen and explicit desktop handoff; installed companions retain their older tools until replaced and reconnected.
 
 **Desktop stem editor (Hotfix4 and source builds):** a shared stem timeline, time selection, fit/zoom navigation, loop auditioning and undoable silence/fade/gain/reverse edits. The matching MCP includes `edit_stem_region`. See the [editor workflow, architecture and qualification](docs/STEM_EDITOR.md). Earlier Hotfix3 installers retain their earlier interface; updating the source or opening the web app does not update an installed desktop copy.
 

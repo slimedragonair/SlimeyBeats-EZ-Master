@@ -104,6 +104,7 @@ impl Companion {
             tool_router: Self::tool_router()
                 + Self::studio_router()
                 + Self::arrangement_router()
+                + Self::arrangement_project_router()
                 + Self::plugin_router()
                 + Self::stem_router()
                 + Self::region_edit_router()
@@ -148,7 +149,7 @@ impl Companion {
     }
 
     #[tool(
-        description = "Start importing one local source. Poll its job. Successful import replaces the previous session; failed imports preserve it.",
+        description = "Import one local source and poll its job. Success replaces the current mastering source and legacy Studio selection; failed imports preserve them. Already attached independent-arrangement assets and history remain unchanged. For multiple recordings, load and attach each with add_arrangement_assets before loading the next; get_help(topic=arrangement) gives the full flow.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
     fn load_audio(&self, Parameters(a): Parameters<LibraryPath>) -> Result<Json<Value>, String> {

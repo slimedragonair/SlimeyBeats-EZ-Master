@@ -49,11 +49,12 @@ def verify(server, fixture, codecs):
                 prepared = client.run("prepare_optional_tool", {"tool": "audio_codecs", "allow_download": True})
                 assert prepared["verification"] == "encode_probe_decode_checked"
             tools = client.request("tools/list", {})["result"]["tools"]
-            assert len(tools) == 55, len(tools)
+            assert len(tools) == 58, len(tools)
             names = {tool["name"] for tool in tools}
             assert {"create_arrangement", "get_arrangement", "add_arrangement_assets", "edit_arrangement",
                     "undo_arrangement", "get_arrangement_waveform", "get_arrangement_eq_response",
-                    "suggest_arrangement_eq", "render_arrangement", "export_arrangement"} <= names
+                    "suggest_arrangement_eq", "render_arrangement", "export_arrangement",
+                    "save_arrangement_project", "load_arrangement_project", "open_arrangement_in_desktop"} <= names
             instructions = client.initialized["result"].get("instructions", "")
             assert "create_arrangement" in instructions and "get_help(topic=arrangement)" in instructions
             assert "This exposes no clip arrangement" not in instructions
@@ -63,7 +64,7 @@ def verify(server, fixture, codecs):
             assert caps["hybrid_studio"]["remote_processing_from_mcp"] is False
             assert caps["hybrid_studio"]["public_http_transport"] is False
             assert "hybrid" in caps["help_topics"]
-            assert "arrangement" in caps["help_topics"] and caps["tool_count"] == 55
+            assert "arrangement" in caps["help_topics"] and caps["tool_count"] == 58
             if not caps["desktop_configured"]:
                 assert "desktop is not configured" in " ".join(caps["workflow"])
             neutral = next(p for p in caps["profiles"] if p["id"] == "neutral")

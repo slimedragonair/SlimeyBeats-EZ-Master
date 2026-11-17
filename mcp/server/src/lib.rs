@@ -1,8 +1,14 @@
 pub mod arguments;
 pub mod arrangement_arguments;
 pub mod arrangement_commands;
+mod arrangement_desktop;
 pub mod arrangement_help;
 pub mod arrangement_operations;
+pub mod arrangement_project_arguments;
+pub mod arrangement_project_files;
+mod arrangement_project_help;
+pub mod arrangement_project_operations;
+pub mod arrangement_project_protocol;
 pub mod arrangement_protocol;
 pub mod arrangement_state;
 pub mod artifact_files;

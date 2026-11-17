@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 pub fn get() -> Value {
-    json!({"topic":"arrangement","workflow":[
+    let mut help = json!({"topic":"arrangement","workflow":[
         "create_arrangement with explicit project sample_rate/channels; get_arrangement recovers session_id/revision and all stable IDs",
         "For each ordinary source: load_audio, poll get_job_status until completed, get_studio_session, then add_arrangement_assets with that exact owned audio_id BEFORE loading the next file; repeat this loop for every source",
         "edit_arrangement applies one atomic Edit batch and one Undo; it never renders PCM",
@@ -28,5 +28,7 @@ pub fn get() -> Value {
             "after":"Use the returned revision for render_arrangement and poll its job. Undo/Redo requires the latest revision; render again after either because the old preview is stale. Export is a separate explicitly requested action."},
         "history":"undo_arrangement redo:false(default) undoes; redo:true redoes. Sources remain immutable and owned. Clear session releases this workspace too.",
         "limits":"Different source durations and mono-to-stereo are allowed; project sample rates must match without implicit resampling. Existing aligned-bank rules are unchanged. Native import and aggregate decoded/metadata budgets apply.",
-        "playback":"This stdio companion exposes temporary rendered previews. Actual local browser/native live editing uses the shared frame player; no realtime playback is claimed through MCP."})
+        "playback":"This stdio companion exposes temporary rendered previews. Actual local browser/native live editing uses the shared frame player; no realtime playback is claimed through MCP."});
+    help["persistence"] = crate::arrangement_project_help::get();
+    help
 }

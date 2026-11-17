@@ -67,6 +67,7 @@ pub enum Change {
     Master(Arc<Master>),
     Studio(crate::studio_state::StudioState),
     ArrangementPreview(Arc<crate::arrangement_state::RenderedArrangement>),
+    ArrangementProject(Box<crate::arrangement_project_operations::LoadedProject>),
 }
 pub struct Product {
     pub result: Value,
@@ -153,6 +154,12 @@ impl Engine {
                 return;
             };
             let late_cancel = cancel.load(Ordering::Relaxed) || store.generation != generation;
+            let outcome = outcome.and_then(|product| {
+                if let Change::ArrangementProject(loaded) = &product.change {
+                    loaded.guard.check(&store)?;
+                }
+                Ok(product)
+            });
             let committed = outcome.as_ref().is_ok_and(|p| p.committed);
             let (status, result, error) = match outcome {
                 Ok(product) if !late_cancel || committed => {
@@ -192,6 +199,9 @@ impl Engine {
                             Change::Studio(studio) => store.session.studio = studio,
                             Change::ArrangementPreview(preview) => {
                                 store.arrangements.preview = Some(preview)
+                            }
+                            Change::ArrangementProject(loaded) => {
+                                store.arrangements = loaded.workspace;
                             }
                         }
                     }

@@ -32,6 +32,8 @@ jobs:
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
       - name: Verify MCP over stdio
         run: python ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+      - name: Verify editable arrangement persistence over fresh MCP connections
+        run: python ../mcp/tools/verify_arrangement_projects.py --server ../mcp/server/target/release/slimeybeats-mcp.exe --evidence '${{ runner.temp }}/MCP-arrangement-projects'
       - name: Verify private support reports over stdio
         run: python ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Verify Unicode connection setup in Windows PowerShell 5.1
@@ -91,6 +93,8 @@ jobs:
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
       - name: Verify MCP over stdio and six codecs
         run: python3 ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
+      - name: Verify editable arrangement persistence over fresh MCP connections
+        run: python3 ../mcp/tools/verify_arrangement_projects.py --server ../mcp/server/target/release/slimeybeats-mcp --evidence '${{ runner.temp }}/MCP-arrangement-projects'
       - name: Verify private support reports over stdio
         run: python3 ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Verify Studio DSP routes and model-cache handling

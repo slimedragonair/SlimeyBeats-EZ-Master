@@ -47,7 +47,7 @@ def verify(server):
         client = Client(command, env=env)
         try:
             tools = {tool["name"]: tool for tool in client.request("tools/list", {})["result"]["tools"]}
-            assert len(tools) == 55, len(tools)
+            assert len(tools) == 58, len(tools)
             for name in ("prepare_support_report", "save_support_report"):
                 schema = tools[name]["inputSchema"]
                 assert schema["additionalProperties"] is False
@@ -57,7 +57,7 @@ def verify(server):
             assert tools["prepare_support_report"]["annotations"]["readOnlyHint"]
             assert tools["save_support_report"]["inputSchema"]["properties"]["owner_review_confirmed"]["default"] is False
             caps = client.call("get_capabilities")
-            assert caps["tool_count"] == 55
+            assert caps["tool_count"] == 58
             assert caps["support_reports"]["installed_desktop_version"] is None
             assert caps["support_reports"]["in_memory_previews_per_connection"] == 1
             for topic in ("support_reports", "recovery"):
