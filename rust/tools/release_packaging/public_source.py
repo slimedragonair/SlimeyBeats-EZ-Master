@@ -99,6 +99,7 @@ def copy_public_source(repository, destination):
             copy(path.relative_to(repository))
     for name in ('Cargo.toml', 'Cargo.lock'):
         copy(Path('mcp/server') / name)
+    copy(Path('mcp/ARRANGEMENT_PROJECTS.md'))
     for directory in ('mcp/server/src', 'mcp/server/tests', 'mcp/server/examples', 'mcp/tools'):
         for path in sorted((repository / directory).rglob('*')):
             if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
