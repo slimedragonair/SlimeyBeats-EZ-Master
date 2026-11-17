@@ -65,8 +65,11 @@ async () => {
         diagnostics.phase = label;
         assert(!diagnostics.errors.length, diagnostics.errors.join("; "));
         const id = ++nextWindow, start = performance.now(), clock = context.currentTime;
-        const firstFrame = Math.ceil(clock * context.sampleRate) + Math.ceil(context.sampleRate * 0.2);
-        const detail = { label, start: snapshot(), not_before_frame: firstFrame };
+        // Allow the documented bounded pre-edit queue to drain, then measure a
+        // fixed window. Never choose samples by their level or retry a dropout.
+        const settleFrames = Math.max(Math.ceil(context.sampleRate * 0.2), source.max_buffered_frames + 128);
+        const firstFrame = Math.ceil(clock * context.sampleRate) + settleFrames;
+        const detail = { label, start: snapshot(), not_before_frame: firstFrame, settle_frames: settleFrames, max_buffered_frames: source.max_buffered_frames };
         diagnostics.waits.push(detail);
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => pending?.finish(new Error(
@@ -93,6 +96,9 @@ async () => {
                     }
                     if (error) { detail.error = error.message; reject(error); return; }
                     detail.rms = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
+                    if (label !== "stop" && detail.zero_runs.length) {
+                        reject(new Error(`Unexpected zero-output gap in ${label}: ${JSON.stringify(detail.zero_runs)}`)); return;
+                    }
                     resolve(detail.rms);
                 } };
             capture.port.postMessage({ kind: "measure", id, notBeforeFrame: firstFrame });

@@ -37,7 +37,7 @@ jobs:
           python3 -m playwright install --with-deps chromium firefox webkit
       - name: Check state and build matching WASM and frontend
         run: |
-          node --test web/site/arrangement-timeline-*.test.mjs web/site/arrangement-workspace-transfer.test.mjs web/site/audio/compressed-preview-source.test.mjs web/site/audio/native-arrangement-player.test.mjs web/site/hybrid/arrangement-*.test.mjs
+          node --test web/site/arrangement-preview-buffer.test.mjs web/site/audio/arrangement-buffer.test.mjs web/site/arrangement-timeline-*.test.mjs web/site/arrangement-workspace-transfer.test.mjs web/site/audio/compressed-preview-source.test.mjs web/site/audio/native-arrangement-player.test.mjs web/site/hybrid/arrangement-*.test.mjs
           python3 web/tools/build.py
           cargo build --locked --manifest-path rust/Cargo.toml --no-default-features --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
       - name: Verify actual editing, playback, scoped EQ and project delivery
