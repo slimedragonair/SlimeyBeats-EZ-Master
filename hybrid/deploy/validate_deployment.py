@@ -11,12 +11,15 @@ from pathlib import Path
 from deployment_health import check_health
 from deployment_inventory import check_inventory
 from deployment_scaffold import check_scaffold
+from retained_work import inventory as retained_inventory
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("offline", help="Check only repository source examples")
+    retained = commands.add_parser("retained-work", help="Fail-closed preflight only; does not drain admission or authorize restart")
+    retained.add_argument("--storage", required=True, type=Path)
     inventory = commands.add_parser("inventory", help="Read local server prerequisites")
     inventory.add_argument("--cli", type=Path)
     inventory.add_argument("--storage", type=Path)
@@ -25,6 +28,10 @@ def main() -> int:
     health.add_argument("--endpoint", default="http://127.0.0.1:8787")
     health.add_argument("--prompt-token", action="store_true", help="Read without echo")
     args = parser.parse_args()
+    if args.command == "retained-work":
+        result = retained_inventory(args.storage)
+        print(json.dumps({"check": args.command, **result}))
+        return 0 if result["restart_candidate"] else 1
     if args.command == "offline":
         checks = check_scaffold(Path(__file__).resolve().parent)
     elif args.command == "inventory":

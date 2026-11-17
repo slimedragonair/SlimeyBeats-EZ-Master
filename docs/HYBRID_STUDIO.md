@@ -77,7 +77,20 @@ the live service. Read actual capabilities. Duration and byte bounds both apply.
 | Heavy processing | One shared FIFO worker across v1 jobs and v2 projects |
 
 DSP, banks, scratch, retained history and exports allocate beyond input bytes.
-Source subprocess defaults are 16 GiB memory/address space, 14,400 CPU seconds,
+Resident arrangement sessions default to **four** (`--v2-arrangement-sessions`,
+operator range 1–16). Slots are reserved atomically, including creation and
+cleanup. The existing 16 GiB native-worker address-space budget and 4 GiB
+decoded bank budget are divided across those slots, not multiplied: the default
+is 4 GiB address space and at most 1 GiB bank PCM per arrangement (also capped
+by project storage). Heavy processing remains serialized. Native processes,
+encoder children and Python overhead still require service-level resource limits.
+No session is evicted to admit another visitor: saved/retained work stays until
+its existing expiry or an explicit authenticated project deletion. Closing a
+tab or switching Server Off does not free that slot. A full pool returns
+`arrangement_capacity` with an estimated `Retry-After`; it is not a guarantee
+of availability. Existing max-project and guest admission limits still apply.
+
+Non-resident source subprocess defaults are 16 GiB memory/address space, 14,400 CPU seconds,
 3,600 worker wall seconds and 300 decoder seconds. Linux address space is per
 process; aggregate service CPU/RAM and combined disk admission require separate
 operator limits. A large host or a 2 GiB capability does not prove every admitted

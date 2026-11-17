@@ -2,18 +2,20 @@
 from copy import deepcopy
 import secrets
 import threading
+import time
 
 from .arrangement_native import ArrangementNative, ArrangementCommandError
 from .arrangement_requests import parse
 from .errors import ApiError, ProcessingError
-from .project_limits import MAX_BANK_PCM_BYTES, processing_config
+from .project_limits import arrangement_config
+from .guest_sessions import limited
 from .studio_driver import safe_file
 from .arrangement_preview_formats import PREVIEW_CONTAINERS, PREVIEW_MIME, preview_padding
 
 
 class RemoteArrangement:
     def __init__(self, config, project):
-        self.config, self.project = processing_config(config), project
+        self.config, self.project = arrangement_config(config), project
         self.lock = threading.RLock()
         self.native = None
         self.snapshot = None
@@ -30,7 +32,7 @@ class RemoteArrangement:
     def creation_request(self, rate, channels, epoch):
         return {'operation': 'create', 'sample_rate': rate, 'channels': channels, 'epoch': epoch,
                 'limits': {'max_pcm_bytes': self.config.max_decoded_bytes,
-                    'max_bank_pcm_bytes': min(MAX_BANK_PCM_BYTES, self.project.max_disk_bytes),
+                    'max_bank_pcm_bytes': min(self.config.max_bank_pcm_bytes, self.project.max_disk_bytes),
                     'max_duration_seconds': self.config.max_audio_seconds,
                     'decode_timeout_seconds': max(1, int(self.config.decode_timeout_seconds)), 'waveform_bins': 1024}}
 
@@ -164,9 +166,11 @@ def dispatch(store, project_id, request, principal):
         if request['operation'] == 'create':
             if state is not None:
                 raise ApiError(409, 'arrangement_already_created')
-            # One resident pool by default; never evict another user's sources.
-            if any(item.arrangement is not None for item in store.projects.values()):
-                raise ApiError(429, 'arrangement_capacity')
+            # Reserve under the store lock, including in-flight creation/cleanup.
+            # Retained work is never evicted to admit another visitor.
+            residents = [item for item in store.projects.values() if item.arrangement is not None]
+            if len(residents) >= store.config.v2_arrangement_sessions:
+                raise limited('arrangement_capacity', min(item.deadline for item in residents), time.monotonic())
             state = RemoteArrangement(store.config, project)
             project.arrangement = state
         elif state is None:
@@ -212,13 +216,15 @@ def dispatch(store, project_id, request, principal):
             store.get(project_id, principal)
         return result
     except BaseException:
+        # Keep the reserved slot until its process is confirmed stopped. A failed
+        # cleanup remains owned by this project and retryable through deletion.
+        if request['operation'] == 'create':
+            state.close()
         with store.lock:
             if request['operation'] == 'create' and project.arrangement is state:
                 project.arrangement = None
             elif request['operation'] == 'add_assets':
                 state.source_asset_ids = held
-        if request['operation'] == 'create':
-            state.close()
         raise
     finally:
         with store.lock:
