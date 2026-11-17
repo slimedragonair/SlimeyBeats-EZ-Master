@@ -1,6 +1,6 @@
 // Private qualification instrumentation. It observes the real worker/graph and
 // captures a silent side branch; product processing and messages are unchanged.
-const audit = window.arrangementAudit = { actions: [], edits: [], latest: null, preparations: [], proposals: [], measuredOutputs: [], outputs: [], pcm: [], frames: 0 };
+const audit = window.arrangementAudit = { actions: [], renderBlocks: 0, edits: [], latest: null, preparations: [], proposals: [], measuredOutputs: [], outputs: [], pcm: [], frames: 0 };
 audit.deliveries = [];
 const blobTypes = new Map(), createUrl = URL.createObjectURL;
 URL.createObjectURL = function (blob) { const url = createUrl.call(this, blob); blobTypes.set(url, blob.type); return url; };
@@ -18,6 +18,7 @@ window.Worker = class extends NativeWorker {
         this.postMessage = (message, ...rest) => {
             requests.set(message.id, message.action);
             if (message.action !== "render-block") audit.actions.push(message.action);
+            else ++audit.renderBlocks;
             if (message.action === "edit") audit.edits.push(structuredClone(message.edits));
             return post(message, ...rest);
         };
@@ -50,15 +51,23 @@ audit.attach = async () => {
         await context.audioWorklet.addModule("/__arrangement_capture.js");
         const tap = new AudioWorkletNode(context, "studio-capture", { outputChannelCount: [2] });
         tap.port.onmessage = ({ data }) => {
-            if (data.time < audit.after) return;
+            if (data.time < audit.after || audit.frozen) return;
+            if (!audit.frames) audit.captureStart = data.time;
+            if (audit.captureEnd !== null && Math.abs(data.time - audit.captureEnd) > 1 / context.sampleRate) ++audit.captureGaps;
+            audit.captureEnd = data.time + data.channels[0].length / context.sampleRate;
             audit.pcm.push(data.channels); audit.frames += data.channels[0].length;
+            if (audit.limitFrames && audit.frames >= audit.limitFrames) audit.frozen = true;
             if (audit.pcm.length > 512) audit.pcm.shift();
         };
         connect.call(output, tap); connect.call(tap, context.destination);
         output.arrangementAuditTap = tap; audit.context = context;
     }
 };
-audit.reset = () => { audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + 0.08; };
+audit.reset = (limitFrames = 0) => {
+    audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + 0.08;
+    audit.limitFrames = limitFrames; audit.frozen = false;
+    audit.captureStart = audit.captureEnd = null; audit.captureGaps = 0;
+};
 audit.measure = () => {
     const samples = audit.pcm.flatMap(block => [...block[0]]).slice(-9600);
     if (samples.length !== 9600) throw new Error("Insufficient actual output PCM");
@@ -70,5 +79,9 @@ audit.measure = () => {
             real += sample * Math.cos(phase); imag += sample * Math.sin(phase); });
         return Math.hypot(real, imag) * 2 / samples.length;
     };
-    return { peak, first: tone(440), second: tone(880), rate: audit.context.sampleRate, clock: audit.context.currentTime };
+    return { peak, first: tone(440), second: tone(880), rate: audit.context.sampleRate, clock: audit.context.currentTime,
+        capture_after: audit.after, capture_start: audit.captureStart, capture_end: audit.captureEnd,
+        captured_frames: audit.frames, capture_gaps: audit.captureGaps, frozen: audit.frozen,
+        measured_start: audit.captureEnd - samples.length / audit.context.sampleRate,
+        measured_end: audit.captureEnd };
 };

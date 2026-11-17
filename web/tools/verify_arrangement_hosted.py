@@ -5,6 +5,7 @@ site. This pass checks transport progress and exported PCM, not live output PCM.
 Generated fixtures never leave the browser; no request with a body is allowed.
 """
 import argparse
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -75,8 +76,11 @@ def main():
             wrapped = HostedBrowser(browser, args, result)
             try:
                 for width in [320, 390]:
-                    verify_project(wrapped, args.url, width, args, result, sources[0])
-                    verify_mp3(wrapped, args.url, width, args, result, sources)
+                    for group, verify, inputs in [('project', verify_project, sources[0]), ('mp3', verify_mp3, sources)]:
+                        case_args = copy.copy(args)
+                        case_args.out = args.out / group
+                        case_args.out.mkdir(exist_ok=True)
+                        verify(wrapped, args.url, width, case_args, result, inputs)
             finally:
                 browser.close()
         assert [hashlib.sha256(path.read_bytes()).hexdigest() for path in sources] == hashes

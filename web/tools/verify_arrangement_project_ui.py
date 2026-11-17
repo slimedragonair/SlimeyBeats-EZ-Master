@@ -97,12 +97,24 @@ def verify(browser, base, width, args, result, source):
 
         page.locator('#s-playback-details > summary').click()
         page.locator('#s-volume').fill('0.35'); page.locator('#s-seek').fill('2.7')
+        capture_live = getattr(args, 'capture_live', True)
         page.locator('#s-play').click(); expect(page.locator('#s-play')).to_have_text('Pause')
         live = None
-        if getattr(args, 'capture_live', True):
-            page.evaluate('()=>arrangementAudit.attach()'); page.evaluate('()=>arrangementAudit.reset()')
+        if capture_live:
+            # The app creates its graph on first Play. Install the observer,
+            # then restart at the requested frame so module loading contributes
+            # no uncontrolled playback time to this short section measurement.
+            page.evaluate('()=>arrangementAudit.attach()')
+            page.locator('#s-stop').click()
+            expect(page.locator('#s-play')).to_have_text('Play')
+            page.locator('#s-seek').fill('2.7')
+            page.locator('#s-play').click(); expect(page.locator('#s-play')).to_have_text('Pause')
+            # Freeze the first settled block window; later browser automation
+            # must not move the measured tail past the section's exclusive end.
+            page.evaluate('()=>arrangementAudit.reset(18000)')
             page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=10000)
             live = page.evaluate('()=>arrangementAudit.measure()')
+            row['live_capture'] = live
         else:
             # Hosted sites have no private observer module. Keep that pass to
             # real transport progress and saved PCM, with no live-PCM claim.

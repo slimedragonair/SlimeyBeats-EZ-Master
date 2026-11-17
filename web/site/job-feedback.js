@@ -5,7 +5,15 @@ const text = (element, value) => { if (element.textContent !== value) element.te
 export function wireJobFeedback(studioBusy) {
     $("job-cancel-master").onclick = () => $("cancel").click();
     $("job-cancel-studio").onclick = () => $("s-cancel").click();
+    let queued = 0;
     function refresh() {
+        // Workspace promises can settle between resize notifications. Commit
+        // overlay geometry after that delivery pass, using the newest state.
+        if (!queued) queued = requestAnimationFrame(() => {
+            queued = requestAnimationFrame(() => { queued = 0; render(); });
+        });
+    }
+    function render() {
         const master = !$("job").hidden, studio = studioBusy();
         $("job-feedback").hidden = !master && !studio;
         $("job-feedback-master").hidden = !master;
@@ -16,6 +24,6 @@ export function wireJobFeedback(studioBusy) {
         text($("job-studio-status"), $("s-status").textContent);
     }
     new MutationObserver(refresh).observe($("s-status"), { childList: true });
-    refresh();
+    render();
     return { refresh };
 }

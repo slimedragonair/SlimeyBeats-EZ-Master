@@ -38,6 +38,7 @@ jobs:
       - name: Verify actual editing, playback, scoped EQ and project delivery
         run: |
           for browser in chromium firefox webkit; do
+            python3 web/tools/verify_job_feedback_resize.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/feedback-$browser"
             python3 web/tools/verify_arrangement_ui.py --browser "$browser" --out "${{ runner.temp }}/arrangement/ui-$browser"
             python3 web/tools/verify_arrangement_audio.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/audio-$browser"
             python3 web/tools/verify_arrangement_browser.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/editing-$browser"
