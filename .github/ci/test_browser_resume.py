@@ -322,13 +322,18 @@ def workflow_steps(text):
 class WorkflowTests(unittest.TestCase):
     def test_failed_step_and_every_remaining_web_validation_command_are_identical(self):
         workflows = HERE.parent / 'workflows'
-        baseline = workflow_steps((workflows / 'web.yml').read_text(encoding='utf-8'))
+        # This one-off recovery is pinned to BASELINE_HEAD, not future CI layouts.
+        baseline = workflow_steps((HERE / 'fixtures/browser-resume-baseline.yml').read_text(encoding='utf-8'))
         recovery = workflow_steps((workflows / 'browser-publication-resume.yml').read_text(encoding='utf-8'))
         for name in resume.REMAINING:
             with self.subTest(step=name):
                 self.assertEqual(recovery[name], baseline[name])
         tail = list(baseline)[list(baseline).index(resume.REMAINING[0]):]
         self.assertEqual(tail[:-1], resume.REMAINING)
+
+    def test_sharded_workflow_cannot_reuse_the_historical_baseline(self):
+        self.assertFalse(resume.allowed('.github/workflows/web.yml'))
+        self.assertFalse(resume.allowed('web/tools/run_browser_shard.py'))
 
     def test_manual_only_read_only_metadata_cross_run_download_and_guarded_pages(self):
         text = (HERE.parent / 'workflows/browser-publication-resume.yml').read_text(encoding='utf-8')

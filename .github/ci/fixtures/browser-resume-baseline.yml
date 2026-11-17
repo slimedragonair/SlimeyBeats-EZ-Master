@@ -1,0 +1,147 @@
+name: Browser preview
+on:
+  push:
+    branches: [main, current-work]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: browser-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scope:
+    uses: ./.github/workflows/change-scope.yml
+  browser:
+    needs: scope
+    if: needs.scope.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Rust and WebAssembly
+        run: |
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+          rustup component add rustfmt clippy
+      - name: Install matching wasm-bindgen CLI
+        run: |
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
+          echo '9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f  /tmp/wasm-bindgen.tar.gz' | sha256sum --check
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          echo '/tmp/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl' >> "$GITHUB_PATH"
+      - name: Check binding crate
+        run: |
+          cargo fmt --manifest-path web/dsp/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path web/dsp/Cargo.toml --target wasm32-unknown-unknown -- -D warnings
+          cargo test --locked --manifest-path web/dsp/Cargo.toml --lib
+          node --test web/site/master-recovery-identity.test.mjs web/site/eq-suggestions.test.mjs web/site/session-export-metadata.test.mjs
+          python3 -m unittest discover -s web/tools -p 'test_*.py'
+      - name: Build static site and license inventory
+        run: python3 web/tools/build.py
+      - name: Install browser test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_test'
+          echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
+          python3 -m pip install playwright==1.57.0 numpy==2.5.2
+          python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Verify recovery and private reporting in three engines
+        run: |
+          python3 web/tools/verify_recovery_browser.py --site web/dist --browser chromium --out '${{ runner.temp }}/browser-checks/recovery-chromium'
+          python3 web/tools/verify_recovery_browser.py --site web/dist --browser firefox --out '${{ runner.temp }}/browser-checks/recovery-firefox'
+          python3 web/tools/verify_recovery_browser.py --site web/dist --browser webkit --out '${{ runner.temp }}/browser-checks/recovery-webkit'
+      - name: Verify MP3 timing against independent decoded PCM
+        run: |
+          python3 web/tools/verify_gapless.py --out '${{ runner.temp }}/browser-checks/gapless-chromium'
+          python3 web/tools/verify_gapless.py --browser firefox --out '${{ runner.temp }}/browser-checks/gapless-firefox'
+          python3 web/tools/verify_gapless.py --browser webkit --out '${{ runner.temp }}/browser-checks/gapless-webkit'
+      - name: Verify long WAV and MP3 imports in three engines
+        run: |
+          python3 web/tools/verify_imports.py --out '${{ runner.temp }}/browser-checks/imports-chromium'
+          python3 web/tools/verify_imports.py --browser firefox --out '${{ runner.temp }}/browser-checks/imports-firefox'
+          python3 web/tools/verify_imports.py --browser webkit --out '${{ runner.temp }}/browser-checks/imports-webkit'
+      - name: Verify Chromium
+        run: python3 web/tools/verify_browser.py --out '${{ runner.temp }}/browser-checks/chromium'
+      - name: Build fixed hybrid workers and verify streaming Studio in three engines
+        run: |
+          cargo build --locked --release --no-default-features --manifest-path rust/Cargo.toml --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_remote_media.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-media-$browser"
+            python3 web/tools/verify_remote_studio.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-studio-$browser"
+            python3 web/tools/verify_remote_migration.py --site web/dist --cli rust/target/release/slimeybeats-ez-master-cli --worker rust/target/release/slimeybeats_hybrid_worker --browser "$browser" --out "${{ runner.temp }}/browser-checks/remote-migration-$browser"
+          done
+      - name: Verify Firefox
+        run: python3 web/tools/verify_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/firefox'
+      - name: Verify WebKit
+        run: python3 web/tools/verify_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/webkit'
+      - name: Verify bounded live EQ and portable exports in three engines
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_bootstrap_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/bootstrap-$browser"
+            python3 web/tools/verify_eq_preview.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-$browser.json"
+            python3 web/tools/verify_eq_suggestions.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/browser-checks/eq-suggestions-$browser"
+            python3 web/tools/verify_mp3_export.py --integration --browser "$browser" --out "${{ runner.temp }}/browser-checks/mp3-$browser"
+            python3 web/tools/verify_session_export.py --browser "$browser"
+            python3 web/tools/verify_export_workflows.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/exports-$browser"
+          done
+          python3 web/tools/verify_session_export_lifecycle.py
+      - name: Verify repeated track replacement and export
+        run: python3 web/tools/verify_memory.py --tracks 4 --seconds 10 --out '${{ runner.temp }}/browser-checks/replacement'
+      - name: Verify Studio editing in three engines
+        run: |
+          python3 web/tools/verify_studio_browser.py --out '${{ runner.temp }}/browser-checks/studio-chromium'
+          python3 web/tools/verify_studio_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-firefox'
+          python3 web/tools/verify_studio_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-webkit'
+      - name: Verify browser stem timeline and shared time edits
+        run: |
+          node --test web/tools/timeline_state.test.mjs
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_region_edit_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/stem-editor-$browser"
+          done
+      - name: Verify shared Issue Detector and Stem Doctor in three engines
+        run: |
+          node --test web/tools/doctor_state_checks.js web/tools/doctor_controller_checks.js
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_doctor_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/doctor-$browser"
+          done
+      - name: Verify Studio replacement and decoded input bounds
+        run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
+      - name: Verify audible live stems and exclusive playback in three engines
+        run: |
+          python3 web/tools/verify_studio_live.py --out '${{ runner.temp }}/browser-checks/studio-live-chromium'
+          python3 web/tools/verify_studio_live.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-live-firefox'
+          python3 web/tools/verify_studio_live.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-live-webkit'
+      - name: Verify learning, persistent choices and compact layouts
+        run: |
+          python3 web/tools/verify_learning_browser.py --out '${{ runner.temp }}/browser-checks/learning-chromium'
+          python3 web/tools/verify_learning_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/learning-firefox'
+          python3 web/tools/verify_learning_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/learning-webkit'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: SlimeyBeats-browser-validation
+          path: ${{ runner.temp }}/browser-checks
+          if-no-files-found: warn
+      - uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: web/dist
+  deploy:
+    if: github.ref == 'refs/heads/main' && needs.scope.outputs.web == 'true'
+    needs: [scope, browser]
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: pages-publication
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish private-processing static preview
+        id: deployment
+        uses: actions/deploy-pages@v4
