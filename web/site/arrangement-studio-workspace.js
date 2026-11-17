@@ -112,6 +112,7 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
         for (const [name, value] of [["arrange-entry", selected && mode === requestedMode], ["legacy-entry", !selected]]) {
             $(name).classList.toggle("selected", value); $(name).setAttribute("aria-pressed", String(value));
         }
+        $("legacy-source-actions").hidden = selected;
         $("legacy-workspace").hidden = selected;
         $("arrangement-page").hidden = !selected || mode !== "local";
         $("arrangement-server-page").hidden = !selected || mode !== "server";
