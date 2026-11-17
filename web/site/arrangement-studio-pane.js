@@ -1,8 +1,11 @@
+import { traceAdapter, sessionTrace } from "./session-trace.js";
 import { createArrangementTimeline } from "./arrangement-timeline-controller.js";
 
 // One engine owns one document, draft inspector and source transport. Hiding a
 // pane pauses audition while preserving its immutable assets and Undo history.
 export function createArrangementStudioPane({ mode, host, createAdapter, volume, pauseMain, changed, notice, isEditable = () => true }) {
+    const displayNotice = notice;
+    notice = (text, error) => { sessionTrace.message(text, error); displayNotice(text, error); };
     let adapter, controller, source, unsubscribe, opening, latest, lastNotice = "";
     function install(next) {
         if (source === next) return;
@@ -17,9 +20,9 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
             if (controller?.ready()) return true;
             if (opening) return opening;
             opening = (async () => {
-                adapter = createAdapter({ mode, beforePlay: pauseMain,
+                adapter = traceAdapter(createAdapter({ mode, beforePlay: pauseMain,
                     onChange: () => { if (controller) void controller.refresh(); },
-                    onError: error => notice(error.message || String(error), true) });
+                    onError: error => notice(error.message || String(error), true) }), mode);
                 latest = await adapter.read();
                 if (!latest.capabilities?.playback) throw new Error(latest.capabilities?.playback_unavailable_reason || `${mode === "server" ? "Server" : "Local"} arrangement playback is unavailable.`);
                 const bands = latest.defaults?.bands;

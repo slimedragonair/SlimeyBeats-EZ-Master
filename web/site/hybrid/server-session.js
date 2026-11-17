@@ -1,3 +1,4 @@
+import { sessionTrace } from "../session-trace.js";
 import { ServerClient } from "./server-client.js";
 import { CLIENT_CHUNK_BYTES, TERMINAL_STATES } from "./protocol.js";
 
@@ -41,6 +42,7 @@ export class ServerSession {
         return !!this.job && !this.busy && (!this.connected || [401, 404].includes(this.unavailableJobStatus));
     }
     #notify(message, error = false) {
+        sessionTrace.message(message, error);
         this.message = message; this.error = error; this.onChange(this);
     }
     #stop() {
@@ -179,6 +181,7 @@ export class ServerSession {
                 if (job.total_bytes !== file.size || job.uploaded_bytes !== end)
                     throw new Error("The server did not acknowledge the expected upload offset. Check the job before retrying.");
             }
+            if (this.job.uploaded_bytes === file.size) void sessionTrace.file(file, true);
             if (this.job.state === "uploading") {
                 const job = await this.client.run(this.job.id);
                 if (!current()) return;

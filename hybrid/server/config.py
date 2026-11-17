@@ -84,6 +84,7 @@ class Config:
     trust_relay_client_ip: bool = False
     studio_cli: Path | None = None
     v2_arrangement_enabled: bool = False
+    v2_arrangement_sessions: int = 4
     stem_python: Path | None = None
     stem_models: Path | None = None
     v2_max_upload_bytes: int = 2 * 1024 * MIB
@@ -172,7 +173,8 @@ def from_arguments(argv=None):
     parser.add_argument("--stem-models", type=Path)
     for name in ("v2-max-upload-bytes", "v2-max-decoded-bytes", "v2-max-audio-seconds",
                  "v2-max-project-disk-bytes", "v2-retention-seconds", "v2-preview-kbps", "v2-threads", "v2-memory-bytes",
-                 "v2-cpu-seconds", "v2-worker-timeout-seconds", "v2-decode-timeout-seconds"):
+                 "v2-cpu-seconds", "v2-worker-timeout-seconds", "v2-decode-timeout-seconds",
+                 "v2-arrangement-sessions"):
         parser.add_argument("--" + name, type=int, default=argparse.SUPPRESS)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
