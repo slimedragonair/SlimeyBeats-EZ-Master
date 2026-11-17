@@ -23,7 +23,7 @@ impl Companion {
         description = "Render a time selection edit into one current stem: silence, fade_in, fade_out, gain {db:-60..12}, or reverse. Discover stem_set_id and stable kind with get_studio_session. edit has numeric start_seconds, end_seconds and operation:{kind,...}; times must select at least one frame within the stem. Wait for pending mix_stems jobs first. Replaces only that stem in a new immutable bank, preserving length/rate/channels, other stems, original mix and existing mix controls. Renders an undoable temporary WHOLE MIX through those controls; faders remain live in the desktop. Poll get_job_status for new stem_set_id, studio_preview_id and all assets/IDs. No export, clip arrangement, split or MIDI; get_help(topic=stems) has examples.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn edit_stem_region(
+    pub(crate) fn edit_stem_region(
         &self,
         Parameters(a): Parameters<EditStemRegion>,
     ) -> Result<Json<Value>, String> {

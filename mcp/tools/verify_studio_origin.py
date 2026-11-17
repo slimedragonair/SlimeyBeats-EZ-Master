@@ -10,7 +10,7 @@ import sys
 import tempfile
 import wave
 
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 from verify_studio_source_context import verify as verify_source_context
 
 ROOT = Path(__file__).resolve().parents[2]

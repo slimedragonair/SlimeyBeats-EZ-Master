@@ -1,5 +1,11 @@
 # Arrangement project persistence
 
+**Current-work discovery:** the main catalog has 33 organized tools. Use `project`
+actions `save_arrangement` / `open_arrangement`, and `open_desktop` action
+`arrangement`. The original names documented below remain compatibility aliases
+and are advertised by `--tool-profile legacy`. See
+[the current catalog](../docs/MCP_TOOL_CATALOG.md) for full calls.
+
 The arrangement project tools use the same canonical v2 snapshot and native
 directory I/O as the GUI. No rendered mix is needed to save or reopen clips,
 track controls, scoped EQ, immutable sources and retained Undo/Redo.

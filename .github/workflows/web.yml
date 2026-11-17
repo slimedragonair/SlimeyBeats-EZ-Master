@@ -10,7 +10,11 @@ concurrency:
   group: browser-preview-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  scope:
+    uses: ./.github/workflows/change-scope.yml
   browser:
+    needs: scope
+    if: needs.scope.outputs.web == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
@@ -125,8 +129,8 @@ jobs:
         with:
           path: web/dist
   deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: browser
+    if: github.ref == 'refs/heads/main' && needs.scope.outputs.web == 'true'
+    needs: [scope, browser]
     runs-on: ubuntu-24.04
     concurrency:
       group: pages-publication

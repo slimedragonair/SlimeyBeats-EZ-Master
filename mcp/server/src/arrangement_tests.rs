@@ -185,8 +185,8 @@ fn fresh_discovery_advertises_arrangement_without_the_old_global_exclusion() {
     let info = rmcp::ServerHandler::get_info(&companion);
     let instructions = info.instructions.as_deref().unwrap();
     for text in [
-        "create_arrangement",
-        "get_arrangement",
+        "arrangement_edit",
+        "get_session",
         "get_help(topic=arrangement)",
     ] {
         assert!(instructions.contains(text), "Missing {text}");

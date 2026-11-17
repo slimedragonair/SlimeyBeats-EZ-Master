@@ -13,6 +13,7 @@ fn closing_the_connection_waits_for_the_cancelled_worker_checkpoint() {
         profiles_root: None,
         studio_data: None,
         plugin_root: vec![],
+        tool_profile: slimeybeats_mcp::tool_catalog::ToolProfile::Compact,
         print_config: false,
     })
     .unwrap();

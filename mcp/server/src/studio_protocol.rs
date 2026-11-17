@@ -138,7 +138,7 @@ impl Companion {
         description = "Analyze a currently available original, stem or Studio preview without changing it. Discover audio_id with get_studio_session. Returns measured loudness/peaks and neutral-profile analysis; indicators are heuristics, not listening judgments. Poll the job.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
-    fn analyze_studio_audio(
+    pub(crate) fn analyze_studio_audio(
         &self,
         Parameters(a): Parameters<StudioAudioRequest>,
     ) -> Result<Json<Value>, String> {
@@ -155,7 +155,7 @@ impl Companion {
         description = "Legacy aligned stems and cleanup workspace ONLY: explicitly export its current voice/repair/plugin/stem-mix studio_preview_id as WAV/FLAC/MP3 plus report. Does not export the current Tracks clip recipe, even when both workspaces exist; for Tracks use export_arrangement with current session_id/expected_revision. Requires a filename stem, no path/extension, and an explicit export request. Existing files are preserved; compressed output/resampling needs FFmpeg. Poll the job.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn export_studio_audio(
+    pub(crate) fn export_studio_audio(
         &self,
         Parameters(a): Parameters<StudioExportRequest>,
     ) -> Result<Json<Value>, String> {
@@ -187,7 +187,7 @@ impl Companion {
         description = "Inspect whether the optional local CPU stem engine is installed. Setup downloads dependencies/model; processing uses local audio only.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
-    fn get_stem_engine_status(&self) -> Json<Value> {
+    pub(crate) fn get_stem_engine_status(&self) -> Json<Value> {
         Json(self.engine.stem_runtime.status())
     }
 
@@ -195,7 +195,7 @@ impl Companion {
         description = "Download/install the isolated local stem engine and verified model, then run an inference test. Use when the user requests/agrees to engine setup; needs internet and substantial disk space. Returns a job ID; poll it. Does not upload audio or modify global Python.",
         annotations(destructive_hint = false, open_world_hint = true)
     )]
-    fn install_stem_engine(
+    pub(crate) fn install_stem_engine(
         &self,
         Parameters(a): Parameters<EngineSetupRequest>,
     ) -> Result<Json<Value>, String> {
@@ -221,7 +221,7 @@ impl Companion {
         description = "Discover available original/stem/edited audio IDs, current stem controls, studio preview and undo/redo availability. Studio edits are separate from the mastering preview.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
-    fn get_studio_session(&self) -> Result<Json<Value>, String> {
+    pub(crate) fn get_studio_session(&self) -> Result<Json<Value>, String> {
         self.response((|| {
             let store = self.engine.lock()?;
             store.session.studio.summary(&self.engine, &store.session)
@@ -232,7 +232,7 @@ impl Companion {
         description = "Separate the loaded source into vocal/instrumental or four stems (vocals, drums, bass, other), using the installed local model. Poll the job. Creates a stem workspace and temporary neutral mix, not final exports. Model estimates can contain bleed/artifacts.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn separate_stems(
+    pub(crate) fn separate_stems(
         &self,
         Parameters(a): Parameters<SeparateRequest>,
     ) -> Result<Json<Value>, String> {
@@ -248,7 +248,10 @@ impl Companion {
         description = "Patch gain/mute/solo/stereo balance for current stems and render a temporary mix from immutable stem audio. Omitted settings are retained. Gain -60..+12 dB, balance -1..1 (mono requires 0); mute wins over solo. Poll for studio_preview_id; no final export.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn mix_stems(&self, Parameters(a): Parameters<MixRequest>) -> Result<Json<Value>, String> {
+    pub(crate) fn mix_stems(
+        &self,
+        Parameters(a): Parameters<MixRequest>,
+    ) -> Result<Json<Value>, String> {
         let result = (|| {
             let settings = {
                 let store = self.engine.lock()?;
@@ -271,7 +274,10 @@ impl Companion {
         description = "Prepare voice cleanup from a loaded source, vocal stem or current studio preview: rumble removal, conservative stationary-noise reduction, de-essing and optional gate. It does not isolate speech from music. Omitted settings use documented defaults. Poll; source is preserved and export remains separate.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn clean_voice(&self, Parameters(a): Parameters<VoiceRequest>) -> Result<Json<Value>, String> {
+    pub(crate) fn clean_voice(
+        &self,
+        Parameters(a): Parameters<VoiceRequest>,
+    ) -> Result<Json<Value>, String> {
         let check = a.clone();
         self.response(self.engine.start(
             "clean_voice",
@@ -287,7 +293,7 @@ impl Companion {
         description = "Prepare a localized spectral attenuation/heal on an audio ID. Select start/end seconds and low/high Hz within Nyquist; reduction -60..0 dB. Samples outside selected time remain unchanged. Heal estimates surrounding magnitudes and needs unselected context. Poll, audition and undo if needed; no final export.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn repair_audio(
+    pub(crate) fn repair_audio(
         &self,
         Parameters(a): Parameters<RepairRequest>,
     ) -> Result<Json<Value>, String> {
@@ -306,7 +312,7 @@ impl Companion {
         description = "Legacy aligned stems and cleanup history ONLY: undo its last retained Studio edit, including the first voice/repair edit. Restores legacy audio/stem controls; does not undo Tracks clip/EQ edits. For Tracks use undo_arrangement with current session_id/expected_revision. Poll this job and inspect get_studio_session for the restored legacy ID. Final exports remain intact.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn undo_studio_edit(&self) -> Result<Json<Value>, String> {
+    pub(crate) fn undo_studio_edit(&self) -> Result<Json<Value>, String> {
         self.response(self.engine.start(
             "undo_studio_edit",
             |s| {
@@ -324,7 +330,7 @@ impl Companion {
         description = "Legacy aligned stems and cleanup history ONLY: redo a retained Studio edit after undo. Does not redo Tracks clip/EQ edits; for Tracks use undo_arrangement with redo:true and current session_id/expected_revision. A new legacy edit clears legacy redo. Poll, then use the returned/current Studio ID.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn redo_studio_edit(&self) -> Result<Json<Value>, String> {
+    pub(crate) fn redo_studio_edit(&self) -> Result<Json<Value>, String> {
         self.response(self.engine.start(
             "redo_studio_edit",
             |s| {

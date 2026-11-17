@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import tempfile
 import wave
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 from stem_import_fixtures import LEGACY_KINDS, kinds, wav_data, wav_fixture, write_zip
 
 

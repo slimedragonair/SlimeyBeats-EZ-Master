@@ -1,0 +1,54 @@
+name: Changed-file scope
+on:
+  workflow_call:
+    outputs:
+      native:
+        description: Native application or tests changed
+        value: ${{ jobs.scope.outputs.native }}
+      mcp:
+        description: MCP companion or tools changed
+        value: ${{ jobs.scope.outputs.mcp }}
+      web:
+        description: Browser application or its shared inputs changed
+        value: ${{ jobs.scope.outputs.web }}
+      arrangement:
+        description: Browser arrangement or its shared inputs changed
+        value: ${{ jobs.scope.outputs.arrangement }}
+      hybrid:
+        description: Hybrid service or shared Rust changed
+        value: ${{ jobs.scope.outputs.hybrid }}
+      plugins:
+        description: Isolated plugin host changed
+        value: ${{ jobs.scope.outputs.plugins }}
+      docs:
+        description: Documentation or packaging payload changed
+        value: ${{ jobs.scope.outputs.docs }}
+      ci:
+        description: Workflow or scope policy changed
+        value: ${{ jobs.scope.outputs.ci }}
+permissions:
+  contents: read
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      native: ${{ steps.changed.outputs.native }}
+      mcp: ${{ steps.changed.outputs.mcp }}
+      web: ${{ steps.changed.outputs.web }}
+      arrangement: ${{ steps.changed.outputs.arrangement }}
+      hybrid: ${{ steps.changed.outputs.hybrid }}
+      plugins: ${{ steps.changed.outputs.plugins }}
+      docs: ${{ steps.changed.outputs.docs }}
+      ci: ${{ steps.changed.outputs.ci }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select affected jobs
+        id: changed
+        run: python3 .github/ci/check_scope.py
+      - name: Test changed scope policy once
+        if: (steps.changed.outputs.ci == 'true' && github.workflow == 'Native checks') || github.event_name == 'workflow_dispatch'
+        run: python3 -m unittest discover -s .github/ci -p test_check_scope.py

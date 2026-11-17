@@ -83,7 +83,7 @@ Browser **Download issue report JSON** explicitly saves a metadata snapshot of
 the scanned target/revision. It contains no audio and is separate from session
 ZIPs and optional recovery. Existing browser audio/history/memory limits remain.
 
-The matching Hotfix4/source companion exposes **45 tools**. Start with `get_capabilities`
+The released Hotfix4 companion exposes **45 tools**. Start with `get_capabilities`
 and `get_help(topic="doctor")`; no source checkout or chat history is needed.
 
 ```json

@@ -7,7 +7,7 @@ import struct
 import subprocess
 import tempfile
 import wave
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 
 
 def verify(server, desktop=None, evidence=None):

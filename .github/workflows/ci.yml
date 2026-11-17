@@ -10,7 +10,11 @@ concurrency:
   group: native-checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  scope:
+    uses: ./.github/workflows/change-scope.yml
   windows:
+    needs: scope
+    if: needs.scope.outputs.native == 'true' || needs.scope.outputs.mcp == 'true' || needs.scope.outputs.plugins == 'true'
     runs-on: windows-latest
     timeout-minutes: 40
     defaults:
@@ -23,22 +27,38 @@ jobs:
           rustup default stable
           rustup component add rustfmt clippy
       - run: cargo fmt --all -- --check
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo clippy --locked --all-targets -- -D warnings
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo test --locked --release --all-targets
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo build --locked --release --bins
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - run: cargo clippy --locked --manifest-path ../mcp/server/Cargo.toml --all-targets -- -D warnings
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - run: cargo test --locked --release --manifest-path ../mcp/server/Cargo.toml --all-targets
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - name: Verify MCP over stdio
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
+      - name: Verify compact MCP discovery and workflow routing
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
+        run: python ../mcp/tools/verify_compact_catalog.py --server ../mcp/server/target/release/slimeybeats-mcp.exe --evidence '${{ runner.temp }}/MCP-compact-catalog'
       - name: Verify editable arrangement persistence over fresh MCP connections
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python ../mcp/tools/verify_arrangement_projects.py --server ../mcp/server/target/release/slimeybeats-mcp.exe --evidence '${{ runner.temp }}/MCP-arrangement-projects'
       - name: Verify private support reports over stdio
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Verify Unicode connection setup in Windows PowerShell 5.1
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File ../mcp/tools/verify_connect_config.ps1 -Server ../mcp/server/target/release/slimeybeats-mcp.exe -Evidence '${{ runner.temp }}/SlimeyBeats-UTF8-config'
       - name: Verify Studio DSP routes and model-cache handling
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: |
           python tools/test_stem_model_install.py
           python tools/test_installation_identity.py
@@ -56,12 +76,15 @@ jobs:
           python ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_doctor.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Build and check isolated VST3 worker
+        if: ${{ needs.scope.outputs.plugins == 'true' }}
         run: |
           cargo fmt --manifest-path ../plugins/host/Cargo.toml -- --check
           cargo clippy --locked --manifest-path ../plugins/host/Cargo.toml --all-targets -- -D warnings
           cargo build --locked --release --manifest-path ../plugins/host/Cargo.toml
           python ../mcp/tools/verify_plugin_faults.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
   linux:
+    needs: scope
+    if: needs.scope.outputs.native == 'true' || needs.scope.outputs.mcp == 'true' || needs.scope.outputs.plugins == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     defaults:
@@ -70,6 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Linux build and validation dependencies
+        if: ${{ needs.scope.outputs.native == 'true' || needs.scope.outputs.plugins == 'true' }}
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends build-essential pkg-config libasound2-dev libdbus-1-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libxcb-shape0-dev libxcb-xfixes0-dev libgl1-mesa-dev libudev-dev xvfb xauth ffmpeg fonts-dejavu-core xdg-utils
@@ -78,26 +102,44 @@ jobs:
           rustup default stable
           rustup component add rustfmt clippy
       - run: cargo fmt --all -- --check
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo clippy --locked --all-targets -- -D warnings
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo test --locked --release --all-targets
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - run: cargo build --locked --release --bins
+        if: ${{ needs.scope.outputs.native == 'true' }}
       - name: Verify Linux exports, XDG paths and native GUI captures
+        if: ${{ needs.scope.outputs.native == 'true' }}
         run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_linux.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks'
       - name: Verify private GUI crash recovery and report captures
+        if: ${{ needs.scope.outputs.native == 'true' }}
         run: xvfb-run -a -s '-screen 0 1920x1080x24' python3 tools/verify_recovery.py --gui target/release/slimeybeats-ez-master-live --out '${{ runner.temp }}/SlimeyBeats-Linux-Checks/recovery'
       - name: Check headless CLI without desktop features
+        if: ${{ needs.scope.outputs.native == 'true' }}
         run: cargo check --locked --no-default-features --bin slimeybeats-ez-master-cli
       - run: cargo fmt --manifest-path ../mcp/server/Cargo.toml -- --check
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - run: cargo clippy --locked --manifest-path ../mcp/server/Cargo.toml --all-targets -- -D warnings
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - run: cargo test --locked --release --manifest-path ../mcp/server/Cargo.toml --all-targets
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - run: cargo build --locked --release --manifest-path ../mcp/server/Cargo.toml
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
       - name: Verify MCP over stdio and six codecs
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python3 ../mcp/tools/verify_mcp.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
+      - name: Verify compact MCP discovery and workflow routing
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
+        run: python3 ../mcp/tools/verify_compact_catalog.py --server ../mcp/server/target/release/slimeybeats-mcp --evidence '${{ runner.temp }}/MCP-compact-catalog'
       - name: Verify editable arrangement persistence over fresh MCP connections
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python3 ../mcp/tools/verify_arrangement_projects.py --server ../mcp/server/target/release/slimeybeats-mcp --evidence '${{ runner.temp }}/MCP-arrangement-projects'
       - name: Verify private support reports over stdio
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python3 ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Verify Studio DSP routes and model-cache handling
+        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: |
           python3 tools/test_stem_model_install.py
           python3 tools/test_installation_identity.py
@@ -115,13 +157,26 @@ jobs:
           python3 ../mcp/tools/verify_stem_bundles.py --server ../mcp/server/target/release/slimeybeats-mcp --codecs
           python3 ../mcp/tools/verify_doctor.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Build and check isolated VST3 worker
+        if: ${{ needs.scope.outputs.plugins == 'true' }}
         run: |
           cargo fmt --manifest-path ../plugins/host/Cargo.toml -- --check
           cargo clippy --locked --manifest-path ../plugins/host/Cargo.toml --all-targets -- -D warnings
           cargo build --locked --release --manifest-path ../plugins/host/Cargo.toml
           python3 ../mcp/tools/verify_plugin_faults.py --server ../mcp/server/target/release/slimeybeats-mcp
       - uses: actions/upload-artifact@v7
+        if: ${{ always() && needs.scope.outputs.native == 'true' }}
         with:
           name: SlimeyBeats-Linux-validation
           path: ${{ runner.temp }}/SlimeyBeats-Linux-Checks
           if-no-files-found: error
+  documentation:
+    needs: scope
+    if: needs.scope.outputs.docs == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check changed documentation and companion packaging contracts
+        run: |
+          python3 -m unittest discover -s rust/tools -p 'test_documentation*.py'
+          python3 -m unittest discover -s mcp/tools -p 'test_companion_package.py'

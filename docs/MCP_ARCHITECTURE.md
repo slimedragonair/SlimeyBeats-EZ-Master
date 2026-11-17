@@ -1,5 +1,9 @@
 # Local MCP companion architecture
 
+**Current-work catalog:** [33 focused main tools](MCP_TOOL_CATALOG.md), with the
+original 58-tool catalog available through `--tool-profile legacy`. Historical
+results and examples below retain the tool names/counts of their tested builds.
+
 The companion adds an automation surface to the desktop product without adding MCP/Tokio dependencies to the GUI or browser. It uses stdio only and shares the Rust library with both native entrypoints.
 
 | Files | Responsibility |

@@ -46,7 +46,7 @@ impl Companion {
             open_world_hint = false
         )
     )]
-    fn prepare_support_report(
+    pub(crate) fn prepare_support_report(
         &self,
         Parameters(a): Parameters<PrepareSupportReport>,
     ) -> Result<Json<Value>, String> {
@@ -61,7 +61,7 @@ impl Companion {
         description = "Save EXACT bytes of the latest immutable reviewed support-report preview into a fresh .md filename under the owner-authorized output root. Requires matching review_id and owner_review_confirmed:true ONLY after the owner reviewed the complete preview and explicitly requested saving it. Caller assertion is not proof of human consent. Refuses stale/foreign IDs, paths and existing files; never overwrites, uploads, posts issues or launches a browser. Saves are local, but MCP results and previously returned report text reach the AI client/model provider. Failed saves preserve the usable preview and all audio/project/settings state. No access to the desktop's private recovery cache.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn save_support_report(
+    pub(crate) fn save_support_report(
         &self,
         Parameters(a): Parameters<SaveSupportReport>,
     ) -> Result<Json<Value>, String> {

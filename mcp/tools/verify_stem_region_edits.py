@@ -8,7 +8,7 @@ import struct
 import tempfile
 import wave
 
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 from stem_import_fixtures import wav_data
 
 

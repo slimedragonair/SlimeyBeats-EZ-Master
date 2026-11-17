@@ -23,7 +23,7 @@ impl Companion {
         description = "Promote the current prepared Studio preview into the existing mastering workflow. Returns a NEW source_id; Analyze/Master/Manual EQ/Export then operate on that edited audio. Retains the Studio bank/history, invalidates only the old master and does not export final audio. Poll the job.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn use_studio_for_mastering(
+    pub(crate) fn use_studio_for_mastering(
         &self,
         Parameters(a): Parameters<PreviewId>,
     ) -> Result<Json<Value>, String> {

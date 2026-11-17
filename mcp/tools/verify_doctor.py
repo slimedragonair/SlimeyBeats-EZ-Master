@@ -7,7 +7,7 @@ from pathlib import Path
 import struct
 import tempfile
 
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 from stem_import_fixtures import wav_data
 
 

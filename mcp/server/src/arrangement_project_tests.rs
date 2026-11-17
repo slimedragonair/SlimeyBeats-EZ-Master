@@ -78,6 +78,7 @@ fn reopen(workspace: &Workspace, max_mib: u32) -> Arc<Engine> {
         profiles_root: None,
         studio_data: Some(workspace.root.path().join("unused-runtime")),
         plugin_root: vec![],
+        tool_profile: crate::tool_catalog::ToolProfile::Compact,
         print_config: false,
     })
     .unwrap()

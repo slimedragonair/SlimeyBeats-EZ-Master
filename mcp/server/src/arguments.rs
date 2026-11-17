@@ -31,6 +31,9 @@ pub struct Arguments {
     /// Trusted plugin folders the assistant may probe/execute. Empty disables plugin access.
     #[arg(long)]
     pub plugin_root: Vec<PathBuf>,
+    /// Compact exposes 33 organized tools; legacy advertises the original 58 for older clients.
+    #[arg(long, value_enum, default_value_t = crate::tool_catalog::ToolProfile::Compact)]
+    pub tool_profile: crate::tool_catalog::ToolProfile,
     /// Print a client configuration example and exit; do not start the server.
     #[arg(long)]
     pub print_config: bool,
@@ -46,6 +49,8 @@ impl Arguments {
             ]);
         }
         args.extend([
+            "--tool-profile".into(),
+            self.tool_profile.as_str().into(),
             "--output-root".into(),
             std::path::absolute(&self.output_root)?
                 .to_string_lossy()

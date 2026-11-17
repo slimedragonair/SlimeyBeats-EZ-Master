@@ -10,7 +10,7 @@ GUIDES = (
     'INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html',
     'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'WEB_EXPORTS.md', 'WEB_EXPORT_VALIDATION.md',
     'BROWSER_PARITY_ROADMAP.md', 'MOBILE_PREVIEW.md', 'MCP.md', 'MCP_ARCHITECTURE.md',
-    'MCP_VALIDATION.md', 'STUDIO.md', 'STEM_LIVE_MONITORING.md', 'STEM_EDITOR.md',
+    'MCP_VALIDATION.md', 'MCP_TOOL_CATALOG.md', 'CI_CHECK_SCOPES.md', 'STUDIO.md', 'STEM_LIVE_MONITORING.md', 'STEM_EDITOR.md',
     'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'UPDATES_AND_OPTIONAL_TOOLS.md',
     'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md',
     'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
@@ -111,7 +111,7 @@ def copy_public_source(repository, destination):
                  'verify_arrangement_guest.py', 'verify_arrangement_many_sources.py'):
         copy(Path('hybrid/tools') / name)
     for path in sorted((repository / '.github').rglob('*')):
-        if path.is_file():
+        if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
             copy(path.relative_to(repository))
     for name in ('Cargo.toml', 'Cargo.lock'):
         copy(Path('plugins/host') / name)

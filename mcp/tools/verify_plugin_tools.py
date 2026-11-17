@@ -1,7 +1,7 @@
 """Exercise owner-scoped plugin access and actual rendering through MCP."""
 import argparse,json,math,struct,tempfile,wave
 from pathlib import Path
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 
 def verify(server,plugins):
     with tempfile.TemporaryDirectory(prefix='SlimeyBeats MCP plugins ') as temporary:

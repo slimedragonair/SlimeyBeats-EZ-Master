@@ -10,7 +10,11 @@ concurrency:
   group: hybrid-checks-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  scope:
+    uses: ./.github/workflows/change-scope.yml
   hybrid:
+    needs: scope
+    if: needs.scope.outputs.hybrid == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:

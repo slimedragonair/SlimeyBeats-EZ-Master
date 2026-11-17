@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 import wave
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "rust/tools"))
 from verify_exports import independent_measurements

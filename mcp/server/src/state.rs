@@ -174,6 +174,18 @@ impl Engine {
 
     pub fn session(&self) -> Result<Value> {
         let store = self.lock()?;
+        self.session_summary(&store)
+    }
+
+    pub(crate) fn all_sessions(&self) -> Result<Value> {
+        let store = self.lock()?;
+        let mut value = self.session_summary(&store)?;
+        value["studio"] = store.session.studio.summary(self, &store.session)?;
+        value["arrangement"] = store.arrangements.summary(self)?;
+        Ok(value)
+    }
+
+    fn session_summary(&self, store: &Store) -> Result<Value> {
         let s = &store.session;
         let source = s.source.as_ref().map(|source| json!({"source_id":source.id,"file":self.locator(&source.source.path),"duration_seconds":source.audio.duration(),"sample_rate":source.audio.sample_rate,"channels":source.audio.channels}));
         let master = s.master.as_ref().map(|master| Ok::<_,anyhow::Error>(json!({"preview_id":master.id,"relative_preview_path":self.policy.relative_output(master.file.as_ref())?,"measurements":master.preview.report.output.metrics,"settings":public_settings(&master.settings),"target_lufs":master.preview.report.target_lufs}))).transpose()?;

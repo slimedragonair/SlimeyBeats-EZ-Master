@@ -49,7 +49,7 @@ impl Companion {
             open_world_hint = false
         )
     )]
-    fn inspect_stem_bundle(
+    pub(crate) fn inspect_stem_bundle(
         &self,
         Parameters(a): Parameters<LibraryPath>,
     ) -> Result<Json<Value>, String> {
@@ -63,7 +63,7 @@ impl Companion {
         description = "Import aligned WAV/MP3 stems directly from a Suno/stem ZIP, locally without a neural model. Matching WAV/MP3 versions are one part; default preferred_format=wav, or choose mp3. Missing preferred versions fall back to the available encoding. Omit parts to import all distinct parts, regardless of count; optional parts selects at least two unique part_index values. No fixed stem-count cap; decoded-audio, ZIP byte/metadata, timeout and memory budgets apply. Only selected audio is read into private temporary files. No uploads/overwrites. Rates/channels/frames must match. Replaces Studio with a temporary mix; poll, audition, then export only on request.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn import_stem_bundle(
+    pub(crate) fn import_stem_bundle(
         &self,
         Parameters(a): Parameters<ImportBundle>,
     ) -> Result<Json<Value>, String> {

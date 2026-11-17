@@ -22,6 +22,7 @@ fn engine(root: &std::path::Path) -> Arc<Engine> {
         profiles_root: None,
         studio_data: None,
         plugin_root: vec![],
+        tool_profile: crate::tool_catalog::ToolProfile::Compact,
         print_config: false,
     })
     .unwrap()
