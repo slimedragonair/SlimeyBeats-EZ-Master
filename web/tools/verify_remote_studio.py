@@ -11,11 +11,14 @@ import io
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 import struct
 import subprocess
 import sys
 import time
+import traceback
+from urllib.parse import urlsplit
 import wave
 import zipfile
 
@@ -93,7 +96,7 @@ def range_value(page, selector, value):
 
 def pcm(path):
     blob=path.read_bytes()
-    assert blob[:4]==b"RIFF" and blob[8:12]==b"WAVE"
+    assert blob[:4]==b"RIFF" and blob[8:12]==b"WAVE",{'file':path.name,'header':blob[:12].hex()}
     offset=12
     while offset+8<=len(blob):
         tag,size=struct.unpack_from("<4sI",blob,offset);start=offset+8
@@ -101,7 +104,7 @@ def pcm(path):
             encoding,channels,rate,_,_,bits=struct.unpack_from("<HHIIHH",blob,start)
             if encoding==65534:encoding=struct.unpack_from("<I",blob,start+24)[0]
         if tag==b"data":
-            assert encoding==3 and bits==32
+            assert encoding==3 and bits==32,{'file':path.name,'encoding':encoding,'bits':bits,'rate':rate,'channels':channels}
             data=array('f');data.frombytes(blob[start:start+size])
             if sys.byteorder!='little':data.byteswap()
             return data,rate,channels
@@ -122,21 +125,48 @@ class UiRun:
     def manifests(self):
         return self.page.evaluate('__remoteUiAudit.manifests()')
 
-    def complete(self,operation,start):
+    def complete(self,operation,start,command_id=None):
+        previous={event['command'] for event in self.events[:start]}
         deadline=time.monotonic()+120
         while time.monotonic()<deadline:
             for event in self.events[start:]:
-                if event['operation']==operation and event['state'] in ('completed','failed','cancelled'):
+                if (event['operation']==operation and event['command'] not in previous
+                        and (command_id is None or event['command']==command_id)
+                        and event['state'] in ('completed','failed','cancelled')):
                     assert event['state']=='completed',event
-                    return self.manifests[event['project']]
+                    manifest=self.manifests[event['project']]
+                    if (manifest.get('command',{}).get('id')==event['command']
+                            and manifest['command'].get('state')=='completed'):
+                        return manifest
             error=self.page.evaluate("document.querySelector('#import-error:not([hidden])')?.textContent || document.querySelector('#s-status.error')?.textContent || ''")
             if error:
                 raise AssertionError('Application rejected '+operation+': '+error)
             self.page.wait_for_timeout(50)
-        raise TimeoutError('No completed actual UI command: '+operation)
+        raise TimeoutError(f'No completed actual UI command: {operation}, id={command_id}; events={self.events[start:]}')
 
     def click(self,selector,operation):
-        start=len(self.events);self.page.locator(selector).click();return self.complete(operation,start)
+        start=len(self.events)
+        self.result['phase']={'selector':selector,'operation':operation}
+        def submitted(response):
+            request=response.request
+            return (request.method=='POST'
+                    and re.fullmatch(r'/v2/projects/[a-f0-9]{32}/commands',urlsplit(response.url).path)
+                    and request.post_data_json.get('operation')==operation)
+        with self.page.expect_response(submitted,timeout=120000) as pending:
+            self.page.locator(selector).click()
+        response=pending.value
+        assert response.status==202,{'phase':self.result['phase'],'http_status':response.status}
+        acknowledged=response.json();command=acknowledged.get('command',{})
+        assert command.get('id') and command.get('operation')==operation,{'phase':self.result['phase'],'command':command}
+        assert command['id'] not in {event['command'] for event in self.events[:start]}, {
+            'phase':self.result['phase'],'reused_command':command['id']}
+        self.result['phase']['command_id']=command['id']
+        # History can finish in the POST itself. Its response is authoritative;
+        # a late pre-command refresh must not stand in for this click's result.
+        if command.get('state') in ('completed','failed','cancelled'):
+            assert command['state']=='completed',command
+            return acknowledged
+        return self.complete(operation,start,command['id'])
 
     def passed(self,name,details=True):
         self.result['checks'][name]={'passed':True,'details':details}
@@ -157,10 +187,8 @@ class UiRun:
         }''',{'label':label,'seconds':seconds,'silent':silent})
 
     def download(self,selector,name,operation):
-        start=len(self.events)
         with self.page.expect_download(timeout=120000) as event:
-            self.page.locator(selector).click()
-        manifest=self.complete(operation,start)
+            manifest=self.click(selector,operation)
         download=event.value;target=self.fixture.out/name;download.save_as(str(target))
         assert download.failure() is None
         assert any(file.stat().st_size==target.stat().st_size and sha(file)==sha(target)
@@ -254,19 +282,28 @@ def workflow(run,args,files):
     assert edited!=before and studio['preview_is_mix']
     assert studio['preview_id'] not in {s['id'] for s in studio['stems']}
     run.passed('studio_region_full_mix',{'before':before,'after':edited,'ab_before':studio.get('before_id')})
-    studio=run.click('#s-undo','history');assert studio['preview_id']==before
-    studio=run.click('#s-redo','history');assert studio['preview_id']==edited
+    studio=run.click('#s-undo','history')
+    assert studio['preview_id']==before,{'phase':'studio_undo','expected_preview':before,
+        'actual_preview':studio['preview_id'],'revision':studio['revision'],'command':studio['command']}
+    studio=run.click('#s-redo','history')
+    assert studio['preview_id']==edited,{'phase':'studio_redo','expected_preview':edited,
+        'actual_preview':studio['preview_id'],'revision':studio['revision'],'command':studio['command']}
     run.passed('studio_undo_redo',{'restored_preview':studio['preview_id']})
     page.locator('#s-format').select_option('wav32f')
     target,studio=run.download('#s-export','studio-full-mix.wav','export')
-    samples,rate,channels=pcm(target);assert (len(samples)//channels,rate,channels)==(384000,48000,2)
+    samples,rate,channels=pcm(target)
+    assert (len(samples)//channels,rate,channels)==(384000,48000,2),{
+        'phase':'studio_export_geometry','frames':len(samples)//channels,'rate':rate,'channels':channels}
     # Vocals and accompaniment have different tones. During the silenced vocal
     # selection the accompaniment remains; the whole mix must never become solo.
     middle=samples[24000*2:48000*2]
-    assert math.sqrt(sum(x*x for x in middle)/len(middle))>.02
+    selection_rms=math.sqrt(sum(x*x for x in middle)/len(middle))
+    assert selection_rms>.02,{'phase':'studio_export_accompaniment','selection_rms':selection_rms}
     expected_edit=array('f',((b if 24000<=index//2<48000 else a+b)/32768
                             for index,(a,b) in enumerate(zip(a_samples,b_samples))))
-    assert samples==expected_edit,'Committed region export differs from the exact complete bank mix'
+    assert samples==expected_edit,{'phase':'studio_export_exact_pcm','actual_samples':len(samples),
+        'expected_samples':len(expected_edit),'first_mismatch':next(
+            ((index,actual,expected) for index,(actual,expected) in enumerate(zip(samples,expected_edit)) if actual!=expected),None)}
     run.passed('studio_full_mix_export',{'sha256':sha(target),'selection_rms':math.sqrt(sum(x*x for x in middle)/len(middle)),
         'full_pcm_exact_to_edited_bank':True})
     archive,_=run.download('#s-export-session','studio-session.zip','bundle')
@@ -342,7 +379,8 @@ def main():
                     assert all(sha(path)==digests[name] for name,path in files.items())
                     result['success']=True
                 except Exception as error:
-                    result['failure']=page.evaluate('text=>__remoteUiAudit.redact(text)',str(error))
+                    result['failure']=page.evaluate('text=>__remoteUiAudit.redact(text)',type(error).__name__+': '+str(error))
+                    result['failure_traceback']=page.evaluate('text=>__remoteUiAudit.redact(text)',traceback.format_exc())
                     result['ui']={key:page.locator('#'+key).inner_text() for key in ('status','s-status','hybrid-availability')}
                     result['audit']=page.evaluate('__remoteUiAudit.summary()')
                     page.screenshot(path=str(args.out/'failure.png'),full_page=True)
@@ -352,6 +390,7 @@ def main():
                     browser.close()
     except Exception as error:
         result.setdefault('failure',type(error).__name__+': '+str(error))
+        result.setdefault('failure_traceback',traceback.format_exc())
     finally:
         result['elapsed_seconds']=time.monotonic()-started
         encoded=json.dumps(result,indent=2,allow_nan=False)

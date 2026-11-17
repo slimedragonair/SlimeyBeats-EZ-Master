@@ -148,3 +148,25 @@ it is not a maximum-memory, default-settings, 48 kHz stereo qualification.
 
 No source limits were increased by downsampling or truncating originals. The
 stable main web app and Hotfix4 desktop installer remain separate releases.
+
+
+## Server track editor — November 17, 2026
+
+The normal Server processing workflow now has an independent Tracks editor.
+Its native media output and bounded preview-only codec tail were qualified in
+Chromium, Firefox and WebKit at 320/390px: 144 private UI groups and six decoder
+cases passed, including 20 ms and one-frame ending suffixes. Twenty-two focused
+player/transport regressions cover queued EOF, rejected-start cleanup and stale
+continuations. Twelve targeted backend tests include twelve real codec cases;
+unchanged Rust binaries were reused rather than rebuilding or rerunning their
+previously qualified suite.
+
+The production service is updated, with a matched committed-source receipt and
+an empty-work idle check before its controlled restart. Public API acceptance
+passed with an ordinary guest, including legacy mastering/export and the tiny
+suffix. The published Chromium390px guest workflow passed MP3/WAV, canonical
+project saving, A/B and scoped EQ using six heavy jobs. The subsequent WebKit
+HTTPS recheck addresses a queued-EOF cursor race; its final result is recorded
+in [Web arrangement UI](WEB_ARRANGEMENT_UI.md). These remain digital-output
+checks; physical iPhone/Android audio acceptance is separate. The desktop
+installer was not replaced by this source/web update.

@@ -1,7 +1,7 @@
 // Private qualification instrumentation. It observes the real worker/graph and
 // captures a silent side branch; product processing and messages are unchanged.
 const audit = window.arrangementAudit = { actions: [], renderBlocks: 0, edits: [], latest: null, preparations: [], proposals: [], measuredOutputs: [], outputs: [], pcm: [], frames: 0 };
-audit.deliveries = [];
+audit.deliveries = []; audit.sourceClock = [];
 const blobTypes = new Map(), createUrl = URL.createObjectURL;
 URL.createObjectURL = function (blob) { const url = createUrl.call(this, blob); blobTypes.set(url, blob.type); return url; };
 const anchorClick = HTMLAnchorElement.prototype.click;
@@ -36,7 +36,16 @@ const NativeWorkletNode = window.AudioWorkletNode;
 window.AudioWorkletNode = class extends NativeWorkletNode {
     constructor(context, name, options) {
         super(context, name, options);
-        if (name === "arrangement-sink") audit.arrangementContext = context;
+        if (name === "arrangement-sink") {
+            audit.arrangementContext = context;
+            this.port.addEventListener("message", ({ data }) => {
+                if (!Number.isSafeInteger(data.frame)) return;
+                audit.sourceClock.push({ kind: data.kind, generation: data.generation, frame: data.frame,
+                    received_context_time: context.currentTime, received_wall_ms: performance.now() });
+                if (audit.sourceClock.length > 512) audit.sourceClock.shift();
+            });
+            this.port.start();
+        }
     }
 };
 AudioNode.prototype.connect = function (destination, ...args) {
@@ -67,7 +76,14 @@ audit.reset = (limitFrames = 0) => {
     audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + 0.08;
     audit.limitFrames = limitFrames; audit.frozen = false;
     audit.captureStart = audit.captureEnd = null; audit.captureGaps = 0;
+    audit.sourceClock = [];
 };
+
+// Export the same bounded capture used by measure(), without choosing samples
+// by their level. Source-clock receive times are diagnostics, not render times.
+audit.captureEvidence = () => ({ measurement: audit.measure(),
+    pcm: [0, 1].map(channel => audit.pcm.flatMap(block => Array.from(block[channel] || block[0]))),
+    source_clock: audit.sourceClock.slice() });
 audit.measure = () => {
     const samples = audit.pcm.flatMap(block => [...block[0]]).slice(-9600);
     if (samples.length !== 9600) throw new Error("Insufficient actual output PCM");

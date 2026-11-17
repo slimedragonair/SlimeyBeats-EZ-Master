@@ -199,7 +199,7 @@ or listening.
 Native probes copy both CLI and worker to private fixture directories and record
 their hashes before launching. They never hold Windows' mutable build images
 open during other agents' builds. Existing server/mastering and aligned-bank
-APIs remain unchanged. No service restart or production rollout has occurred.
+APIs remain unchanged. At the original November 16 checkpoint, no production rollout had occurred; the November 17 deployment below supersedes that status.
 
 
 ## Native server-preview output and short suffixes
@@ -231,3 +231,22 @@ continuation from pausing newer playback. Seeking to the exact end stays paused;
 the next Play starts at zero. Listening volume uses the Studio 0–1 range and does
 not enter an export. Device-specific media/volume behavior and physical-phone
 acceptance remain separate from synthetic native-output qualification.
+
+
+## November 17 production deployment
+
+The qualified backend was installed from source commit `ab948624` after a fresh
+root metadata check found no retained projects, audio sessions, active jobs or
+native children. The guarded update appended only `--enable-arrangement` to the
+service command. Authentication, models, codecs, storage, resource settings and
+the existing Funnel ingress were preserved. Rollback files remain available.
+The deployed Python fingerprint is
+`3bbce76b0ba301b166e5b37af3ebc8f6533428ca32e196e6acef0ef2f73da79a`;
+the compiled native inputs were unchanged and their qualified binaries reused.
+
+A fresh ordinary public guest passed health/capability discovery, a 20 ms suffix
+with padding4800 and decoded marker frame1809, and the existing WAV import,
+analysis, mastering and export flow. The original hash and stereo48kHz/60000-frame
+export geometry were preserved; both owned test projects were deleted. This API
+acceptance used four processing submissions. See the browser-specific record in
+[Web arrangement UI](WEB_ARRANGEMENT_UI.md) for native-output and HTTPS UI scope.

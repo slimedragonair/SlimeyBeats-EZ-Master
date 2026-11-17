@@ -74,9 +74,21 @@ def verify(browser, base, width, args, result, sources, archive):
         return updated(revision)
 
     def measure(name):
-        page.evaluate('()=>arrangementAudit.reset()')
+        # Retain the first settled window. A delayed browser read must not
+        # replace it with a rolling tail from a different transport interval.
+        page.evaluate('()=>arrangementAudit.reset(18000)')
         page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=10000)
-        value = page.evaluate('()=>arrangementAudit.measure()')
+        evidence = page.evaluate('()=>arrangementAudit.captureEvidence()')
+        value = evidence['measurement']
+        number = len(row['measurements']) + 1
+        stem = f'{width}-pcm-{number:02d}'
+        pcm = np.asarray(evidence.pop('pcm'), dtype='<f4')
+        assert pcm.ndim == 2 and pcm.shape[0] == 2 and 0 < pcm.shape[1] <= 65536, pcm.shape
+        pcm.T.tofile(args.out / f'{stem}.f32')
+        value['raw_pcm_file'] = f'{stem}.f32'
+        value['capture_metadata_file'] = f'{stem}.json'
+        evidence.update(channels=2, frames=pcm.shape[1], sample_format='interleaved Float32 little endian')
+        (args.out / f'{stem}.json').write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
         row['measurements'][name] = value
         return value
 
