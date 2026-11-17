@@ -1,6 +1,6 @@
 # Web arrangement interface
 
-The `web/site/arrangement-timeline*` modules provide the local arrangement
+The `web/site/arrangement-timeline*` modules provide the arrangement
 interface over the shared [arrangement core](ARRANGEMENT_CORE.md). They do not
 weaken `StemSet`, dispatch clips as stem kinds, mix PCM in JavaScript, or invent
 another project format. Their DOM/gesture tests use mocked replies and do not
@@ -28,7 +28,7 @@ successfully installed real preview source.
 - `arrangement-timeline-template.js`, `arrangement-timeline.css` and
   `arrangement-timeline-fields.js`: scoped markup, existing theme variables,
   responsive controls and stable DOM field updates.
-- `arrangement-studio-workspace.js` and `studio-transport-controls.js`: Studio
+- `arrangement-studio-workspace.js`, `arrangement-studio-pane.js` and `studio-transport-controls.js`: Studio
   pane selection and routing of the existing pinned controls to the selected
   real transport. Legacy assets and positions remain separate.
 - `arrangement-timeline-project.js`: explicit canonical project Save/Open and
@@ -74,6 +74,16 @@ and server playback have separate adapter qualifications. Canonical project
 ZIPs retain applied metadata, immutable assets and Undo/Redo history. Invalid
 projects preserve the current workspace. Legacy recovery cannot silently claim
 to include arrangement tracks; use Save project for those tracks.
+
+Browser EQ fields are drafts: use **Update EQ preview** to hear a manual change
+on the running arrangement. Suggested curves use a separate **Apply curve**
+action. Neither operation needs a whole-song export, and saving/exporting keeps
+unapplied fields out of the result. Native sliders audition during adjustment.
+
+The final gated runtime `e44d3ddac99e5bf3` also passed actual Chromium 143 clicks
+at 320/390 pixels: eight checks, no errors, no server project/upload/download,
+retained local drafts, and identical captured local PCM after Server Off. Legacy
+server source/import and mix/voice controls remained reachable.
 
 ## Coordinate and interaction rules
 
@@ -163,10 +173,32 @@ track gain and an unchanged second track. Project Save remains the canonical
 asset/history ZIP regardless of delivery format. First import fits the entire
 song; later metadata revisions retain the chosen timeline view.
 
-## C-owned checkpoint files
+## Low-level AudioWorklet probe QA
 
-These are the complete local UI and qualification files owned by C. Adapter,
-WASM, shared Rust and server backend changes are owned by the other contributors.
+The November 16, 2026 rerun of `web/tools/verify_arrangement_audio.py` recorded:
+
+| Check | Tested scope | Result |
+| --- | --- | --- |
+| Generated WASM, actual worklet PCM and delivery checks | Linux Chromium 143, Firefox 144 and WebKit 26 | Passed |
+| Real capture delayed by 1.2 seconds | Linux Chromium 143 | Original probe failed; updated probe passed |
+| Worklet running without PCM delivery | Linux and Windows Chromium 143 | Failed at the configured 1-second deadline, as required |
+
+Capture uses tagged, contiguous PCM blocks after 200 ms of audio-clock settling,
+with a default 10-second deadline. It waits for actual samples, not a desired RMS.
+Numeric assertions remain unchanged: baseline RMS 0.06–0.08, −6 dB gain ratio
+0.47–0.54, Before-to-baseline RMS ratio 0.95–1.05, and exact zero RMS after Stop.
+Source immutability and WAV/MP3 delivery assertions also remain in place.
+
+Repeat the delayed-arrival positive check with `--capture-start-delay-ms 1200`.
+Use `--capture-suppress-pcm --pcm-timeout-ms 1000` for the negative check; its
+nonzero exit is expected. Failure reports retain context-clock, capture-window
+and sink diagnostics. These results do not establish that the failed hosted CI
+job has passed; that requires a run containing the updated probe.
+
+## Local editor files
+
+These files implement and validate the local interface. Adapter, WASM, shared
+Rust and server backend modules provide the processing and persistence layers.
 
 ```text
 docs/WEB_ARRANGEMENT_UI.md
@@ -174,6 +206,7 @@ web/site/studio-app.js
 web/site/studio-template.js
 web/site/studio-transport-controls.js
 web/site/arrangement-studio-workspace.js
+web/site/arrangement-studio-pane.js
 web/site/arrangement-timeline-commands.js
 web/site/arrangement-timeline-commands.test.mjs
 web/site/arrangement-timeline-controller.js
@@ -201,10 +234,135 @@ web/tools/verify_arrangement_project_ui.py
 web/tools/verify_arrangement_ui.py
 ```
 
-The additive server media foundation changes are
-`web/site/hybrid/remote-media-policy.js`, `remote-media-policy.test.mjs` and
-`server-client.js`: twelve existing/new policy and client checks passed. The
-new `arrangement-stream-contract.js`, `arrangement-stream-preview.js` and
-`arrangement-stream-preview.test.mjs` in that folder are currently unwired;
-their five clock/state tests do not qualify server playback. The server adapter
-and real HTTP/audio workflow remain a separate integration phase.
+## Server adapter and qualification
+
+`hybrid/arrangement-remote-adapter.js` checks the actual server arrangement and
+playback capabilities before creating a project. Server On routes the existing
+Arrange tracks action and pinned transport to that adapter. When the server
+workspace is fresh, that explicit action continues a loaded local document via
+its canonical Project Save/Open path, retaining source IDs, history, selection,
+paused position and raw unfinished fields. The switch itself sends no audio.
+An existing server document remains separate and is never implicitly merged or
+replaced. While Server On
+awaits an available server workspace, the retained local pane stays paused and
+locked; turning Server Off restores it. Server projects above the local 128 MiB
+decoded-source budget remain on the server, with an explicit budget message
+before any download. Failure never silently switches engines.
+
+`arrangement-remote-import.js` uses chunked owned uploads. A ZIP is uploaded once;
+the server supplies opaque review/part/version IDs and performs selected source
+extraction. The phone does not read or decode the whole archive. The frontend
+adds no fixed part-count policy; bounded metadata replies and advertised server
+upload, decoded-memory, metadata and storage budgets still apply. A successful selection is one atomic
+history edit, preserving existing tracks and different source durations.
+
+`arrangement-remote-jobs.js` polls exact owned job IDs with epoch/revision guards
+for scoped suggestions, delivery export and canonical Project Save/Open. Cancel
+targets the acknowledged job. `arrangement-timeline-project.js` accepts either
+local bytes or a server-owned artifact; remote results use the existing
+authenticated streaming download bridge. Save/Open remains separate from WAV or
+MP3 delivery, and neither action accepts unapplied fields or proposals.
+
+`arrangement-stream-contract.js` and `arrangement-stream-preview.js` map the
+48 kHz compressed preview clock to exact project frames after explicit encoder
+priming. Applied server edits can take a few seconds to reach buffered audio;
+the pane states that delay. Qualification keeps strict PCM ratios and a bounded
+four-second settling deadline. Backend encoder pacing is a different bound.
+
+The configurable public guest defaults are 16 heavy jobs per session, 32 per
+IP address per hour and 128 globally per hour. ZIP review and commit use the
+separate admission-command budget (120 per session), while Open, suggestions
+and delivery exports consume heavy jobs. Native concurrency, CPU, memory and
+storage limits remain enforced. Coded quota failures preserve the open document
+and identify the allowance rather than claiming temporary server busy. Ordinary
+guest acceptance uses one real guest session for ZIP, suggestions, edits,
+MP3/WAV delivery, project saving and a further tweak. The operator stress route
+is additional evidence; it does not substitute for the guest workflow.
+
+Additional integration files are the `hybrid/arrangement-remote-*`
+modules/tests, `hybrid/arrangement-stream-*`, and the focused changes in
+`hybrid/server-client.js`, `hybrid/main-controls.js`, `hybrid/bounded-json.js` and
+`hybrid/remote-media-policy.js`. Browser tooling is
+`verify_arrangement_remote.py`, `arrangement_remote_{audit.js,files.py,archive.py,diagnostics.py}`,
+`test_arrangement_remote_diagnostics.py` and `remote_browser_fixture.py`.
+Canonical continuation also uses `arrangement-workspace-transfer.js` and its
+tests. The ordinary guest probe is `verify_arrangement_guest_ui.py`, with
+`arrangement_remote_migration.py` and `arrangement_remote_budget.py` helpers.
+Fixtures freeze both native binaries into their private directory before launch
+and record their paths and hashes; they do not keep mutable Cargo images open.
+
+Run the actual isolated HTTP/UI workflow with matching native binaries:
+
+```sh
+python web/tools/verify_arrangement_remote.py --site <matching-build> --cli <cli> --worker <worker> --ffmpeg <ffmpeg> --browser chromium --owner --files --archive --out <scratch>/remote
+python web/tools/verify_arrangement_remote.py --site <matching-build> --cli <cli> --worker <worker> --unavailable --out <scratch>/unavailable
+python web/tools/verify_arrangement_remote.py --site <matching-build> --cli <cli> --worker <worker> --guest-limit --out <scratch>/guest-quota
+python web/tools/verify_arrangement_guest_ui.py --site <matching-build> --cli <cli> --worker <worker> --ffmpeg <ffmpeg> --browser chromium --out <scratch>/guest
+```
+
+Use `--archive-mib 303` for the synthetic large-archive boundary. The fixture
+can check real server sources above the local budget with `--large-budget` on
+the guest probe. The operator stress fixture credential exchange supplies only
+its private operator token; application
+controls, audio processing and download authentication remain real. All sources
+are synthetic. Physical mobile playback, real-device memory and deployed remote
+availability require separate acceptance. The production server arrangement
+feature stays opt-in and off by default.
+
+### Matching remote qualification, November 16, 2026
+
+**Browser server arrangement editing is disabled** by
+`ARRANGEMENT_SERVER_UI_ENABLED = false`. Its existing action explains that
+qualification is unfinished and preserves local work and drafts. The local
+editor, native/MCP paths and legacy server mastering/Studio remain unchanged.
+The prepared remote CI steps are explicitly skipped until the full short/EOF
+and source-clock regression passes. Local MP3 and metadata checks remain active.
+
+The frozen frontend/WASM runtime `c3e701a510ecef7f` passed these headless Linux
+checks against an isolated owned HTTP service. Browser widths are 320 and 390
+logical pixels; they are responsive layout checks, not physical phone acceptance.
+
+| Check | Cases and grouped checks | Result |
+| --- | --- | --- |
+| Ordinary guest canonical continuation, ZIP review, scoped Suggest/edit, running A/B, MP3/WAV, Project Save, another tweak/export | Chromium 143, Firefox 144, WebKit 26; six cases, 54 groups | Passed; zero application errors in passing reports |
+| Matching local MP3 regression | Same engines and widths; six cases, 18 groups | Passed; independent 320 kbps decode, applied gain and unchanged other track |
+| Large guest ZIP and Server Off | Chromium, both widths; two cases, 18 groups | Passed; 322,103,609-byte synthetic ZIP uploaded once per session, 155,136,000 decoded source bytes checked before any Server Off download |
+| Timestamped MP4 buffering and cancellation | Actual WebKit decoder, two cases | Passed; paused reader count remained 11 across a further second; buffer ended at 1.08 seconds; active buffer covered 1.8–4.56 seconds at position 4.103 seconds; owned fetch aborted |
+| Metadata, transport and buffer lifecycle regressions | 42 Node tests; two Python diagnostic tests | Passed |
+
+Reports remain in the private `SlimeyBeats-Arrangement-20261116/qualification-*`
+proof directories. Native CLI/worker snapshots and hashes are recorded in each
+fixture. The public native source fingerprint is
+`669ed07dd12261e01f3f1c3d77972f6e337057057a77cd0eb221216467bca1e6`;
+WebKit, Firefox and large-archive checks used the qualified Linux worker
+`a210a6d97d3fe0f1bd6d89a01571ce62b2befcdd7597e3e7114b112180c6e520`.
+Each run uses an owned 48 kHz Pulse null sink and reaps it afterward.
+
+Chromium and Firefox use native progressive MP3. A positive MP4 MIME feature
+test selects the timestamped MP3-in-MP4 MSE path in WebKit, and an explicit
+server capability is required before creating a project. The compressed reader
+uses segments mode and bounded read-ahead/eviction, with the same server encoder
+and no extra browser PCM decode or remaster. Its implementation is
+`audio/compressed-preview-source.js`; lifecycle tests are beside it. The actual
+decoder probe is `verify_arrangement_stream_browser.py`, with test-only
+`arrangement_stream_browser_probe.js`. The short UI diagnostic is
+`verify_arrangement_short_ui.py`. None changes native code.
+
+**Remaining qualification failure:** the 0.12-second WebKit MP4 marker case has
+valid encoded audio (independent decoded peak 0.598) but zero captured output.
+The media clock jumps to EOF without captured Web Audio output. Private timing
+experiments are preserved and have not changed product code. Full short-source,
+EOF and source-clock qualification is therefore still pending; the CI commands
+above do not claim to establish it. One earlier 6% first-return-B amplitude
+shortfall also remains preserved without raw PCM sufficient to prove its cause;
+the current clean Firefox/WebKit captures use a frozen first 18,048-frame window
+and retain raw PCM on any first settling failure without changing tolerances.
+
+An independent negative cleanup control attributed a historical terminal 404 to
+`stop` issued 107 ms after the fixture began deleting its own playing project.
+The expected error and operation/epoch/stream evidence are retained in
+`qualification-cleanup-control`; it is not counted as an error-free user flow.
+Historical migration HTTP 400 entries lacked request bodies for conclusive
+attribution. The six current complete guest cases include clean canonical
+continuation with applied source-range EQ, stable IDs/history, paused position
+and raw unfinished fields, and produce no such errors.

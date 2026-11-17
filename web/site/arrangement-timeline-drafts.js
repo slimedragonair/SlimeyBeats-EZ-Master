@@ -29,5 +29,7 @@ export class ArrangementDrafts {
             throw new Error("The selected item changed while you were editing. Your draft is kept; reload its saved values before applying it.");
     }
     clear(key) { this.entries.delete(key); }
+    capture() { return structuredClone(this.entries); }
+    restore(entries) { this.entries = structuredClone(entries); }
     reset() { this.entries.clear(); }
 }

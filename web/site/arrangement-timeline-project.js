@@ -8,14 +8,21 @@ const DELIVERY_FORMATS = [["wav24", "24-bit WAV"], ["wav16", "16-bit WAV"],
 // belong to the adapter's shared core, never to the timeline DOM.
 export function wireArrangementProject(host, { adapter, getState, run, adopt, pause, notice }) {
     const $ = name => host.querySelector(`[data-arr="${name}"]`);
+    async function deliver(result, name, type) {
+        if (result?.artifact && typeof adapter.downloadArtifact === "function") {
+            await adapter.downloadArtifact(result.artifact, name || result.name); return;
+        }
+        const bytes = result instanceof Uint8Array ? result : result?.bytes;
+        if (!(bytes instanceof Uint8Array)) throw new Error("The arrangement adapter returned no download.");
+        download(bytes, name || result.name || "Studio-arrangement.zip", type || result.type || "application/zip");
+    }
     $("project-save").onclick = () => {
         if ($("project-save").disabled) return;
         const expectedRevision = getState().revision;
         return run("Preparing the arrangement project…", async signal => {
             pause();
             const result = await adapter.saveProject({ expectedRevision, signal });
-            if (!(result?.bytes instanceof Uint8Array)) throw new Error("The project adapter returned no ZIP bytes.");
-            download(result.bytes, result.name || "Studio-arrangement.zip", result.type || "application/zip");
+            await deliver(result);
             notice("Project download prepared with applied edits, source assets and Undo history. Draft fields and EQ proposals stay unapplied.");
         });
     };
@@ -35,11 +42,10 @@ export function wireArrangementProject(host, { adapter, getState, run, adopt, pa
         const expectedRevision = getState().revision, format = $("audio-format").value;
         return run("Rendering the whole arrangement for download…", async signal => {
             pause();
-            const bytes = await adapter.exportAudio({ expectedRevision, format, signal,
+            const result = await adapter.exportAudio({ expectedRevision, format, signal,
                 onProgress: (_value, text) => { if (text) notice(text); } });
-            if (!(bytes instanceof Uint8Array)) throw new Error("The arrangement renderer returned no audio bytes.");
             const mp3 = format === "mp3";
-            download(bytes, `Studio-arrangement.${mp3 ? "mp3" : "wav"}`, mp3 ? "audio/mpeg" : "audio/wav");
+            await deliver(result, `Studio-arrangement.${mp3 ? "mp3" : "wav"}`, mp3 ? "audio/mpeg" : "audio/wav");
             notice(`Whole-arrangement ${mp3 ? "MP3" : "WAV"} download prepared from applied edits. Listening volume and unapplied drafts are excluded.`);
         });
     };

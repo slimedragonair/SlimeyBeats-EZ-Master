@@ -106,7 +106,10 @@ export function wireArrangementEq(host, { model, getState, adapter, defaults, co
         } catch (error) { rangeError = error.message || String(error); sync(); }
     }
     for (const name of ["range-start", "range-end"]) {
-        $(name).oninput = () => { rangeDraft = true; rangeError = "Finish both range times before applying EQ.";
+        $(name).oninput = () => {
+            try { rangeDraft = secondsToFrame($("range-start").value, model().rate) !== model().start || secondsToFrame($("range-end").value, model().rate) !== model().end; }
+            catch { rangeDraft = true; }
+            rangeError = rangeDraft ? "Finish both range times before applying EQ." : "";
             ++draftRevision; proposal.clear(); pendingCurve = null; clearNotes(); sync(); };
         $(name).onchange = commitRange;
     }
@@ -138,10 +141,10 @@ export function wireArrangementEq(host, { model, getState, adapter, defaults, co
     };
     $("eq-suggest").onclick = () => {
         if ($("eq-suggest").disabled) return;
-        return run("Measuring the selected EQ target…", async () => {
+        return run("Measuring the selected EQ target…", async signal => {
             const value = selected(), token = context(value);
             const next = await adapter.suggestEq({ scope: value.target.scope, range: value.target.range }, {
-                expectedRevision: getState().revision, exclude_eq_id: value.current?.id || "",
+                expectedRevision: getState().revision, exclude_eq_id: value.current?.id || "", signal,
             });
             if (token !== context(selected()) || disposed) return;
             proposal.stage(next, token);
@@ -206,7 +209,22 @@ export function wireArrangementEq(host, { model, getState, adapter, defaults, co
         draw();
     }
     const resize = new ResizeObserver(draw); resize.observe($("eq-plot"));
-    return { sync, reset() { entries.clear(); choices.clear(); proposal.clear(); ++draftRevision; ++curveRequest;
+    return { sync,
+        capture: () => structuredClone({ entries, choices, band, draftRevision, rangeDraft, rangeError,
+            rangeStart: $("range-start").value, rangeEnd: $("range-end").value }),
+        restore(value) {
+            entries.clear(); choices.clear();
+            for (const [key, entry] of value.entries) entries.set(key, entry);
+            for (const [key, choice] of value.choices) choices.set(key, choice);
+            band = value.band; draftRevision = value.draftRevision + 1;
+            rangeDraft = value.rangeDraft; rangeError = value.rangeError;
+            lastSelection = JSON.stringify([model().start, model().end]);
+            $("eq-band").value = String(band); $("eq-scope").value = model().scope; $("eq-range-target").value = model().rangeTarget;
+            $("range-start").value = value.rangeStart; $("range-end").value = value.rangeEnd;
+            proposal.clear(); clearNotes(); ++curveRequest; currentCurve = pendingCurve = null; lastCurveKey = ""; sync();
+            setText($("eq-note"), "Applied EQ and pending fields were continued on this engine. Measure a new proposal before applying one.");
+        },
+        reset() { entries.clear(); choices.clear(); proposal.clear(); ++draftRevision; ++curveRequest;
         currentCurve = pendingCurve = null; lastCurveKey = ""; rangeDraft = false; rangeError = ""; sync(); },
         dispose() { disposed = true; ++curveRequest; resize.disconnect(); entries.clear(); choices.clear(); proposal.clear(); } };
 }

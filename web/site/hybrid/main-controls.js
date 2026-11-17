@@ -53,7 +53,7 @@ export const serverProcessing = {
         return session.client;
     },
     failed(error) {
-        if (error?.name === "AbortError") return;
+        if (error?.name === "AbortError" || ["guest_job_limit", "guest_admission_limit"].includes(error?.code)) return;
         const status = error?.status;
         if (!status || status === 200 || [401, 403, 429].includes(status) || status >= 500)
             controller?.availability?.reportFailure(error);

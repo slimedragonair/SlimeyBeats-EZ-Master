@@ -2,6 +2,8 @@ import { RemoteProject } from "./remote-project.js";
 import { remoteMediaPath } from "./remote-media-policy.js";
 import { createArrangementStreamPreview } from "./arrangement-stream-preview.js";
 import { createRemoteArrangementImport } from "./arrangement-remote-import.js";
+import { createRemoteArrangementJobs, checkedArrangementArtifact } from "./arrangement-remote-jobs.js";
+import { COMPRESSED_PREVIEW_MIME, supportsCompressedPreview } from "../audio/compressed-preview-source.js";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 export function checkedRemoteArrangement(value) {
@@ -23,6 +25,7 @@ export function checkedRemoteArrangement(value) {
 export function createRemoteArrangementAdapter({ remoteProject = null, beforePlay = () => {},
     onChange = () => {}, onError = () => {}, sample_rate = 48000, channels = 2 } = {}) {
     const project = remoteProject || new RemoteProject();
+    const previewContainer = supportsCompressedPreview() ? "mp4" : "mp3";
     let snapshot, ready, closed = false, connectionRevision, queue = Promise.resolve();
     function serial(action) {
         const result = queue.then(action);
@@ -37,6 +40,10 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
     };
     function accept(value, notify = false) {
         const next = checkedRemoteArrangement(value);
+        const formats = next.capabilities.export === true ? project.caps.formats || [] : [];
+        next.capabilities = { ...next.capabilities, export_formats: formats,
+            wav_export: formats.some(format => ["wav16", "wav24", "wav32f"].includes(format)),
+            mp3_export: formats.includes("mp3") };
         if (snapshot && next.epoch === snapshot.epoch && next.revision < snapshot.revision) throw new Error("A newer server arrangement revision is already displayed.");
         const changed = !snapshot || next.epoch !== snapshot.epoch || next.revision !== snapshot.revision ||
             next.preview.prepared_revision !== snapshot.preview.prepared_revision || next.preview.pending !== snapshot.preview.pending;
@@ -44,7 +51,12 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
     }
     function initialise() {
         if (!ready) ready = (async () => {
-            await project.connect(); const existing = !!project.id;
+            await project.connect();
+            if (project.caps?.arrangement?.available !== true || project.caps.arrangement.playback !== true)
+                throw new Error("This server has not enabled arrangement playback. Your local work is kept; turn Server Off to continue locally.");
+            if (previewContainer === "mp4" && !project.caps.arrangement.preview_containers?.includes("mp4"))
+                throw new Error("This server does not offer the live preview format required by this browser. Your local work is kept; turn Server Off to continue locally.");
+            const existing = !!project.id;
             await project.ensure(); connectionRevision = project.client.connectionRevision;
             let value;
             if (!existing) {
@@ -66,6 +78,7 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
         const expected = options.expectedRevision ?? snapshot.revision, epoch = options.epoch ?? snapshot.epoch;
         if (operation !== "stop" && (expected !== snapshot.revision || epoch !== snapshot.epoch)) throw new Error("The server arrangement changed. Refresh before applying this edit.");
         return serial(async () => {
+            if (operation === "stop" && snapshot.epoch !== epoch) return { stopped: false, stream_id: data.stream_id };
             let revision = expected;
             if (operation !== "stop" && (snapshot.epoch !== epoch || snapshot.revision !== expected)) {
                 if (operation === "waveform" && snapshot.epoch === epoch && snapshot.assets.some(asset => asset.id === data.asset_id)) revision = snapshot.revision;
@@ -79,7 +92,9 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
     }
     const stream = createArrangementStreamPreview({ beforePlay, onError,
         prepare: async (value, options) => {
-            const descriptor = await request("prepare", value, options);
+            const descriptor = await request("prepare", { ...value, preview_container: previewContainer }, options);
+            if (previewContainer === "mp4" && (descriptor.preview_container !== "mp4" || descriptor.preview_mime !== COMPRESSED_PREVIEW_MIME))
+                throw new Error("The server did not prepare the requested live preview format. Current work was kept.");
             if (descriptor.side_duration_frames && descriptor.stream_path !== remoteMediaPath(project.id, descriptor.stream_id, "arrangement"))
                 throw new Error("The server returned an unowned arrangement stream path.");
             return descriptor;
@@ -88,7 +103,12 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
         mediaUrl: descriptor => project.media.url(project.id, descriptor.stream_id, "arrangement"),
     });
     const importer = createRemoteArrangementImport({ project, getSnapshot: () => snapshot,
-        commit: (value, options) => request("add_uploads", value, options) });
+        commit: (value, options) => request("add_uploads", value, options), job,
+        publish: value => serial(() => accept(value, true)),
+        discardArchive: (review_id, options) => request("discard_import", { review_id }, options) });
+    const jobs = createRemoteArrangementJobs({ getSnapshot: () => snapshot, onError,
+        request: (suffix, options) => serial(() => client().arrangementRequest(path() + suffix, options)) });
+    async function job(operation, values, options) { await initialise(); return jobs.run(operation, values, options); }
     return {
         read,
         async reviewImport(files, options) { await initialise(); return importer.reviewImport(files, options); },
@@ -100,6 +120,25 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
         waveform: (asset_id, { start_frame, end_frame, bins = 512, ...options }) =>
             request("waveform", { asset_id, range: { start_frame, end_frame }, bins }, options),
         eqResponse: (effect, options) => request("eq_response", { effect }, options),
+        suggestEq: (target, { exclude_eq_id, profile = "neutral", ...options } = {}) =>
+            job("suggest_eq", { target, exclude_eq_id: exclude_eq_id || null, profile }, options),
+        async saveProject(options) {
+            const result = await job("save_project", {}, options);
+            return { ...result, artifact: checkedArrangementArtifact(result.artifact) };
+        },
+        async openProject(file, options = {}) {
+            await initialise();
+            const upload_id = await project.upload(file, "arrangement_project", options.signal);
+            const result = await job("open_project", { upload_id }, options);
+            return serial(() => accept(result.snapshot, true));
+        },
+        async exportAudio({ format = "wav24", ...options } = {}) {
+            const result = await job("export", { format, sample_rate: 0, dither: false }, options);
+            return { ...result, artifact: checkedArrangementArtifact(result.artifact) };
+        },
+        async downloadArtifact(artifact, name) {
+            client(); await project.media.download(project.id, checkedArrangementArtifact(artifact), name);
+        },
         async previewSource(options = {}) {
             const value = await read({ signal: options.signal });
             if (options.expectedRevision !== undefined && value.revision !== options.expectedRevision) throw new Error("Server preview revision was superseded.");
@@ -109,6 +148,6 @@ export function createRemoteArrangementAdapter({ remoteProject = null, beforePla
                 throw new Error("Server preview preparation was superseded. Current work was kept.");
             return source;
         },
-        clear() { if (closed) return; stream.facade.clear(); importer.clear(); project.media?.dispose(); closed = true; },
+        clear() { if (closed) return; jobs.clear(); stream.facade.clear(); importer.clear(); project.media?.dispose(); closed = true; },
     };
 }

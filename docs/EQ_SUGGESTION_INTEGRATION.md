@@ -153,13 +153,18 @@ new issue flag.
   proposed-cut guidance in separate sections. Two focused packaging regressions
   passed, including old reports and exclusion of unexpected fields.
 
-## Deferred Studio transport scope
+## Arrangement integration on current-work
 
-After EQ qualification, the shared arrangement contract must expose explicit
-whole-mix, selected lane/part, selected clip, and lane-or-mix time-range targets
-for `scoped_EQ`, alongside add/move/trim/split/duplicate/delete/undo commands.
-Targets use stable IDs and exact time bounds, never an audio filename inferred
-by an AI client. The shared model must retain immutable assets and undo,
-smooth range boundaries, current live faders and export guards, and matching
-live-preview/render/export processing without accumulating filters. These are
-next-phase requirements, not capabilities implemented by this EQ checkpoint.
+The later arrangement work adds whole-mix, track and clip targets, with optional
+time ranges, through the shared Rust core, desktop interface, local browser
+editor and matching MCP companion. Targets use stable IDs and exact frame
+bounds; clip EQ ranges refer to immutable source frames. The proposal still
+requires explicit acceptance and does not replace an existing effect until
+applied. Applied effects can be revisited, bypassed or removed.
+
+See [the shared contract](ARRANGEMENT_CORE.md),
+[desktop workflow](ARRANGEMENT_NATIVE_UI.md) and
+[browser workflow and qualification](WEB_ARRANGEMENT_UI.md) for current behavior
+and validation. Server arrangement editing remains disabled in the browser
+pending short-preview, EOF and source-clock qualification. This work does not
+update the published Hotfix4 installer or an already installed MCP companion.

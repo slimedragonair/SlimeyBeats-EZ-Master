@@ -33,16 +33,16 @@ class RemoteBrowserFixture:
             raise RuntimeError("Choose a new output directory; existing candidate is preserved")
         shutil.copytree(args.site.resolve(strict=True), self.site)
         native_cli, native_worker = args.cli.resolve(strict=True), args.worker.resolve(strict=True)
-        if getattr(args, 'arrangement', False):
-            binaries = self.out / 'native-binaries'
-            binaries.mkdir()
-            shutil.copy2(native_cli, binaries / native_cli.name)
-            shutil.copy2(native_worker, binaries / native_worker.name)
-            native_cli, native_worker = binaries / native_cli.name, binaries / native_worker.name
+        binaries = self.out / 'native-binaries'
+        binaries.mkdir()
+        shutil.copy2(native_cli, binaries / native_cli.name)
+        shutil.copy2(native_worker, binaries / native_worker.name)
+        native_cli, native_worker = binaries / native_cli.name, binaries / native_worker.name
         api_port = free_port()
         fixture = self
 
         class Handler(http.server.SimpleHTTPRequestHandler):
+            protocol_version = 'HTTP/1.1'
             def log_message(self, *unused):
                 pass
 
@@ -61,13 +61,27 @@ class RemoteBrowserFixture:
                 with closing(http.client.HTTPConnection("127.0.0.1",api_port,timeout=180)) as remote:
                     remote.request(self.command,self.path,self.rfile.read(size) if size else None,headers)
                     response=remote.getresponse()
+                    owner_session = None
+                    if getattr(args, 'owner', False) and self.path == '/v1/session' and response.status == 201:
+                        # Qualify operator-authorized jobs without weakening
+                        # guest quotas or adding a production credential hook.
+                        value = json.loads(response.read(65536))
+                        value['token'] = fixture.owner_token
+                        owner_session = json.dumps(value).encode()
                     self.send_response(response.status)
+                    if response.getheader('Content-Length') is None and owner_session is None:
+                        self.send_header('Connection','close')
+                        self.close_connection = True
                     for key in ("Content-Type","Content-Length","Content-Disposition","Content-Range","Accept-Ranges",
                                 "Cache-Control","Access-Control-Allow-Origin","Access-Control-Expose-Headers",
                                 "Access-Control-Allow-Methods","Access-Control-Allow-Headers","Retry-After"):
-                        if response.getheader(key):
+                        if key == 'Content-Length' and owner_session is not None:
+                            self.send_header(key,str(len(owner_session)))
+                        elif response.getheader(key):
                             self.send_header(key,response.getheader(key))
                     self.end_headers()
+                    if owner_session is not None:
+                        self.wfile.write(owner_session); return
                     try:
                         while block := response.read1(8192):
                             self.wfile.write(block)
@@ -112,7 +126,9 @@ class RemoteBrowserFixture:
         self.provenance={"source":str(args.site.resolve()),"origin_adapter":"copied PUBLIC_API_ORIGIN only; same-origin streaming HTTP proxy",
             "policy_original_sha256":original,"policy_fixture_sha256":sha(policy),
             "worker_original_sha256":worker_original,"worker_fixture_sha256":sha(worker),
-            "worker_inlined_origin_overrides":worker_pins,"native_sha256":sha(native_worker)}
+            "worker_inlined_origin_overrides":worker_pins,"native_sha256":sha(native_worker),
+            "credential_mode":"fixture-issued operator credential; production guest quotas unchanged" if getattr(args,'owner',False) else "normal public guest",
+            "native_worker":str(native_worker),"native_cli":str(native_cli),"cli_sha256":sha(native_cli)}
         self.thread=threading.Thread(target=self.http.serve_forever,daemon=True)
         self.thread.start()
         self.log=(self.out / "service.log").open("wb")
@@ -121,11 +137,16 @@ class RemoteBrowserFixture:
         command=[sys.executable,"-m","hybrid.server","--cli",str(native_cli),
             "--studio-cli",str(native_worker),"--ffmpeg",str(args.ffmpeg.resolve(strict=True)),
             "--data-dir",str(self.data),"--port",str(api_port),"--min-free-bytes","1",
-            "--v2-max-upload-bytes",str(32*1024**2),"--v2-max-decoded-bytes",str(64*1024**2),
-            "--v2-max-project-disk-bytes",str(256*1024**2)]
-        if getattr(args, 'arrangement', False):
+            "--v2-max-upload-bytes",str((512 if getattr(args,'archive_mib',0) else 128 if getattr(args,'large_budget',False) else 32)*1024**2),
+            "--v2-max-decoded-bytes",str((256 if getattr(args,'large_budget',False) else 64)*1024**2),
+            "--v2-max-project-disk-bytes",str((768 if getattr(args,'archive_mib',0) or getattr(args,'large_budget',False) else 256)*1024**2)]
+        if getattr(args, 'arrangement', False) and getattr(args, 'arrangement_enabled', True):
             command.append('--enable-arrangement')
-        self.backend=subprocess.Popen(command,cwd=ROOT,env=environment,
+        if getattr(args, 'guest_limit', False):
+            command.extend(['--guest-jobs-per-session','3'])
+        backend_source = getattr(args, 'server_source', None) or ROOT
+        self.provenance['backend_source'] = str(Path(backend_source).resolve(strict=True))
+        self.backend=subprocess.Popen(command,cwd=backend_source,env=environment,
             stdin=subprocess.DEVNULL,stdout=self.log,stderr=self.log)
         try:
             await_backend(self.backend,api_port)

@@ -462,6 +462,7 @@ export function createStudio({
     const exportActions = wireStudioExports({ getState: () => ({ busy: busy || !!cancelPending, cancelled, info }),
         client, playback, job, promote, notice });
     $("cancel").onclick = () => {
+        if (arrangement.selected) { arrangement.cancel(); return; }
         if (!busy && doctor.scanning) {
             doctor.cancel();
             if (client.remote) cancelPending = remoteClient.cancel().catch(error => notice(error.message, true)).finally(() => { cancelPending = null; sync(); onState(); });

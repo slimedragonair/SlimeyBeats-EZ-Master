@@ -6,10 +6,11 @@ const caps = { api_version: 1, operations: ["master"], formats: ["wav24"], profi
     limits: { max_upload_bytes: 1024, chunk_bytes: 1024, max_jobs: 1, retention_seconds: 3600 },
     privacy: { temporary_storage: true, retention_seconds: 3600 } };
 const path = "/v2/projects/project/arrangement";
-function harness(reply) {
+function harness(reply, status = 200) {
     const requests = [];
     const client = new ServerClient({ pageUrl: "https://studio.example/current-work/", fetchImpl: async (url, options) => {
-        requests.push({ url, options }); return Response.json(url.endsWith("/v1/capabilities") ? caps : reply);
+        requests.push({ url, options }); return Response.json(url.endsWith("/v1/capabilities") ? caps : reply,
+            { status: url.endsWith("/v1/capabilities") ? 200 : status });
     } });
     return { client, requests };
 }
@@ -40,4 +41,25 @@ test("media credentials accept only the exact owned arrangement stream route", (
     assert.equal(sent[0].path, path + "/streams/stream");
     for (const bad of [path, path + "/streams/stream?token=x", path + "/stop/stream", path + "/streams/%2f"])
         assert.throws(() => client.replyMediaAccess(port, bad), /path/);
+});
+
+test("only exact job routes admit a large opened-project result", async () => {
+    const { client } = harness({ result: { snapshot: { document: "x".repeat(1024 * 1024 + 1) } } });
+    await client.connect("https://api.slimedragon.net", "fixture-owner");
+    assert.ok((await client.arrangementRequest(path + "/jobs/job")).result.snapshot);
+    await assert.rejects(client.arrangementRequest(path + "/jobs/job", { compact: true }), /budget/);
+    for (const bad of [path + "/jobs", path + "/jobs/job/cancel", path + "/jobs/job/other", path + "/jobs/job?token=x"])
+        assert.throws(() => client.arrangementRequest(bad), /path/);
+});
+
+test("a fixed guest job quota has an honest message while unknown responses cannot echo server bodies", async () => {
+    for (const reply of [{ error: "Guest job rate limit reached" }, { error: "untrusted server text" }]) {
+        const { client } = harness(reply, 429); await client.connect("https://api.slimedragon.net", "fixture-owner");
+        await assert.rejects(client.arrangementRequest(path), error => {
+            assert.equal(error.status, 429); assert.equal(error.message.includes("untrusted server text"), false);
+            if (reply.error === "Guest job rate limit reached") assert.equal(error.code, "guest_job_limit");
+            else assert.match(error.message, /server is busy/);
+            return true;
+        });
+    }
 });

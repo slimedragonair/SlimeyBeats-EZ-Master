@@ -33,8 +33,9 @@ jobs:
           python3 -m playwright install --with-deps chromium firefox webkit
       - name: Check state and build matching WASM and frontend
         run: |
-          node --test web/site/arrangement-timeline-*.test.mjs
+          node --test web/site/arrangement-timeline-*.test.mjs web/site/arrangement-workspace-transfer.test.mjs web/site/audio/compressed-preview-source.test.mjs web/site/hybrid/arrangement-*.test.mjs
           python3 web/tools/build.py
+          cargo build --locked --manifest-path rust/Cargo.toml --no-default-features --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
       - name: Verify actual editing, playback, scoped EQ and project delivery
         run: |
           for browser in chromium firefox webkit; do
@@ -45,9 +46,30 @@ jobs:
             python3 web/tools/verify_arrangement_project_ui.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/project-$browser"
             python3 web/tools/verify_arrangement_mp3_ui.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/mp3-$browser"
           done
+      - name: Verify ordinary guest server editing and delivery
+        # WebKit short preview / EOF timing is a release blocker; keep the client gated.
+        if: ${{ false }}
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_arrangement_guest_ui.py --site web/dist --browser "$browser" --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/guest-$browser"
+          done
+      - name: Verify large owned ZIP and Server Off source budget
+        if: ${{ false }}
+        run: |
+          python3 web/tools/verify_arrangement_guest_ui.py --site web/dist --browser chromium --archive-mib 303 --large-budget --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/guest-large"
+      - name: Verify bounded MP4 reads and owned cancellation
+        if: ${{ false }}
+        run: |
+          python3 web/tools/verify_arrangement_stream_browser.py --site web/dist --mode bounds --mode cancel --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/stream-bounds"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: arrangement-browser-validation
-          path: ${{ runner.temp }}/arrangement
+          path: |
+            ${{ runner.temp }}/arrangement
+            !${{ runner.temp }}/arrangement/**/candidate/**
+            !${{ runner.temp }}/arrangement/**/private-store/**
+            !${{ runner.temp }}/arrangement/**/native-binaries/**
+            !${{ runner.temp }}/arrangement/**/synthetic-parts.zip
+            !${{ runner.temp }}/arrangement/**/long-*.wav
           if-no-files-found: warn

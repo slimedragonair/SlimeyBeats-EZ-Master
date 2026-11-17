@@ -160,5 +160,7 @@ export function wireArrangementInspector(host, { model, getState, command, posit
             setText($("clip-error"), CONFLICT_MESSAGE);
         else if ($("clip-error").textContent === CONFLICT_MESSAGE) setText($("clip-error"), "");
     }
-    return { sync, action: act, nudge, reset() { drafts.reset(); sync(); }, dispose() { disposed = true; drafts.reset(); focused.clear(); } };
+    return { sync, action: act, nudge, capture: () => drafts.capture(),
+        restore(value) { focused.clear(); drafts.restore(value); sync(); },
+        reset() { drafts.reset(); sync(); }, dispose() { disposed = true; drafts.reset(); focused.clear(); } };
 }

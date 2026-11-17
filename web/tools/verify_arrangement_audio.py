@@ -3,6 +3,7 @@
 This tests browser PCM and control behavior, not physical-device listening.
 """
 import argparse
+import array
 import functools
 import http.server
 import json
@@ -90,6 +91,15 @@ def main():
                     result['page_errors'] = errors
                     try:
                         result['diagnostics'] = page.evaluate('() => globalThis.arrangementAudioProbeDiagnostics || null')
+                        for index, window in enumerate((result['diagnostics'] or {}).get('waits', [])):
+                            samples = window.pop('raw_pcm', None)
+                            if samples is not None:
+                                pcm = array.array('f', samples)
+                                if __import__('sys').byteorder != 'little':
+                                    pcm.byteswap()
+                                filename = f'pcm-{index + 1:02d}-{window["label"]}.f32'
+                                (args.out / filename).write_bytes(pcm.tobytes())
+                                window['raw_pcm'] = {'file': filename, 'format': 'f32le', 'channels': 2, 'samples': len(pcm)}
                     except Exception as diagnostic_error:
                         result['diagnostics_error'] = str(diagnostic_error)
             finally:

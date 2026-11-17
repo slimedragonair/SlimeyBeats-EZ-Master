@@ -47,7 +47,10 @@ export class ServerClient {
             (response, signal) => readBoundedJson(response, { maxBytes: PROJECT_JSON_LIMIT_BYTES, signal }));
     }
     arrangementRequest(path, { method = "GET", body, signal, compact = false } = {}) {
-        if (!/^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/arrangement$/.test(path) || !["GET", "POST"].includes(method))
+        const base = /^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/arrangement$/;
+        const jobs = /^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/arrangement\/jobs(?:\/[A-Za-z0-9_-]{1,128}(?:\/cancel)?)?$/;
+        if ((!base.test(path) && !jobs.test(path)) || !["GET", "POST"].includes(method) ||
+            (path.endsWith("/jobs") && method !== "POST") || (path.endsWith("/cancel") && method !== "POST"))
             throw new Error("Invalid server arrangement path.");
         return this.#remoteRequest(path, { method, body, signal }, compact
             ? (response, signal) => readBoundedJson(response, { signal })
@@ -81,6 +84,21 @@ export class ServerClient {
                 signal: controller.signal, credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer",
             });
             if (!response.ok) {
+                if (response.status === 429) {
+                    let value;
+                    try { value = await readBoundedJson(response, { signal: controller.signal }); } catch { /* Keep the generic bounded failure below. */ }
+                    const limits = {
+                        guest_job_limit: "This guest session has used its processing allowance. Current work is kept in this tab, but the session cannot start another processing job.",
+                        guest_job_ip_limit: "This connection has reached the server's hourly processing allowance. Current work is kept; retry after the reported limit resets.",
+                        public_job_limit: "The public server has reached its hourly processing allowance. Current work is kept; retry after the reported limit resets.",
+                        guest_admission_limit: "This guest session has used its track-admission allowance. Existing tracks and edits are kept.",
+                    };
+                    const code = value?.error === "Guest job rate limit reached" ? "guest_job_limit" : value?.error;
+                    if (Object.hasOwn(limits, code)) {
+                        const error = new Error(limits[code]);
+                        error.status = 429; error.code = code; error.serverQuota = true; throw error;
+                    }
+                }
                 const hint = response.status === 401 || response.status === 403 ? " Check your token." :
                     response.status === 404 ? " The job may have expired or been deleted." :
                     response.status === 409 ? " Refresh the job before retrying." :
@@ -93,7 +111,7 @@ export class ServerClient {
         } catch (error) {
             if (controller.signal.aborted) throw new Error("Request stopped or timed out. Server work or deletion may not have stopped; check the job before retrying.");
             // Never reflect an exception/response body that could echo a token.
-            if (error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
+            if (error.serverQuota || error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
             throw new Error("The server could not be reached or its response could not be read. Check network, server CORS and the site's connection policy, then retry.");
         } finally { clearTimeout(timeout); external?.removeEventListener("abort", stop); this.#requests.delete(controller); }
     }

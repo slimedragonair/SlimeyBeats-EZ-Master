@@ -216,6 +216,31 @@ export function createArrangementTimeline(host, {
         },
         activate(value) { active = !!value; cancelAnimationFrame(frame); if (active) { sync(); frame = requestAnimationFrame(tick); } else { interaction.cancel(); transport?.pause(); } },
         sync,
+        captureUi() {
+            interaction.cancel();
+            const selection = Object.fromEntries(["selectedLane", "selectedClip", "start", "end", "left", "right", "mode", "scope", "rangeTarget"].map(key => [key, model[key]]));
+            return structuredClone({ selection, inspector: inspector.capture(), eq: eq.capture(),
+                position_frame: transport?.positionFrame() || 0, side: transport?.side || "after", delivery_format: $("audio-format").value,
+                details: [...host.querySelectorAll("details[data-arr]")].map(element => [element.dataset.arr, element.open]) });
+        },
+        openProject(file, ui) {
+            if (!snapshot.capabilities.project || typeof adapter.openProject !== "function")
+                throw new Error("This server cannot continue an existing arrangement project yet. Local work was kept.");
+            const expectedRevision = snapshot.revision;
+            return run("Continuing the current arrangement on the server…", async (signal, token) => {
+                const value = await adapter.openProject(file, { expectedRevision, signal });
+                const accepted = await adopt(value, token, true);
+                if (!accepted || !previewCurrent) throw new Error("The transferred project is saved, but its server preview is not ready. Local work was kept.");
+                Object.assign(model, ui.selection);
+                inspector.restore(ui.inspector); eq.restore(ui.eq);
+                if (transport.side !== ui.side) await transport.choose(ui.side);
+                if (ui.position_frame) await transport.seekFrame(ui.position_frame);
+                if ([...$("audio-format").options].some(option => option.value === ui.delivery_format)) $("audio-format").value = ui.delivery_format;
+                for (const [name, open] of ui.details) { const element = $(name); if (element?.tagName === "DETAILS") element.open = open; }
+                sync(); return true;
+            });
+        },
+        cancel() { if (busy && abort) { abort.abort(new DOMException("Arrangement operation cancelled", "AbortError")); notice("Cancelling this arrangement operation. Applied edits and source assets are kept."); } },
         importFiles: files => importer.choose([...files]),
         refresh,
         state,

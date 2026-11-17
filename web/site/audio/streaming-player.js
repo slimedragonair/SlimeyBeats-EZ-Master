@@ -1,5 +1,6 @@
 import { Player } from "./player.js";
 import { createLiveEqNode } from "./live-eq-node.js";
+import { COMPRESSED_PREVIEW_MIME, createCompressedPreview, supportsCompressedPreview } from "./compressed-preview-source.js";
 
 async function metadata(audio, signal) {
     if (audio.readyState >= 1) return;
@@ -24,15 +25,21 @@ export class StreamingPlayer extends Player {
         if (!asset?.remote || !asset.mediaUrl) throw new Error("The server preview is unavailable.");
         if (!this.media.has(asset.id)) {
             const audio = new Audio();
-            audio.preload = "metadata"; audio.crossOrigin = "anonymous"; audio.src = asset.mediaUrl;
+            audio.preload = "metadata"; audio.crossOrigin = "anonymous";
+            if (asset.previewMime && asset.previewMime !== "audio/mpeg" &&
+                (asset.previewMime !== COMPRESSED_PREVIEW_MIME || !supportsCompressedPreview()))
+                throw new Error("This browser cannot play the prepared server preview. Your work is kept.");
+            const compressed = asset.previewMime === COMPRESSED_PREVIEW_MIME
+                ? createCompressedPreview(audio, asset.mediaUrl, asset.duration, error => { this.pause(); this.onError?.(error); }) : null;
+            audio.src = compressed?.url || asset.mediaUrl;
             audio.addEventListener("ended", () => { if (this.playing && this.activeEntry?.audio === audio) this.stop(); });
-            this.media.set(asset.id, { audio, node: this.context().createMediaElementSource(audio) });
+            this.media.set(asset.id, { audio, compressed, node: this.context().createMediaElementSource(audio) });
         }
         return this.media.get(asset.id);
     }
     releaseExcept(ids) {
         for (const [id, entry] of this.media) if (!ids.includes(id)) {
-            entry.audio.pause(); entry.audio.removeAttribute("src"); entry.audio.load(); entry.node.disconnect(); this.media.delete(id);
+            entry.audio.pause(); entry.compressed?.dispose(); entry.audio.removeAttribute("src"); entry.audio.load(); entry.node.disconnect(); this.media.delete(id);
         }
     }
     setOriginal(audio) { super.setOriginal(audio); this.releaseExcept([audio?.id]); }
@@ -52,7 +59,7 @@ export class StreamingPlayer extends Player {
             await context.resume(); if (!current()) return;
             if (this.offset >= this.original.duration - .01) this.offset = 0;
             const original = this.entry(this.original), master = this.master ? this.entry(this.master) : null;
-            await Promise.all([original, master].filter(Boolean).map(e => metadata(e.audio, operation.signal)));
+            await Promise.all([original, master].filter(Boolean).flatMap(e => [metadata(e.audio, operation.signal), e.compressed?.ready].filter(Boolean)));
             if (!current()) return;
             this.dryGain = context.createGain(); this.wetGain = context.createGain();
             this.dryGain.gain.value = this.wetGain.gain.value = 0;
@@ -69,7 +76,12 @@ export class StreamingPlayer extends Player {
             }
             const delay = context.createDelay(1); delay.delayTime.value = this.delay;
             original.node.connect(delay); delay.connect(this.dryGain); this.dryGain.connect(this.mix); this.nodes.push(delay);
-            for (const entry of [original, master].filter(Boolean)) entry.audio.currentTime = Math.min(this.offset, entry.audio.duration || this.offset);
+            for (const [entry, asset] of [[original, this.original], [master, this.master]]) {
+                if (!entry) continue;
+                // Exact-frame streams already begin at the requested sample.
+                // Even a redundant seek to zero can stall a nonseekable MP3.
+                if (asset.seekable !== false) entry.audio.currentTime = Math.min(this.offset, entry.audio.duration || this.offset);
+            }
             await Promise.all([original, master].filter(Boolean).map(entry => entry.audio.play()));
             if (!current()) return;
             this.activeEntry = this.source === "master" && master ? master : original;

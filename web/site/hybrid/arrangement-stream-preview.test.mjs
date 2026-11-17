@@ -11,11 +11,11 @@ const descriptor = (value, side = "after", start = 0, id = "stream") => ({ strea
     start_frame: start, preview_sample_rate: 48000, preview_priming_frames: 1152 });
 
 function harness(value = snapshot()) {
-    const calls = [], stops = []; let latest = value, delay;
+    const calls = [], stops = []; let latest = value, delay, notify = () => {};
     const player = { playing: false, seconds: 0, plays: 0, volume: .7, position() { return this.seconds; },
-        pause() { this.playing = false; }, clear() { this.pause(); }, releaseExcept() {}, updateGains() {},
-        setOriginal(source) { this.source = source; this.seconds = 0; }, async play() { this.playing = true; this.plays++; } };
-    const preview = createArrangementStreamPreview({ createPlayer: () => player, mediaUrl: value => value.stream_path,
+        pause() { this.playing = false; notify(); }, clear() { this.pause(); }, releaseExcept() {}, updateGains() {},
+        setOriginal(source) { this.source = source; this.seconds = 0; }, async play() { this.playing = true; this.plays++; notify(); } };
+    const preview = createArrangementStreamPreview({ createPlayer: changed => { notify = changed; return player; }, mediaUrl: value => value.stream_path,
         stop: async value => stops.push(value.stream_id), prepare: async request => {
             calls.push(request); const current = latest;
             if (delay) await delay;
@@ -45,6 +45,22 @@ test("a Stop during server preparation cannot start late audio or reset the stop
     const h = harness(); await h.adopt(snapshot()); const release = h.hold();
     const start = h.facade.play(); await Promise.resolve(); await Promise.resolve(); h.facade.stop(); release(); await start;
     assert.equal(h.player.plays, 0); assert.equal(h.facade.playing, false); assert.equal(h.facade.positionFrame(), 0);
+});
+
+test("Play immediately after a pending seek retains the exact requested frame", async () => {
+    const h = harness(); await h.adopt(snapshot()); const release = h.hold();
+    const seek = h.facade.seekFrame(88200);
+    assert.equal(h.facade.positionFrame(), 88200); assert.equal(h.facade.pending, true);
+    const play = h.facade.play(); await Promise.resolve(); await Promise.resolve(); release();
+    await Promise.all([seek, play]);
+    assert.equal(h.calls.at(-1).start_frame, 88200); assert.equal(h.facade.playing, true); assert.equal(h.facade.pending, false);
+});
+
+test("an internal media interruption retires the stream and preserves the stopped project frame", async () => {
+    const h = harness(); await h.adopt(snapshot()); await h.facade.play();
+    h.player.seconds = 1.024; h.player.pause(); await Promise.resolve(); await Promise.resolve();
+    assert.equal(h.facade.playing, false); assert.equal(h.facade.positionFrame(), 44100);
+    assert.equal(h.stops.length > 0, true); assert.equal(h.facade.pending, false);
 });
 test("running A/B retains position and paused A/B remains paused", async () => {
     const h = harness(), value = snapshot(); await h.adopt(value); await h.facade.play();

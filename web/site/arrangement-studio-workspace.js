@@ -1,8 +1,11 @@
 import { createArrangementStudioPane } from "./arrangement-studio-pane.js";
 import { serverProcessing } from "./hybrid/main-controls.js";
 import { time } from "./view.js";
+import { continueLocalArrangement, arrangementAssetBytes, LOCAL_ARRANGEMENT_PCM_BYTES } from "./arrangement-workspace-transfer.js";
 
 export const ARRANGEMENT_UI_ENABLED = true;
+// Release only after short previews, EOF and source-clock checks pass in every supported engine.
+export const ARRANGEMENT_SERVER_UI_ENABLED = false;
 
 // Server On selects the destination of the existing Arrange tracks action.
 // Each engine retains its own document; switching never uploads local assets.
@@ -28,18 +31,30 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
     }
     async function choose() {
         if (legacyBusy() || current()?.busy || selecting) return;
-        const engine = serverProcessing.enabled ? "server" : "local", token = ++generation;
+        const engine = serverProcessing.enabled ? "server" : "local";
+        if (engine === "server" && !ARRANGEMENT_SERVER_UI_ENABLED) {
+            notice("Server arrangement editing is still being qualified. Your local project and unfinished fields are kept; turn Server Off to continue locally.", true);
+            return;
+        }
+        const token = ++generation;
         selecting = true; const previous = current()?.state();
         notice(`Opening the ${engine} arrangement workspace…`); sync(); changed();
         try {
             await pane(engine).initialise();
             if (token !== generation || engine !== (serverProcessing.enabled ? "server" : "local")) return;
+            let continued = false;
+            if (engine === "server") {
+                notice("Preparing the server destination. Your local project and unfinished fields are kept…");
+                continued = await continueLocalArrangement(panes.get("local"), pane(engine), () => token === generation && serverProcessing.enabled);
+            }
+            if (token !== generation) return;
             const latest = current()?.state();
             if (selected && previous && (previous.revision !== latest?.revision || previous.epoch !== latest?.epoch)) {
                 notice("Your current arrangement edit was kept. Choose Arrange tracks again to switch workspaces."); return;
             }
             adopt(engine);
-            notice(`${engine === "server" ? "Server" : "Local"} arrangement ready. Source assets and project history stay separate from the other workspace.`);
+            notice(continued ? "Continued your arrangement on the server with applied EQ, source IDs, Undo history and pending fields. Playback is paused."
+                : `${engine === "server" ? "Existing server" : "Local"} arrangement ready. The other workspace and its edits are retained separately.`);
         } catch (error) {
             if (token === generation) notice(`${engine === "server" ? "Server" : "Local"} arrangement unavailable: ${error.message || String(error)} Current local work is preserved.`, true);
         } finally { if (token === generation) selecting = false; sync(); changed(); }
@@ -55,9 +70,11 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
         if (next === requested) return;
         requested = next; ++generation; selecting = false;
         if (selected && mode === "server" && next === "local") {
+            const overBudget = arrangementAssetBytes(current().state()) > LOCAL_ARRANGEMENT_PCM_BYTES;
             current().activate(false); current().pause(); selected = false;
             if (panes.get("local")?.ready) adopt("local");
-            notice("Local work is available again. The server arrangement is retained and paused.");
+            notice(overBudget ? "The server project exceeds this device's 128 MiB local source budget. It is kept on the server and paused; the earlier local workspace is available."
+                : "Returned to the earlier local workspace. The server arrangement and its edits are retained and paused.");
         } else if (selected && mode !== next) {
             current()?.pause();
             notice("Your local arrangement is kept and paused. Choose Arrange tracks · Server to edit on the server, or turn Server Off to continue locally.");
@@ -66,9 +83,9 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
     function syncTransport() {
         const source = current()?.source(), value = current()?.state();
         const frames = source?.side_duration_frames ?? source?.duration_frames ?? 0;
-        const locked = !!value?.busy || !value?.preview_current, usable = !!source && frames > 0;
+        const locked = !!value?.busy || !!source?.pending || !value?.preview_current, usable = !!source && frames > 0;
         $("play").disabled = source?.playing ? false : locked || !usable;
-        $("stop").disabled = !source || (!source.playing && !usable);
+        $("stop").disabled = !source || (!source.pending && !source.playing && !usable);
         $("seek").disabled = locked || !usable;
         const comparable = !!source && (usable || source.duration_frames > 0 || value?.history?.can_undo);
         for (const name of ["before", "after"]) $(name).disabled = locked || !comparable;
@@ -98,7 +115,7 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
         $("arrangement-server-page").hidden = !selected || mode !== "server";
         $("legacy-waves").hidden = selected;
         $("playback-details").querySelector("summary").textContent = selected ? "Volume & seeking" : "Waveforms, volume & seeking";
-        if (selected) { $("cancel").disabled = true; $("close").disabled = !!current()?.busy; current()?.sync(); syncTransport(); }
+        if (selected) { $("cancel").disabled = !current()?.busy; $("close").disabled = !!current()?.busy; current()?.sync(); syncTransport(); }
     }
     $("arrange-entry").onclick = choose; $("legacy-entry").onclick = legacy;
     return {
@@ -110,6 +127,7 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
         sync,
         activate(value) { active = !!value; current()?.activate(active && selected); if (!active) for (const value of panes.values()) value.pause(); },
         pause() { for (const value of panes.values()) value.pause(); },
+        cancel: () => current()?.cancel(),
         transport: () => selected ? current()?.source() : null,
         importFiles: files => selected ? current()?.importFiles(files) : false,
         get selected() { return selected; },

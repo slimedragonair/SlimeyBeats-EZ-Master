@@ -41,7 +41,19 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
             return opening;
         },
         state: () => controller?.state() || latest,
+        async captureProject() {
+            const before = controller.state(), ui = controller.captureUi();
+            const result = await adapter.saveProject({ expectedRevision: before.revision });
+            const after = controller.state();
+            if (before.revision !== after.revision || before.epoch !== after.epoch || !(result?.bytes instanceof Uint8Array))
+                throw new Error("The local arrangement changed during project transfer. Current work was kept.");
+            return { file: new File([result.bytes], "Studio-arrangement.zip", { type: "application/zip" }), ui };
+        },
+        async openProject(file, ui) {
+            if (!await controller.openProject(file, ui)) throw new Error(lastNotice || "The server could not continue this project. Local work was kept.");
+        },
         sync: () => controller?.sync(),
+        cancel: () => controller?.cancel(),
         activate: value => controller?.activate(value),
         pause: () => source?.pause(),
         source: () => source,
