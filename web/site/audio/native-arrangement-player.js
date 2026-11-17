@@ -81,8 +81,12 @@ export class NativeArrangementPlayer {
             try { playing = entry.audio.play(); } catch (error) { playing = Promise.reject(error); }
             await Promise.all([loaded, entry.preview?.ready, playing]);
             if (!current()) { entry.audio.pause(); return; }
-            this.playing = !entry.audio.ended && !entry.audio.paused;
-            this.onState?.();
+            // `ended`/`pause` properties can change before their queued events.
+            // Publishing stopped here would retire the media before `ended`
+            // saves its final offset. Native events own stop/EOF transitions.
+            if (!entry.audio.ended && !entry.audio.paused && !this.playing) {
+                this.playing = true; this.onState?.();
+            }
         } catch (error) {
             if (current()) { this.pause(); throw error; }
         } finally { entry.audio.removeEventListener("playing", started); }

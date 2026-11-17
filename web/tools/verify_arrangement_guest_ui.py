@@ -26,6 +26,7 @@ def verify(browser, owned, args, result, sources, width):
     diag = ArrangementRemoteDiagnostics(page, args.browser, row)
     page.add_init_script(path=str(Path(__file__).with_name('arrangement_audio_audit.js')))
     page.add_init_script(path=str(Path(__file__).with_name('arrangement_remote_audit.js')))
+    if getattr(args, 'page_setup', None): args.page_setup(page, row)
     page.on('download', lambda download: row['downloads'].append(download.suggested_filename))
     local = lambda name: page.locator(f'#s-arrangement-page [data-arr="{name}"]')
     a = lambda name: page.locator(f'#s-arrangement-server-page [data-arr="{name}"]')
@@ -56,7 +57,9 @@ def verify(browser, owned, args, result, sources, width):
                     'stream': page.evaluate('()=>arrangementRemoteAudit.streams.at(-1)')}
         raise AssertionError({'buffered_preview_did_not_settle_within_seconds': 4, 'samples': samples})
     try:
-        page.goto(owned.origin, wait_until='networkidle'); expect(page.locator('#engine-status')).to_have_text('RUST · LOCAL', timeout=45000)
+        page.goto(owned.origin, wait_until='networkidle')
+        if getattr(args, 'page_ready', None): args.page_ready(page, row)
+        expect(page.locator('#engine-status')).to_have_text('RUST · LOCAL', timeout=45000)
         page.locator('#tab-studio-tools').click(); expect(page.locator('#s-arrange-entry')).to_be_visible(timeout=30000)
         page.locator('#s-arrange-entry').click(); saved = prepare_local(page, local, sources)
         page.locator('#hybrid-enabled').check(); expect(page.locator('#hybrid-availability')).to_have_text('[Server online]', timeout=30000)

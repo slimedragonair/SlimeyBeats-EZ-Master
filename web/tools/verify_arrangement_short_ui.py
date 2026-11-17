@@ -49,9 +49,11 @@ def verify(browser, owned, args, monitor, result, source, frames, markers, width
     result['cases'].append(row)
     diagnostics = ArrangementRemoteDiagnostics(page, args.browser, row)
     page.add_init_script(path=str(Path(__file__).with_name('arrangement_remote_audit.js')))
+    if getattr(args, 'page_setup', None): args.page_setup(page, row)
     a = lambda name: page.locator(f'#s-arrangement-server-page [data-arr="{name}"]')
     try:
         page.goto(owned.origin, wait_until='networkidle')
+        if getattr(args, 'page_ready', None): args.page_ready(page, row)
         page.locator('#tab-studio-tools').click(); page.locator('#hybrid-enabled').check()
         expect(page.locator('#hybrid-availability')).to_have_text('[Server online]', timeout=30000)
         page.evaluate('()=>arrangementRemoteAudit.serverPhase=true')
@@ -64,20 +66,21 @@ def verify(browser, owned, args, monitor, result, source, frames, markers, width
         assert document['lanes'][0]['clips'][0]['end_frame'] == frames
         expect(page.locator('#s-play')).to_have_text('Play')
         assert not page.evaluate('()=>arrangementRemoteAudit.mediaEvents.some(value=>value.event==="playing")')
-        first = monitor.frames()
-        page.locator('#s-play').click()
-        page.wait_for_function('()=>arrangementRemoteAudit.mediaEvents.some(value=>value.event==="ended")', timeout=15000)
-        expect(page.locator('#s-play')).to_have_text('Play')
-        # Drain a fixed device interval after EOF; never select a window by its signal.
-        end = monitor.frames() + RATE // 10
-        raw = monitor.read_window(first, end - first)
-        (args.out / f'{width}-{frames}-capture.f32').write_bytes(raw.tobytes())
-        row['capture'] = {'first': first, 'end': end, 'peaks': peaks(raw), 'path': str(monitor.path)}
-        found = row['capture']['peaks']
-        assert len(found) == len(markers), row['capture']
-        for index in range(1, len(markers)):
-            assert abs(found[index]['frame'] - found[index-1]['frame'] - markers[index] + markers[index-1]) <= 2, row['capture']
-        assert page.evaluate('()=>arrangementRemoteAudit.latest.arrangement') == document
+        if not getattr(args, 'suffix_only', False):
+            first = monitor.frames()
+            page.locator('#s-play').click()
+            page.wait_for_function('()=>arrangementRemoteAudit.mediaEvents.some(value=>value.event==="ended")', timeout=15000)
+            expect(page.locator('#s-play')).to_have_text('Play')
+            # Drain a fixed device interval after EOF; never select a window by its signal.
+            end = monitor.frames() + RATE // 10
+            raw = monitor.read_window(first, end - first)
+            (args.out / f'{width}-{frames}-capture.f32').write_bytes(raw.tobytes())
+            row['capture'] = {'first': first, 'end': end, 'peaks': peaks(raw), 'path': str(monitor.path)}
+            found = row['capture']['peaks']
+            assert len(found) == len(markers), row['capture']
+            for index in range(1, len(markers)):
+                assert abs(found[index]['frame'] - found[index-1]['frame'] - markers[index] + markers[index-1]) <= 2, row['capture']
+            assert page.evaluate('()=>arrangementRemoteAudit.latest.arrangement') == document
         row['streams'] = page.evaluate('()=>arrangementRemoteAudit.streams')
         descriptor = next(value for value in reversed(row['streams']) if 'start_frame' in value)
         assert descriptor['start_frame'] == 0
@@ -117,12 +120,17 @@ def verify(browser, owned, args, monitor, result, source, frames, markers, width
         diagnostics.capture(args.out / f'{width}-{frames}.png')
         row.update(passed=True, checks=['no autoplay', 'actual native head/tail PCM and source marker spacing',
                                       'natural EOF restores Play without editing the project', 'no Web Audio media node or client decode'])
+        if getattr(args, 'suffix_only', False): row['checks'][1] = 'actual native PCM from the selected 20 ms source suffix'
         if frames == 60000: row['checks'].append('normal paused seek to the final 20 ms plays its real tail marker, preserves source bounds and reports codec-only padding')
     except Exception as error:
         row.update(passed=False, failure=str(error), traceback=traceback.format_exc())
         diagnostics.capture(args.out / f'{width}-{frames}-failure.png')
         raise
     finally:
+        row['status'] = page.locator('#s-status').inner_text()
+        row['controls'] = {'play': page.locator('#s-play').inner_text(), 'seek': page.locator('#s-seek').input_value()}
+        row['streams'] = page.evaluate('()=>arrangementRemoteAudit.streams')
+        row['remote_events'] = page.evaluate('()=>arrangementRemoteAudit.events')
         row['media'] = page.evaluate('()=>arrangementRemoteAudit.mediaState()')
         row['events'] = page.evaluate('()=>arrangementRemoteAudit.mediaEvents')
         try: row['cleanup'] = page.evaluate('()=>arrangementRemoteAudit.cleanup()')

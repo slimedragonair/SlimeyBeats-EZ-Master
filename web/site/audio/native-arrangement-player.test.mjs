@@ -72,6 +72,20 @@ test("Stop during native buffering cannot start late audio or leave owned reader
     assert.equal(value.errors.length, 0);
 });
 
+test("a completed play promise cannot retire media before its queued ended event", async () => {
+    const value = fixture(), { player } = value;
+    player.setOriginal(asset()); const pending = player.play(), media = value.audio[0];
+    media.metadata(); media.currentTime = .144; media.ended = true; media.paused = true;
+    value.previews[0].resolve(); await pending;
+    assert.equal(player.playing, true, "The queued native ended event still owns this transition");
+    assert.equal(value.previews[0].disposed, 0);
+    media.dispatchEvent(new Event("pause"));
+    assert.equal(player.playing, true);
+    media.dispatchEvent(new Event("ended"));
+    assert.equal(player.playing, false); assert.equal(player.position(), .144);
+    player.clear(); assert.equal(value.previews[0].disposed, 1);
+});
+
 test("a delayed obsolete native play continuation never pauses its replacement", async () => {
     const value = fixture(), { player } = value;
     player.setOriginal(asset("first")); const first = player.play();
