@@ -38,9 +38,10 @@ window.AudioWorkletNode = class extends NativeWorkletNode {
         super(context, name, options);
         if (name === "arrangement-sink") {
             audit.arrangementContext = context;
+            audit.maxBufferedFrames = (options?.processorOptions?.queueBlocks || 3) * 2048;
             this.port.addEventListener("message", ({ data }) => {
                 if (!Number.isSafeInteger(data.frame)) return;
-                audit.sourceClock.push({ kind: data.kind, generation: data.generation, frame: data.frame,
+                audit.sourceClock.push({ kind: data.kind, generation: data.generation, frame: data.frame, underrun_frames: data.underrun_frames || 0,
                     received_context_time: context.currentTime, received_wall_ms: performance.now() });
                 if (audit.sourceClock.length > 512) audit.sourceClock.shift();
             });
@@ -73,7 +74,7 @@ audit.attach = async () => {
     }
 };
 audit.reset = (limitFrames = 0) => {
-    audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + 0.08;
+    audit.pcm = []; audit.frames = 0; audit.after = (audit.context?.currentTime || 0) + Math.max(.08, (audit.maxBufferedFrames || 0) / (audit.context?.sampleRate || 48000) + .003);
     audit.limitFrames = limitFrames; audit.frozen = false;
     audit.captureStart = audit.captureEnd = null; audit.captureGaps = 0;
     audit.sourceClock = [];
@@ -96,7 +97,7 @@ audit.measure = () => {
         return Math.hypot(real, imag) * 2 / samples.length;
     };
     return { peak, first: tone(440), second: tone(880), rate: audit.context.sampleRate, clock: audit.context.currentTime,
-        capture_after: audit.after, capture_start: audit.captureStart, capture_end: audit.captureEnd,
+        max_buffered_frames: audit.maxBufferedFrames, capture_after: audit.after, capture_start: audit.captureStart, capture_end: audit.captureEnd,
         captured_frames: audit.frames, capture_gaps: audit.captureGaps, frozen: audit.frozen,
         measured_start: audit.captureEnd - samples.length / audit.context.sampleRate,
         measured_end: audit.captureEnd };
