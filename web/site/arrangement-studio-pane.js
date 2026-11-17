@@ -41,6 +41,10 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
                 controller?.dispose(); controller = null; unsubscribe?.(); unsubscribe = null;
                 adapter?.clear?.(); adapter = null; source = null; throw error;
             }).finally(() => { opening = null; changed(); });
+            // Lock the whole opening interval, including the first adapter read.
+            // Otherwise legacy export buttons appear enabled until controller
+            // creation, then become disabled between pointerdown and click.
+            changed();
             return opening;
         },
         state: () => controller?.state() || latest,
@@ -62,7 +66,7 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
         source: () => source,
         importFiles: files => controller?.importFiles(files),
         get ready() { return !!controller?.ready(); },
-        get busy() { return !!controller?.state().job_busy; },
+        get busy() { return !!opening || !!controller?.state().job_busy; },
         get loaded() { return !!latest?.arrangement?.lanes.some(lane => lane.clips.length); },
         dispose() { unsubscribe?.(); controller?.dispose(); adapter?.clear?.(); },
     };

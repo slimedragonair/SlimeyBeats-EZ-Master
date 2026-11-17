@@ -35,7 +35,7 @@ jobs:
           cargo fmt --manifest-path web/dsp/Cargo.toml -- --check
           cargo clippy --locked --manifest-path web/dsp/Cargo.toml --target wasm32-unknown-unknown -- -D warnings
           cargo test --locked --manifest-path web/dsp/Cargo.toml --lib
-          node --test web/site/master-recovery-identity.test.mjs web/site/eq-suggestions.test.mjs web/site/session-export-metadata.test.mjs
+          node --test web/site/master-recovery-identity.test.mjs web/site/eq-suggestions.test.mjs web/site/session-export-metadata.test.mjs web/site/arrangement-studio-pane.test.mjs web/site/session-trace.test.mjs
           python3 -m unittest discover -s web/tools -p 'test_*.py'
       - name: Build static site and license inventory
         run: python3 web/tools/build.py
