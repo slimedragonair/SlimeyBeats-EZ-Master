@@ -166,13 +166,24 @@ impl MasterCraftApp {
                     self.suggestion_note = Some(reason.clone());
                     self.status = reason;
                 }
-                Event::Suggestion(index, bands, note) => {
-                    if self.selected == Some(index) {
-                        self.suggested_eq = Some(bands);
-                        self.suggestion_note = Some(note);
+                Event::Suggestion(index, proposal) => {
+                    if self.cancel.load(Ordering::Relaxed) {
+                        continue;
+                    }
+                    let current_source = self
+                        .current()
+                        .filter(|(selected, _)| *selected == index)
+                        .map(|(_, result)| result.raw.as_ref().unwrap_or(&result.before).clone());
+                    if proposal.profile == self.settings.profile
+                        && current_source
+                            .as_ref()
+                            .is_some_and(|source| Arc::ptr_eq(source, &proposal.source))
+                    {
+                        self.suggested_eq = Some(proposal.bands);
+                        self.suggestion_note = Some(proposal.note);
                     } else {
                         self.error = Some(
-                            "Selection changed. Run Suggest EQ for the selected track.".into(),
+                            "Audio or profile changed. Run Suggest EQ again; your current EQ was kept.".into(),
                         );
                     }
                 }

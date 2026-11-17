@@ -110,7 +110,12 @@ WAV downloads use the shared export peak checks and may apply protective attenua
 
 ## MCP workflows
 
-The **0.2.0-beta.3 Hotfix3** companion exposes **42 tools**. The current development source adds `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`, for **45 tools**. [Stem Doctor workflow and tested scope](STEM_DOCTOR.md). Begin with `get_capabilities`, then `get_help` topics `stems`, `voice`, `repair`, `doctor`, `plugins` or `studio_export`. Discover current audio, stem-bank and preview IDs with `get_studio_session`; poll every returned job ID. The editing workspace is separate from the mastering preview.
+**Current-work:** use the [33-tool catalog](MCP_TOOL_CATALOG.md). Its grouped
+`stem_import`, `process_audio`, `project` and `export_result` actions preserve
+the same processing and safety rules. The original names below remain
+compatibility aliases; `--tool-profile legacy` advertises their 58-tool catalog.
+
+The **0.2.0-beta.3 Hotfix3** companion exposes **42 tools**. Hotfix4 adds `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`, for **45 tools**. [Stem Doctor workflow and tested scope](STEM_DOCTOR.md). Begin with `get_capabilities`, then `get_help` topics `stems`, `voice`, `repair`, `doctor`, `plugins` or `studio_export`. Discover current audio, stem-bank and preview IDs with `get_studio_session`; poll every returned job ID. The editing workspace is separate from the mastering preview.
 
 Loose aligned files can be batched with `import_stems`, assigning a unique `kind` to each. For ZIPs, `list_audio_files` marks archives with `stem_archive: true`; call read-only `inspect_stem_bundle` with `library`/`path`, then `import_stem_bundle`. Inspection returns zero-based `parts[]` positions, names, suggested kinds and available versions. `get_studio_session` exposes friendly stem names in `assets[].display_name`; `assets[].label` retains the stable kind for compatibility. Import accepts `preferred_format: "wav"` (default) or `"mp3"` and optional `parts: [{"part_index": 0, "kind": "guitar"}, …]`; `kind` is optional. Omit `parts` to import the entire inspected bank, or provide explicit zero-based positions for a subset. No nine-part subset is required; memory and import safety checks still apply. `get_help` topic `stems` includes the full workflow and keeps exports separate from import. Neural extraction uses `separate_stems` and remains two/four only.
 

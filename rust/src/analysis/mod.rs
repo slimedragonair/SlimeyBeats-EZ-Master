@@ -1,3 +1,4 @@
+pub mod high_frequency;
 pub mod playback_spectrum;
 mod spectrum;
 pub mod transients;
@@ -96,6 +97,17 @@ pub fn analyze(audio: &Audio, profile: &Value) -> Result<Analysis> {
         (dev[8] - 3.).max(0.) * 14.,
         format!("8 kHz deviation {:+.1} dB", dev[8]),
     );
+    if let Some(highs) = &spec.high_frequency {
+        issue(
+            "high_frequency_excess",
+            if highs.excess_candidate {
+                -highs.suggested_cut_db / high_frequency::MAX_CUT_DB * 80.
+            } else {
+                0.
+            },
+            highs.note(),
+        );
+    }
     let clip = 100. * metrics.clipped_samples as f64 / audio.samples.len() as f64;
     issue(
         "clipping",

@@ -116,6 +116,7 @@ class Project:
     report: dict | None = None
     issues: dict | None = None
     spectrogram: dict | None = None
+    arrangement: object | None = None
     undo: list = field(default_factory=list)
     redo: list = field(default_factory=list)
     downloads: int = 0

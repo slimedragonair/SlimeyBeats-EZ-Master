@@ -39,7 +39,11 @@ export class RemoteMastering {
     async suggest(settings) {
         const result = await this.project.command("suggest", { audio_id: (this.master || this.original).id,
             settings: remoteSettings(settings) }, { signal: this.begin() });
-        return result.suggestion?.bands || result.command?.result?.suggestion?.bands || result.command?.result?.bands;
+        const proposal = result.suggestion || result.command?.result?.suggestion || result.command?.result;
+        if (!Array.isArray(proposal?.bands) || proposal.bands.length !== 7)
+            throw new Error("The server returned an invalid EQ suggestion. Current EQ was kept.");
+        return { bands: proposal.bands, notes: Array.isArray(proposal.notes) ? proposal.notes : [],
+            high_frequency: proposal.high_frequency ?? null };
     }
     async export(settings, format, bundle, name) {
         const signal = this.begin();

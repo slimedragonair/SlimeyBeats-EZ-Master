@@ -64,6 +64,9 @@ const MEASUREMENTS = ["duration_s", "sample_rate", "channels", "metrics", "spect
 const METRICS = ["integrated_lufs", "true_peak_dbtp", "sample_peak_dbfs", "lra_lu", "rms_dbfs", "crest_db", "plr_db",
     "correlation", "dc_offset", "clipped_samples"];
 const SPECTRUM = ["freqs", "db", "cutoff_hz", "quiet_hf_flatness", "sibilance_spike_fraction", "octave_power"];
+const HIGH_MEASUREMENTS = ["version", "band_low_hz", "band_high_hz", "reference_low_hz", "reference_high_hz",
+    "sampled_windows", "active_windows", "mean_high_power_fraction", "p90_high_to_presence_db", "mean_high_flatness", "sampling_capped"];
+const HIGH_GUIDANCE = ["version", "candidate_windows", "candidate_groups", "candidate_fraction", "observed_candidate_seconds", "excess_candidate", "suggested_cut_db"];
 const HEURISTICS = ["deviation_db", "issues", "suggested_profile"];
 export function analysisDocument(report) {
     if (report !== undefined && report !== null && (typeof report !== "object" || Array.isArray(report)))
@@ -74,10 +77,14 @@ export function analysisDocument(report) {
     for (const [key, value] of Object.entries(pair)) {
         const measured = value?.metrics ? select(value, MEASUREMENTS) : { metrics: select(value, METRICS) };
         if (value?.spectrum) measured.spectrum = select(value.spectrum, SPECTRUM);
+        if (value?.spectrum?.high_frequency)
+            measured.spectrum.high_frequency = select(value.spectrum.high_frequency, HIGH_MEASUREMENTS);
         const recorded = value && (Object.keys(measured.metrics || {}).length || Object.keys(measured).some((field) => field !== "metrics"));
         measurements[key] = recorded ? portableTree(measured) : null;
         const suggested = select(value, HEURISTICS);
         if (value?.spectrum?.noise_candidate !== undefined) suggested.noise_candidate = value.spectrum.noise_candidate;
+        if (value?.spectrum?.high_frequency)
+            suggested.high_frequency = select(value.spectrum.high_frequency, HIGH_GUIDANCE);
         suggestions[key] = value ? portableTree(suggested) : null;
     }
     return {

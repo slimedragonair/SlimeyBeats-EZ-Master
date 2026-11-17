@@ -16,6 +16,16 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
             if let Some(suggested) = &app.suggested_eq && ui.add(crystal_button::primary("Apply curve")).on_hover_text(tip).clicked(){app.settings.manual_eq=suggested.clone();app.eq_dirty=true;}
             ui.menu_button("Presets",|ui|preset_menu(app,ui));
         });
+        if let Some(note) = &app.suggestion_note {
+            let summary = note.lines().next().unwrap_or(note);
+            let state = app.suggested_eq.as_ref().map(|bands| if bands == &app.settings.manual_eq {
+                "Applied. Choose B · Live EQ and Play to hear it."
+            } else {
+                "Not applied. Apply curve replaces the current EQ bands."
+            }).unwrap_or("");
+            ui.add(egui::Label::new(RichText::new(format!("{summary} {state}")).size(13.).color(theme::BONE)).wrap())
+                .on_hover_text(note);
+        }
         if !has_master {
             ui.label(RichText::new("Master a track first to hear EQ changes live.").size(14.).color(theme::MUTED));
         } else if !app.player.controls.after.load(std::sync::atomic::Ordering::Relaxed) {

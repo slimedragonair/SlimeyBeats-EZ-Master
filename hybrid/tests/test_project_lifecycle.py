@@ -88,7 +88,7 @@ class ProjectLifecycleTests(unittest.TestCase):
             self.assertEqual(redo["revision"], 3)
 
     def test_v2_quota_allows_120_edits_and_does_not_spend_v1_starts(self):
-        with project_service(public_enabled=True, ffmpeg=Path(sys.executable)) as (service, owner):
+        with project_service(public_enabled=True, ffmpeg=Path(sys.executable), guest_jobs_per_session=3) as (service, owner):
             guest, _ = mint_guest(owner)
             principal = service.store.sessions.authenticate(guest.token)
             key = service.store.sessions.client_key("127.0.0.1")

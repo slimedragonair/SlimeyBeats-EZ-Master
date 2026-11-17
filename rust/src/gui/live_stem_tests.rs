@@ -72,6 +72,7 @@ pub(super) fn fixture(
             updates: mailbox.clone(),
             active: false,
         }),
+        arrangement: None,
         cursor: 0,
         blend: 1.,
         gain: 1.,

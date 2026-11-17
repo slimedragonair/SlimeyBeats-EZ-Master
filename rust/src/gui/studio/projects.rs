@@ -2,7 +2,7 @@ use super::{
     jobs::Change,
     state::{LoadedSource, Page, Revision, Studio},
 };
-use crate::studio_native::session::{self, StudioDocument, StudioSnapshot};
+use crate::studio_native::session::{self, StudioSnapshot};
 use anyhow::{Context, Result, ensure};
 use eframe::egui;
 use std::{
@@ -12,6 +12,7 @@ use std::{
 
 impl Studio {
     pub fn snapshot(&self) -> Result<StudioSnapshot> {
+        self.require_current_timeline()?;
         ensure!(
             !self.mix_dirty,
             "Update the mix preview before saving the project"
@@ -39,6 +40,7 @@ impl Studio {
             label: preview.label.clone(),
             notes: preview.notes.clone(),
             view: match self.page {
+                Page::Tracks => "tracks",
                 Page::Stems => "stems",
                 Page::Voice => "voice",
                 Page::Repair => "repair",
@@ -48,6 +50,10 @@ impl Studio {
         })
     }
     pub fn save_project(&mut self, destination: PathBuf, ctx: &egui::Context) {
+        if self.page == Page::Tracks {
+            self.save_arrangement(destination, ctx);
+            return;
+        }
         let snapshot = match self.snapshot() {
             Ok(s) => s,
             Err(error) => {
@@ -72,15 +78,7 @@ impl Studio {
         if !self.busy() {
             self.doctor.invalidate();
         }
-        self.begin(
-            ctx,
-            "Verifying and loading Studio project assets",
-            move |cancel, _| {
-                let snapshot = StudioDocument::load(&path)?;
-                ensure!(!cancel.load(Ordering::Relaxed), "Cancelled");
-                Ok(Change::Session(Box::new(snapshot)))
-            },
-        );
+        self.open_arrangement(path, ctx);
     }
     pub(super) fn adopt_project(&mut self, snapshot: StudioSnapshot) -> Result<()> {
         let bank = snapshot.stems.map(Arc::new);

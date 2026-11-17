@@ -25,7 +25,9 @@ class HttpAccessTests(unittest.TestCase):
             self.assertTrue(all(set(profile) == {"id", "label"} for profile in value["profiles"]))
             self.assertEqual(value["limits"], {"max_upload_bytes": 536870912, "chunk_bytes": 1048576,
                                                 "max_jobs": 4, "retention_seconds": 3600,
-                                                "max_audio_seconds": 1800, "max_decoded_bytes": 536870912})
+                                              "max_audio_seconds": 1800, "max_decoded_bytes": 536870912,
+                                              'guest_jobs_per_session': 16, 'guest_jobs_per_ip_hour': 32,
+                                              'guest_jobs_per_hour': 128, 'guest_admission_commands_per_session': 120})
             self.assertEqual(value["privacy"], {"temporary_storage": True, "retention_seconds": 3600})
             self.assertEqual(headers["Access-Control-Allow-Origin"], ORIGIN)
             self.assertNotIn("Access-Control-Allow-Credentials", headers)

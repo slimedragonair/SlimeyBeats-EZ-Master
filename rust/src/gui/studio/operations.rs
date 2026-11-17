@@ -372,6 +372,10 @@ impl Studio {
         );
     }
     pub fn export_preview(&mut self, ctx: &egui::Context) {
+        if let Err(error) = self.require_current_timeline() {
+            self.error = Some(error.to_string());
+            return;
+        }
         if self.mix_dirty {
             self.error =
                 Some("Update the mix preview before exporting the new fader settings".into());
@@ -400,6 +404,7 @@ impl Studio {
         });
     }
     pub fn working_copy(&self) -> Result<PathBuf> {
+        self.require_current_timeline()?;
         ensure!(!self.mix_dirty, "Update the mix preview first");
         let audio = &self
             .current

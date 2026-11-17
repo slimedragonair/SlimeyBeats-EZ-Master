@@ -52,6 +52,9 @@ def windows_job(memory_bytes):
 def main():
     parent, memory_bytes, cpu_seconds, file_bytes = map(int, sys.argv[1:5])
     command = sys.argv[5:]
+    forward_stdin = bool(command and command[0] == "--forward-stdin")
+    if forward_stdin:
+        command = command[1:]
     if not command:
         return 125
     job_handle = None
@@ -76,11 +79,17 @@ def main():
             libc = ctypes.CDLL(None, use_errno=True)
             if libc.prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
                 raise OSError("Cannot own orphaned descendants")
-            if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
-                raise OSError("Cannot protect orphan worker")
-            if os.getppid() != parent:
-                return 125
-    result = subprocess.run(command, shell=False, stdin=subprocess.DEVNULL)
+            if forward_stdin:
+                # PDEATHSIG follows the creating thread. Persistent actors must
+                # survive HTTP/job thread exit and follow the backend process.
+                from parent_lifetime import watch_parent_process
+                watch_parent_process(parent)
+            else:
+                if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
+                    raise OSError("Cannot protect orphan worker")
+                if os.getppid() != parent:
+                    return 125
+    result = subprocess.run(command, shell=False, stdin=None if forward_stdin else subprocess.DEVNULL)
     if sys.platform.startswith("linux"):
         from process_tree import kill_children
         kill_children(os.getsid(0), os.getpid(), exclude=(os.getpid(),))

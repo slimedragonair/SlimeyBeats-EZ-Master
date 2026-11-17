@@ -13,7 +13,8 @@ from hybrid.tests.support import mint_guest, running_service
 class GuestLimitTests(unittest.TestCase):
     def registry(self, ttl=3600):
         clock = [0.0]
-        registry = GuestRegistry(SimpleNamespace(public_enabled=True, guest_session_ttl_seconds=ttl),
+        registry = GuestRegistry(SimpleNamespace(public_enabled=True, guest_session_ttl_seconds=ttl,
+                                 guest_jobs_per_session=3, guest_jobs_per_ip_hour=8, guest_jobs_per_hour=32),
                                  monotonic=lambda: clock[0], wall_time=lambda: 1700000000 + clock[0])
         return registry, clock
 
@@ -84,7 +85,8 @@ class GuestLimitTests(unittest.TestCase):
             self.assertEqual(len(registry._rates), 1)
 
     def test_http_run_limits_per_guest_and_peer_and_retries_are_idempotent(self):
-        with running_service(public_enabled=True) as (service, owner):
+        with running_service(public_enabled=True, guest_jobs_per_session=3,
+                             guest_jobs_per_ip_hour=8, guest_jobs_per_hour=32) as (service, owner):
             service.worker.process = lambda job: {}
             guests = [mint_guest(owner)[0] for _ in range(3)]
             for guest_index, guest in enumerate(guests):

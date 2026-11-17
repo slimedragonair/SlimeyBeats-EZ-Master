@@ -67,5 +67,12 @@ pub fn validate(value: &Analysis, limits: &Limits) -> Result<()> {
         value.issues.iter().all(|issue| issue.severity.is_finite()),
         "Invalid analysis issue values"
     );
+    ensure!(
+        spectrum
+            .high_frequency
+            .as_ref()
+            .is_none_or(|summary| summary.valid(value.sample_rate, value.duration_s)),
+        "Invalid high-frequency analysis"
+    );
     Ok(())
 }

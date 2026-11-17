@@ -1,7 +1,7 @@
 """Full import/edit/promote/project/desktop handoff workflow using actual MCP and GUI."""
 import argparse,json,math,os,signal,struct,subprocess,tempfile,wave
 from pathlib import Path
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 
 def verify(server,desktop,evidence):
     with tempfile.TemporaryDirectory(prefix='Studio handoff with spaces ') as temporary:

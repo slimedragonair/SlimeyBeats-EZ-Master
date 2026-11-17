@@ -1,12 +1,40 @@
 # AI assistant connection — desktop MCP preview
 
-**Hybrid v2 — development preview:** `get_help(topic="hybrid")` explains the separate browser/server workflow: original-file imports upload audio; Analyze, Master, supported heavy Studio tools and full-resolution exports run remotely, with 192 kbps listening previews by default. Deployment checks are recorded in [Hybrid v2 validation](HYBRID_V2_VALIDATION.md). This companion remains local stdio, keeps 45 tools and does not upload audio or forward jobs to that service. [Workflow and limits](HYBRID_STUDIO.md) · [v2 protocol](HYBRID_REMOTE_PROTOCOL.md) · [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md). Hotfix4 binaries retain their shipped help; source guidance does not update an installed companion.
+**Hybrid v2 — development preview:** `get_help(topic="hybrid")` explains the separate browser/server workflow: original-file imports upload audio; Analyze, Master, supported heavy Studio tools and full-resolution exports run remotely, with 192 kbps listening previews by default. Deployment checks are recorded in [Hybrid v2 validation](HYBRID_V2_VALIDATION.md). This companion remains local stdio and does not upload audio or forward jobs to that service. Released Hotfix4 has 45 tools; the current source companion advertises 33 organized tools by default; `--tool-profile legacy` retains the original 58-tool catalog. [Workflow and limits](HYBRID_STUDIO.md) · [v2 protocol](HYBRID_REMOTE_PROTOCOL.md) · [matched benchmark](../hybrid/deploy/remote-tools/BENCHMARK.md). Hotfix4 binaries retain their shipped help; source guidance does not update an installed companion.
 
-SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **45 tools in Hotfix4 and current source builds** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**, build revision **2026111501**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
+SlimeyBeats is a desktop mastering workstation first. Its optional **local MCP companion 0.2.0-beta.3** exposes **45 tools in Hotfix4 and 33 main tools in current source builds** through an MCP-compatible AI client, using the same Rust engine for analysis, mastering, EQ and Studio editing. The matching desktop is **0.5.0-beta.3**, build revision **2026111501**. Prepare a preview, then open it in the desktop app to listen and refine before an explicit export.
+
+**Independent track editing in current-work:** start `get_help(topic="arrangement")` for clip movement, trims, gain/pan/mute/solo, Undo/Redo and whole-song/track/clip/section EQ. This does not require mastering first. Clip sections use immutable source frames; track/mix sections use project frames. Names are labels; returned IDs and revisions select the actual target.
+
+`save_arrangement_project` saves editable v2 sources, metadata and history without a whole-song render. Retain its owned `project_id`; `load_arrangement_project` can reopen it after a new connection under the same output root. Replacing current work also requires its current session ID/revision. `open_arrangement_in_desktop` is a separate explicit action and checks real v2 project support before saving or launching. Matching version/build labels alone do not make an older installed desktop compatible. Legacy Studio save/export/Undo tools address their separate workspace.
+
+Before catalog consolidation, a fresh agent using only the 58 tools' descriptions/help completed save → full shutdown → fresh reopen → Undo/Redo → Float32 export: 18 checks passed with zero MCP errors and unchanged source files. An earlier 55-tool test independently verified clip-scoped EQ and exact unchanged samples outside its section. No physical playback was used. [Project architecture and API](../mcp/ARRANGEMENT_PROJECTS.md) · [Track editor](ARRANGEMENT_NATIVE_UI.md). Source changes do not update a running installed companion; replace the binary and reconnect the AI client to discover new tools.
 
 **Hotfix4 includes `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`, for 45 tools. The earlier stem-editor checkpoint had 43; historical Hotfix3 has 42; Hotfix 2 has 40.** Source changes do not by themselves update earlier binaries. See [Hotfix4 scope](HOTFIX4.md) and the external [HOTFIX4-VALIDATION.json](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json) for release-binary discovery, workflow outcomes and installer scope. Reports use a preview/review/save flow; [privacy and review requirements](#private-support-reports) apply even though saving is local.
 
 The [beta.3 Studio Preview release](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) hosts Hotfix4 packages with the matching desktop, companion and VST3 worker. Follow [Windows installation](INSTALLATION.md) or [build from the Hotfix4 source ZIP or main](BUILDING.md#get-the-source); the original beta.3 tag retains its earlier source. Linux currently requires a source build. **The stable v0.4.2 fallback does not include MCP or session handoff.** Studio includes two/four-stem local separation, **aligned imported stems/mix tracks without a fixed part-count ceiling**, voice cleanup, spectral repair, self-contained projects and optional VST3 effects. There is no native phone MCP server or browser-to-desktop bridge in this milestone.
+
+## Current source tool catalog
+
+Use the [33-tool catalog guide](MCP_TOOL_CATALOG.md) for the current source build.
+Start with `get_capabilities`, then `get_help(topic="quick_start")`. Related
+actions use `operation: {"action": "...", ...}` with strict action-specific
+schemas. `get_session` reads mastering, Studio and independent Tracks IDs in one
+snapshot; its `studio` and `arrangement` fields distinguish those workspaces.
+
+For example, editable Tracks save/reopen uses `project` actions
+`save_arrangement` / `open_arrangement`; explicit desktop handoff uses
+`open_desktop` action `arrangement`. Final audio uses `export_result` with an
+explicit `mastering`, `studio`, `arrangement` or `raw_stems` action. Project Save
+never substitutes for an audio export. Download consent, source ownership,
+stale-ID/revision checks and report review remain enforced.
+
+The original names in the historical examples below remain callable compatibility
+aliases. To advertise their original schemas and help instead, start with
+`--tool-profile legacy`. That profile has 58 tools; it adds no processing
+capabilities. Replacing a binary does not refresh tools in an already connected
+AI client: reconnect and confirm the returned profile/count. Installed Hotfix4
+retains its shipped 45-tool catalog.
 
 ## Browser server mode and the local MCP boundary
 
@@ -100,9 +128,9 @@ The intended flow is **Analyze → Master → audition/EQ/re-master → Export**
 
 The Studio Preview installer also includes the companion and VST3 worker. Open **Connect AI assistant** from its Start menu group to prepare a connection example; the same library/output arguments apply.
 
-## Tools
+## Historical Hotfix4 tool names
 
-The matching Hotfix4/source companion exposes **45 tools**, including `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`; historical Hotfix3 has **42** and Hotfix 2 has **40**. The table includes the report tools alongside read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
+The released Hotfix4 companion exposes **45 tools**, including `edit_stem_region`, `scan_audio_issues` and `preview_stem_doctor`; historical Hotfix3 has **42** and Hotfix 2 has **40**. The table includes the report tools alongside read-only ZIP inspection and job-based ZIP import. Stable v0.4.2 installers do not contain this companion or Studio. See [Studio workflows, setup and qualification](STUDIO.md). `get_help` supplies the examples and units inside the connection, so an unfamiliar agent need not read repository documentation.
 
 | Tool | Purpose |
 |---|---|

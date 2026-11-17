@@ -213,8 +213,13 @@ fn suggest_uses_shared_measurements_without_changing_audio_or_controls() {
     let response = f.call(f.request("suggest")).unwrap();
     let profile = mastercraft::profiles::builtin()["neutral"].clone();
     let measured = mastercraft::analysis::analyze(&f.audio, &profile).unwrap();
-    let expected = mastercraft::dsp::eq_suggestion::suggest(&measured, &profile).unwrap();
-    assert_eq!(response["suggestion"]["bands"], json!(expected));
+    let expected = mastercraft::dsp::eq_suggestion::proposal(&measured, &profile).unwrap();
+    assert_eq!(response["suggestion"]["bands"], json!(expected.bands));
+    assert_eq!(response["suggestion"]["notes"], json!(expected.notes));
+    assert_eq!(
+        response["suggestion"]["high_frequency"],
+        json!(expected.high_frequency)
+    );
     assert_eq!(response["assets"], json!([]));
     assert_eq!(std::fs::read(&f.source).unwrap(), before);
     assert!(response.get("waveform").is_none());

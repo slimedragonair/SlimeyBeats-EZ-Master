@@ -69,6 +69,7 @@ mod tests {
     }
 
     fn load_studio(app: &mut MasterCraftApp) {
+        app.studio.page = crate::gui::studio::state::Page::Stems;
         let audio = Arc::new(Audio::new(vec![0.02; 24000], 48000, 1).unwrap());
         app.studio.accept(
             Revision {

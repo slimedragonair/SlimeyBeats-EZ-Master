@@ -6,7 +6,9 @@ use std::{sync::atomic::Ordering, time::Instant};
 
 impl MasterCraftApp {
     pub(super) fn has_recovery_work(&self) -> bool {
-        !self.tracks.is_empty() || self.studio.source.is_some()
+        !self.tracks.is_empty()
+            || self.studio.source.is_some()
+            || self.studio.has_recovery_arrangement()
     }
     pub(super) fn save_recovery_now(&mut self, ctx: &egui::Context) {
         if self.recovery.busy() {

@@ -88,3 +88,64 @@ fn mastering_and_eq_do_not_export_until_explicit_export() {
         "Export writes audio and report together"
     );
 }
+
+#[test]
+fn suggestion_worker_carries_all_proposal_notes_and_measures_the_immutable_pre_eq_master() {
+    let profile = crate::profiles::resolve("neutral", Path::new(".")).unwrap();
+    let tone = |hz: f64| {
+        Arc::new(
+            crate::audio::Audio::new(
+                (0..96000)
+                    .map(|i| (0.1 * (std::f64::consts::TAU * hz * i as f64 / 48000.).sin()) as f32)
+                    .collect(),
+                48000,
+                1,
+            )
+            .unwrap(),
+        )
+    };
+    let before = tone(1000.);
+    let raw = tone(8000.);
+    let analysis = crate::analysis::analyze(&before, &profile).unwrap();
+    let measured = crate::analysis::analyze(&raw, &profile).unwrap();
+    let expected = crate::dsp::eq_suggestion::proposal(&measured, &profile).unwrap();
+    let mut settings = Settings::default();
+    settings.manual_eq[2].gain = 2.75;
+    let pending_eq = settings.manual_eq.clone();
+    let result = Arc::new(TrackResult {
+        before,
+        raw: Some(raw.clone()),
+        raw_analysis: None,
+        eq_parameters: None,
+        after: None,
+        analysis,
+        report: None,
+    });
+    let (tx, rx) = mpsc::channel();
+    suggest_eq(
+        0,
+        result,
+        settings.clone(),
+        tx,
+        Arc::new(AtomicBool::new(false)),
+        egui::Context::default(),
+    );
+    match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
+        Event::Suggestion(0, proposal) => {
+            assert!(Arc::ptr_eq(&proposal.source, &raw));
+            assert_eq!(proposal.profile, settings.profile);
+            assert_eq!(proposal.bands, expected.bands);
+            assert!(proposal.note.contains("automatic master"));
+            assert!(!expected.notes.is_empty());
+            for note in expected.notes {
+                assert!(proposal.note.contains(&note), "Missing note: {note}");
+            }
+        }
+        _ => panic!("Worker must produce an unapplied proposal"),
+    }
+    assert!(matches!(
+        rx.recv_timeout(Duration::from_secs(15)).unwrap(),
+        Event::Finished
+    ));
+    assert_eq!(settings.manual_eq, pending_eq);
+}

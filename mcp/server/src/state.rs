@@ -67,6 +67,7 @@ impl Snapshot {
 }
 
 pub struct Store {
+    pub arrangements: crate::arrangement_state::ArrangementWorkspace,
     pub session: Snapshot,
     pub generation: u64,
     pub sequence: u64,
@@ -148,6 +149,7 @@ impl Engine {
             plugin_host: mastercraft::studio_native::plugins::VstHost::find(),
             plugin_roots,
             store: Mutex::new(Store {
+                arrangements: Default::default(),
                 session: Snapshot {
                     source: None,
                     reference: None,
@@ -172,6 +174,18 @@ impl Engine {
 
     pub fn session(&self) -> Result<Value> {
         let store = self.lock()?;
+        self.session_summary(&store)
+    }
+
+    pub(crate) fn all_sessions(&self) -> Result<Value> {
+        let store = self.lock()?;
+        let mut value = self.session_summary(&store)?;
+        value["studio"] = store.session.studio.summary(self, &store.session)?;
+        value["arrangement"] = store.arrangements.summary(self)?;
+        Ok(value)
+    }
+
+    fn session_summary(&self, store: &Store) -> Result<Value> {
         let s = &store.session;
         let source = s.source.as_ref().map(|source| json!({"source_id":source.id,"file":self.locator(&source.source.path),"duration_seconds":source.audio.duration(),"sample_rate":source.audio.sample_rate,"channels":source.audio.channels}));
         let master = s.master.as_ref().map(|master| Ok::<_,anyhow::Error>(json!({"preview_id":master.id,"relative_preview_path":self.policy.relative_output(master.file.as_ref())?,"measurements":master.preview.report.output.metrics,"settings":public_settings(&master.settings),"target_lufs":master.preview.report.target_lufs}))).transpose()?;
@@ -200,6 +214,7 @@ impl Engine {
                 .store(true, std::sync::atomic::Ordering::Relaxed);
         }
         store.generation += 1;
+        store.arrangements = Default::default();
         let settings = Settings {
             out_dir: self.policy.output.clone(),
             ..Default::default()
@@ -257,6 +272,7 @@ pub fn analysis_summary(analysis: &Analysis) -> Value {
     json!({"duration_seconds":analysis.duration_s,"sample_rate":analysis.sample_rate,"channels":analysis.channels,
         "measurements":analysis.metrics,"issues":issues,"band_centers_hz":mastercraft::profiles::BANDS,
         "deviation_db":deviations,"valid_bands":analysis.valid,"suggested_profile":analysis.suggested_profile,
+        "high_frequency":analysis.spectrum.high_frequency,
         "interpretation":{"severity":"Heuristic indicator from 0 to 100, not a percentage of damage or a quality score. Higher means a stronger detector flag. Different detectors use different scales; do not add/compare them as a common score. Zero means no positive flag, not a diagnosed problem.","valid_bands":"False means unreliable at this rate or above the detected bandwidth cutoff. Its deviation is null; do not infer a tonal defect there.","deviation_db":"Difference from the selected profile after level alignment, in dB. Positive is more energy than that curve, not automatically too much.","listening":"A provisional measurement-based change still needs listening. Tools do not return audio bytes."},
         "note":"Tonal profiles and suggested corrections are heuristics. Audition the result; these measurements are not a universal quality score."})
 }

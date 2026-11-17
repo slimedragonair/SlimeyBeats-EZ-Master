@@ -6,10 +6,14 @@ use crate::gui::{
 };
 use std::sync::{Arc, atomic::Ordering};
 
+#[path = "recovery_arrangement.rs"]
+mod arrangement;
+pub(in crate::gui) use arrangement::PreparedArrangement;
+
 impl Studio {
     pub(in crate::gui) fn adopt_recovery(&mut self, data: PreparedStudio, saved: SavedStudio) {
         self.doctor = Default::default();
-        self.player.stop();
+        self.player.unload();
         self.source = data.source;
         self.bank = data.bank;
         self.editor = Default::default();
@@ -19,6 +23,7 @@ impl Studio {
         self.undo.clear();
         self.redo.clear();
         self.auto_action = None;
+        self.plugin_host = None;
         self.voice = saved.voice;
         self.repair = saved.repair;
         self.mix = saved.mix;
@@ -38,6 +43,7 @@ impl Studio {
             SavedTarget::Stem(k) => Target::Stem(k),
         };
         self.page = match saved.page.as_str() {
+            "tracks" => Page::Tracks,
             "voice" => Page::Voice,
             "repair" => Page::Repair,
             "plugins" => Page::Plugins,
@@ -53,7 +59,8 @@ impl Studio {
         self.reveal_spectrogram = false;
         self.monitoring_mix = false;
         self.error = None;
-        if let Some(revision) = &mut self.current {
+        let tracks = self.adopt_recovery_arrangement(data.arrangement);
+        if !tracks && let Some(revision) = &mut self.current {
             // Equal PCM is insufficient: only the preserved attachment identities
             // establish that this is the same bank used by the prepared preview.
             let bound = revision
@@ -112,8 +119,14 @@ impl Studio {
             }
         }
         self.player.controls.playing.store(false, Ordering::Relaxed);
-        self.player.seek(saved.position);
-        self.status = if self.mix_dirty {
+        self.player.seek(if tracks {
+            self.arrangement.position
+        } else {
+            saved.position
+        });
+        self.status = if tracks {
+            "Tracks recovered · playback is paused"
+        } else if self.mix_dirty {
             "Recovered live edits · update mix preview before saving"
         } else {
             "Studio recovered · playback is paused"

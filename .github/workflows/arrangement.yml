@@ -1,0 +1,81 @@
+name: Arrangement editing checks
+on:
+  push:
+    branches: [main, current-work]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: arrangement-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scope:
+    uses: ./.github/workflows/change-scope.yml
+  browser:
+    needs: scope
+    if: needs.scope.outputs.arrangement == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Rust and WebAssembly
+        run: |
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+      - name: Install matching bindings and browser dependencies
+        run: |
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
+          echo '9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f  /tmp/wasm-bindgen.tar.gz' | sha256sum --check
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          echo '/tmp/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl' >> "$GITHUB_PATH"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio pulseaudio-utils
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_arrangement'
+          echo 'PULSE_SINK=slimeybeats_arrangement' >> "$GITHUB_ENV"
+          python3 -m pip install playwright==1.57.0 numpy==2.5.2
+          python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Check state and build matching WASM and frontend
+        run: |
+          node --test web/site/arrangement-timeline-*.test.mjs web/site/arrangement-workspace-transfer.test.mjs web/site/audio/compressed-preview-source.test.mjs web/site/audio/native-arrangement-player.test.mjs web/site/hybrid/arrangement-*.test.mjs
+          python3 web/tools/build.py
+          cargo build --locked --manifest-path rust/Cargo.toml --no-default-features --bin slimeybeats-ez-master-cli --bin slimeybeats_hybrid_worker
+      - name: Verify actual editing, playback, scoped EQ and project delivery
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_job_feedback_resize.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/feedback-$browser"
+            python3 web/tools/verify_arrangement_ui.py --browser "$browser" --out "${{ runner.temp }}/arrangement/ui-$browser"
+            python3 web/tools/verify_arrangement_audio.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/audio-$browser"
+            python3 web/tools/verify_arrangement_browser.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/editing-$browser"
+            python3 web/tools/verify_arrangement_project_ui.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/project-$browser"
+            python3 web/tools/verify_arrangement_mp3_ui.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/mp3-$browser"
+          done
+      - name: Verify ordinary guest server editing and delivery
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_arrangement_guest_ui.py --site web/dist --browser "$browser" --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/guest-$browser"
+          done
+      - name: Verify large owned ZIP and Server Off source budget
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          python3 web/tools/verify_arrangement_guest_ui.py --site web/dist --browser chromium --archive-mib 303 --large-budget --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/guest-large"
+      - name: Verify native short endings and source-clock alignment
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_arrangement_short_ui.py --site web/dist --browser "$browser" --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/short-$browser"
+          done
+      - name: Verify native MP4 decoding, bounded reads and owned cancellation
+        run: |
+          python3 web/tools/verify_arrangement_stream_browser.py --site web/dist --cli rust/target/debug/slimeybeats-ez-master-cli --worker rust/target/debug/slimeybeats_hybrid_worker --ffmpeg /usr/bin/ffmpeg --out "${{ runner.temp }}/arrangement/native-stream"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: arrangement-browser-validation
+          path: |
+            ${{ runner.temp }}/arrangement
+            !${{ runner.temp }}/arrangement/**/candidate/**
+            !${{ runner.temp }}/arrangement/**/private-store/**
+            !${{ runner.temp }}/arrangement/**/native-binaries/**
+            !${{ runner.temp }}/arrangement/**/synthetic-parts.zip
+            !${{ runner.temp }}/arrangement/**/long-*.wav
+          if-no-files-found: warn

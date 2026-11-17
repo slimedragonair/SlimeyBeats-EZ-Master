@@ -6,6 +6,10 @@ use eframe::egui;
 pub(super) fn preview_unavailable(studio: &Studio) -> Option<&'static str> {
     if studio.busy() {
         Some("Wait for the current job or cancel it first.")
+    } else if studio.require_current_timeline().is_err() {
+        Some(
+            "Timeline changed · open Tracks and choose Use mix in tools to prepare the latest edit.",
+        )
     } else if studio.mix_dirty {
         Some(
             "Live stem changes are audible. Update mix preview before saving or further processing.",
@@ -33,6 +37,7 @@ pub(super) fn dock(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) 
             if ui.add_enabled(!studio.busy(), crystal_button::primary(label)).on_hover_text("Prepare and measure the current live fader, mute, solo and balance settings for saving or further processing. Listening updates live without this step. This does not export.").clicked() { studio.render_mix(ctx); }
         }
         let action = match studio.page {
+            Page::Tracks => None,
             Page::Repair if super::doctor_controls::active(studio) => None,
             Page::Voice => Some(("Preview voice cleanup", Studio::clean_voice as fn(&mut Studio, &egui::Context))),
             Page::Repair => Some(("Preview spectral repair", Studio::repair_audio as fn(&mut Studio, &egui::Context))),

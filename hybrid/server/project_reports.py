@@ -5,6 +5,7 @@ import re
 
 from .errors import ProcessingError
 from .config import PROFILES
+from .high_frequency import summary as high_frequency_summary
 
 KEY = re.compile(r"[a-z][a-z0-9_]{0,63}\Z")
 PRIVATE = {"path", "file", "filename", "name", "logs", "log", "stderr", "stdout", "configuration", "config",
@@ -20,6 +21,7 @@ ANALYSIS_ISSUE_TEXT = {
     "harshness": "Upper-mid energy differs from the selected tonal target.",
     "sibilance": "High-frequency bursts may need review.",
     "fizz": "Elevated high-frequency energy may need review.",
+    "high_frequency_excess": "Repeated high-frequency energy may need review; this is a heuristic candidate.",
     "clipping": "Samples reach digital full scale; inspect for clipping.",
     "noise": "Quiet high-frequency content may contain stationary noise.",
     "stereo": "Stereo correlation indicates possible phase cancellation.",
@@ -51,6 +53,13 @@ def analysis(value):
     if not isinstance(value, dict):
         raise ProcessingError("Invalid analysis")
     clean = numeric({key: item for key, item in value.items() if key not in ("issues", "suggested_profile")})
+    spectrum = value.get("spectrum")
+    if isinstance(spectrum, dict) and "high_frequency" in spectrum:
+        try:
+            clean["spectrum"]["high_frequency"] = high_frequency_summary(
+                spectrum["high_frequency"], value.get("sample_rate"), value.get("duration_s"))
+        except (ValueError, TypeError, OverflowError) as error:
+            raise ProcessingError("Invalid high-frequency analysis") from error
     raw_issues = value.get("issues", [])
     if not isinstance(raw_issues, list) or len(raw_issues) > 64:
         raise ProcessingError("Analysis issue bounds")

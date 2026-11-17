@@ -48,6 +48,8 @@ pub(super) struct SavedResult {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct SavedStudio {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arrangement: Option<SavedArrangement>,
     pub source: Option<SavedSource>,
     pub bank: Option<SavedBank>,
     pub current: Option<SavedRevision>,
@@ -68,6 +70,20 @@ pub(super) struct SavedStudio {
     pub plugin_class: String,
     pub plugin_values: Vec<PluginValue>,
     pub plugin_probe: Option<Probe>,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct SavedArrangement {
+    pub version: u32,
+    pub history: crate::studio::arrangement::HistorySnapshot,
+    pub history_budget_bytes: usize,
+    pub assets: std::collections::BTreeMap<String, usize>,
+    pub asset_names: std::collections::BTreeMap<String, String>,
+    pub options: crate::studio::arrangement::RenderOptions,
+    pub reference: Option<usize>,
+    pub origin: Option<crate::studio::arrangement::Arrangement>,
+    pub position: f64,
+    pub profile: String,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

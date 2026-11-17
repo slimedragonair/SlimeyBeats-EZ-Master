@@ -10,7 +10,7 @@ import struct
 import subprocess
 import tempfile
 import wave
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 
 
 EXPECTED_TOOLS = set("""get_capabilities get_help list_audio_files load_audio load_reference

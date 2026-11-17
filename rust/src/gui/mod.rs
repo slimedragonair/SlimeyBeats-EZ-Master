@@ -1,4 +1,7 @@
 mod app;
+mod arrangement_controls;
+mod arrangement_mailbox;
+mod arrangement_worker;
 mod audio_source;
 mod brand_art;
 mod bundled_resources;
@@ -7,6 +10,9 @@ mod eq_curve;
 mod eq_jobs;
 mod eq_live_control;
 mod eq_panel;
+#[cfg(test)]
+mod eq_suggestion_tests;
+mod file_drop;
 mod guide_content;
 mod help;
 mod help_center;
@@ -17,6 +23,7 @@ mod keyboard_interaction_tests;
 #[cfg(test)]
 mod learning_interaction_tests;
 mod learning_ui;
+mod live_arrangement_path;
 mod live_spectrum;
 mod live_stem_path;
 #[cfg(test)]
@@ -24,6 +31,8 @@ mod live_stem_tests;
 mod mastering_controls;
 mod mastering_preview_state;
 mod mcp_setup;
+#[cfg(test)]
+mod native_allocation_probe;
 mod overview;
 mod playback_loop;
 mod playback_owner;

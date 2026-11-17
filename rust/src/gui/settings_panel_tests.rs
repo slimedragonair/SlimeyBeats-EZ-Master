@@ -24,6 +24,7 @@ fn load_preview(app: &mut MasterCraftApp) {
             noise_candidate: false,
             sibilance_spike_fraction: 0.,
             octave_power: vec![],
+            high_frequency: None,
         },
         measured_db: vec![],
         deviation_db: vec![],

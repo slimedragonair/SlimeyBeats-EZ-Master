@@ -1,3 +1,4 @@
+mod arrangement;
 mod input;
 mod module_settings;
 mod output;
@@ -19,10 +20,12 @@ use std::{
 #[derive(Parser)]
 #[command(about = "Private server DSP worker; see hybrid_worker/README.md")]
 struct Arguments {
-    #[arg(long)]
-    request: PathBuf,
-    #[arg(long)]
-    response: PathBuf,
+    #[arg(long, required_unless_present = "arrangement_server")]
+    request: Option<PathBuf>,
+    #[arg(long, required_unless_present = "arrangement_server")]
+    response: Option<PathBuf>,
+    #[arg(long, conflicts_with_all = ["request", "response"])]
+    arrangement_server: Option<PathBuf>,
     #[arg(long, default_value_t = 4, value_parser = clap::value_parser!(u16).range(1..=256))]
     threads: u16,
 }
@@ -38,11 +41,16 @@ pub fn progress(fraction: f32, message: &'static str) {
 
 pub fn run() -> Result<()> {
     let args = Arguments::parse();
+    if let Some(root) = args.arrangement_server {
+        return arrangement::run(&root, args.threads as usize);
+    }
+    let request = args.request.context("A request file is required")?;
+    let response = args.response.context("A response file is required")?;
     ensure!(
-        args.request.is_absolute() && args.response.is_absolute(),
+        request.is_absolute() && response.is_absolute(),
         "Request/response paths must be absolute"
     );
-    let prepared = prepare(&args.request, &args.response)?;
+    let prepared = prepare(&request, &response)?;
     // SAFETY: this executable is still single-threaded. Configure the process
     // temp location before Rayon, codecs, or inference can start any threads.
     // Shared codec supervision uses tempfile for stderr, so its inherited temp

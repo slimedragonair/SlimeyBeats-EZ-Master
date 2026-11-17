@@ -85,3 +85,14 @@ class Client:
         self.reader.join(timeout=2)
         self.errors.join(timeout=2)
         assert self.process.returncode == 0, "".join(self.stderr)
+
+
+class LegacyClient(Client):
+    """Explicitly qualify old schemas; compact discovery has its own verifier."""
+    def __init__(self, command, *, env=None):
+        command = list(command)
+        if "--tool-profile" in command:
+            command[command.index("--tool-profile") + 1] = "legacy"
+        else:
+            command += ["--tool-profile", "legacy"]
+        super().__init__(command, env=env)

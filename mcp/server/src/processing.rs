@@ -1,4 +1,8 @@
 //! Audio operations shared by the protocol tools; jobs commit session state on success.
+#[cfg(test)]
+#[path = "suggestion_tests.rs"]
+mod suggestion_tests;
+
 use crate::{
     audio_input,
     jobs::{Change, ContextData, Product},
@@ -85,7 +89,8 @@ pub fn analyze(ctx: ContextData, source_id: String, suggest: bool) -> Result<Pro
     };
     ctx.check()?;
     let result = if suggest {
-        json!({"bands":mastercraft::dsp::eq_suggestion::suggest(&measured, &profile)?,"applied":false,
+        let proposal = mastercraft::dsp::eq_suggestion::proposal(&measured, &profile)?;
+        json!({"bands":proposal.bands,"notes":proposal.notes,"high_frequency":proposal.high_frequency,"applied":false,
             "basis":if ctx.snapshot.master.is_some() {"master_before_manual_eq"} else {"original"},
             "note":"Deterministic, conservative tonal suggestions. Applying them before listening is a provisional measurement-based edit, not an auditioned approval. A profile is not a quality score."})
     } else {

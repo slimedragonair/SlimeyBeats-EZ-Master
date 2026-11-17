@@ -34,6 +34,7 @@ pub struct Review {
     prepared: PreparedImport,
     choices: Vec<Choice>,
     preferred: PreferredFormat,
+    arrangement: bool,
 }
 impl Review {
     pub fn part_count(&self) -> usize {
@@ -56,7 +57,17 @@ impl Review {
             prepared,
             choices,
             preferred: PreferredFormat::default(),
+            arrangement: false,
         }
+    }
+    pub fn for_arrangement(prepared: PreparedImport) -> Self {
+        Self {
+            arrangement: true,
+            ..Self::new(prepared)
+        }
+    }
+    pub fn is_arrangement(&self) -> bool {
+        self.arrangement
     }
     fn selected(&self) -> Vec<PartSelection> {
         self.choices
@@ -99,7 +110,8 @@ pub fn review(studio: &mut Studio, ui: &mut egui::Ui, _: &egui::Context, compact
             egui::CollapsingHeader::new("Pairing & format help")
                 .id_salt("stem-import-help")
                 .show(ui, |ui| {
-                    ui.small("Alternate WAV/MP3 files count once. A missing preferred format falls back to the available file. Leave the full mix out when importing its individual stems.");
+                    ui.small(if review.arrangement { "Alternate WAV/MP3 files count once. Choose the tracks you want to layer; different lengths are supported." }
+                        else { "Alternate WAV/MP3 files count once. A missing preferred format falls back to the available file. Leave the full mix out when importing its individual stems." });
                 });
         } else {
             ui.small("Alternate WAV/MP3 files count once. A missing preferred format falls back to the available file.");
@@ -164,9 +176,9 @@ pub fn review(studio: &mut Studio, ui: &mut egui::Ui, _: &egui::Context, compact
                             let previous = choice.included;
                             ui.checkbox(&mut choice.included, &part.name);
                             if !previous && choice.included { choice.kind = stem_import_plan::available_kind(choice.kind, &used); used.insert(choice.kind); }
-                            ui.add_enabled_ui(choice.included, |ui| {
+                            if !review.arrangement { ui.add_enabled_ui(choice.included, |ui| {
                                 kind_picker(choice, ui, width.min(150.), &used);
-                            });
+                            }); }
                             let version = part.preferred(&review.preferred);
                             let filename = version.name.rsplit('/').next().unwrap_or(&version.name);
                             ui.small(format!("{} · {}", version.format.to_uppercase(), filename)).on_hover_text(format!("Using {}. Its alternate encoding will not be mixed again.", version.name));
@@ -227,14 +239,20 @@ fn compact_choices(review: &mut Review, ui: &mut egui::Ui, used: &mut BTreeSet<S
                     }
                 });
                 ui.push_id(("compact-kind", index), |ui| {
-                    ui.add_enabled_ui(choice.included, |ui| kind_picker(choice, ui, 112., used));
+                    if review.arrangement {
+                        ui.small(version.format.to_uppercase());
+                    } else {
+                        ui.add_enabled_ui(choice.included, |ui| {
+                            kind_picker(choice, ui, 112., used)
+                        });
+                    }
                 });
                 ui.end_row();
             }
         });
 }
 
-fn actions(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
+pub(super) fn actions(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     let mut discard = false;
     let mut import = None;
     if let Some(review) = &studio.bulk_import {
@@ -271,18 +289,36 @@ fn actions(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
                 omitted.join("\n")
             });
         }
-        let valid = stem_import_plan::select(&review.prepared.plan, &selected, &review.preferred);
+        let valid = if review.arrangement {
+            if selected.is_empty() {
+                Err(anyhow::anyhow!("Select at least one track"))
+            } else {
+                Ok(())
+            }
+        } else {
+            stem_import_plan::select(&review.prepared.plan, &selected, &review.preferred)
+                .map(|_| ())
+        };
         if let Err(error) = &valid {
             ui.colored_label(theme::BONE, error.to_string());
         }
         if ui
             .add_enabled(
                 valid.is_ok(),
-                crystal_button::primary("Import selected stems"),
+                crystal_button::primary(if review.arrangement {
+                    "Add selected tracks"
+                } else {
+                    "Import selected stems"
+                }),
             )
             .clicked()
         {
-            import = Some((review.prepared.clone(), selected, review.preferred.clone()));
+            import = Some((
+                review.prepared.clone(),
+                selected,
+                review.preferred.clone(),
+                review.arrangement,
+            ));
         }
         discard = ui
             .small_button("Discard file selection")
@@ -305,8 +341,12 @@ fn actions(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     if discard {
         studio.bulk_import = None;
     }
-    if let Some((prepared, selected, preferred)) = import {
-        studio.import_stem_bundle(prepared, selected, preferred, ctx);
+    if let Some((prepared, selected, preferred, arrangement)) = import {
+        if arrangement {
+            studio.import_arrangement_bundle(prepared, selected, preferred, ctx);
+        } else {
+            studio.import_stem_bundle(prepared, selected, preferred, ctx);
+        }
     }
 }
 

@@ -371,6 +371,14 @@
     }
 }
 @media (max-width: 680px) {
+    /* Keep workspace choices together so import stays above pinned playback. */
+    #s-workspace-views { align-items: stretch; flex-wrap: nowrap; margin: 0; }
+    #s-workspace-views > button {
+        flex: 1 1 0; min-width: 0; white-space: normal;
+        font-size: .875rem; line-height: 1.25; padding-block: 3px;
+    }
+    #s-workspace-views > #s-arrange-entry { flex-grow: 1.5; }
+    #studio-tools > .edit-notice { padding-block: 8px; }
     .studio-mode .library #add {
         min-height: 64px;
     }

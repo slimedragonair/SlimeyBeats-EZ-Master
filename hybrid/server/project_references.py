@@ -4,6 +4,7 @@ import json
 import math
 
 from .errors import ApiError
+from .high_frequency import summary as high_frequency_summary
 from .reference_analysis import DB_FIELDS, MAX_REFERENCE_BYTES, fields, integer, number, vector
 
 
@@ -37,7 +38,8 @@ def reference_projection(project, request, config):
                              dc_offset=vector(metrics["dc_offset"], channels, -1e18, 1e18),
                              clipped_samples=integer(metrics["clipped_samples"], 0, math.ceil(samples)))
         spectrum = value["spectrum"]
-        fields(spectrum, ("freqs", "db", "cutoff_hz", "quiet_hf_flatness", "noise_candidate", "sibilance_spike_fraction", "octave_power"))
+        fields(spectrum, ("freqs", "db", "cutoff_hz", "quiet_hf_flatness", "noise_candidate", "sibilance_spike_fraction", "octave_power"),
+               ("high_frequency",))
         # Native Analysis keeps its fixed 240-bin display axis even above the
         # Nyquist of low-rate audio; cutoff and valid bands carry that geometry.
         # This private/native contract differs from v1 browser-supplied Analysis.
@@ -50,6 +52,8 @@ def reference_projection(project, request, config):
                           "noise_candidate": spectrum["noise_candidate"],
                           "sibilance_spike_fraction": number(spectrum["sibilance_spike_fraction"], 0, 1),
                           "octave_power": vector(spectrum["octave_power"], 10, 0, 1e18)}
+        if "high_frequency" in spectrum:
+            clean_spectrum["high_frequency"] = high_frequency_summary(spectrum["high_frequency"], rate, duration)
         valid = value["valid"]
         if not isinstance(valid, list) or len(valid) != 10 or any(type(item) is not bool for item in valid):
             raise ValueError("Invalid reference bands")

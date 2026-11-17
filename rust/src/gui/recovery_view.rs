@@ -228,7 +228,7 @@ fn history(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
                     }
                 }
             }
-            ui.small("Names are shown only here, locally. Recovery details are never attached to support reports. Reference tracks stay linked; reselect them if moved. Undo history and running jobs are not restored.");
+            ui.small("Names are shown only here, locally. Recovery details are never attached to support reports. Reference tracks stay linked; reselect them if moved. Timeline committed edits and retained undo/redo are restored; other tool undo histories and running jobs are not.");
         }
         if state.confirm_delete {
             ui.label("Delete all recovery points for this inactive session? Original audio, projects and exports are kept.");

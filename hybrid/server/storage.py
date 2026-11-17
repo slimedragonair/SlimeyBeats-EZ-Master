@@ -19,7 +19,7 @@ def is_link(path):
     return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
 
 
-def directory_bytes(path, limit=None, max_entries=128):
+def directory_usage(path, limit=None, max_entries=128):
     total = 0
     count = 0
     pending = [path]
@@ -56,7 +56,11 @@ def directory_bytes(path, limit=None, max_entries=128):
                     continue
                 if limit is not None and total > limit:
                     raise ProcessingError("Processing storage limit exceeded")
-    return total
+    return total, count
+
+
+def directory_bytes(path, limit=None, max_entries=128):
+    return directory_usage(path, limit, max_entries)[0]
 
 
 class Storage:

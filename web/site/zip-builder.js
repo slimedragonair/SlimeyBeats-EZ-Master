@@ -25,11 +25,11 @@ export function safeZipName(name) {
         throw new Error("ZIP requires safe flat filenames of at most 120 ASCII characters");
     return name;
 }
-function limitsFor(overrides) {
-    const limits = { ...ZIP_LIMITS, ...overrides };
+function limitsFor(overrides, policy = ZIP_LIMITS) {
+    const limits = { ...policy, ...overrides };
     for (const key of Object.keys(limits))
-        if (!(key in ZIP_LIMITS) || !Number.isSafeInteger(limits[key]) || limits[key] < 0 ||
-            limits[key] > ZIP_LIMITS[key]) throw new Error("Invalid ZIP export limit");
+        if (!(key in policy) || !Number.isSafeInteger(limits[key]) || limits[key] < 0 ||
+            limits[key] > policy[key]) throw new Error("Invalid ZIP export limit");
     return limits;
 }
 function checkCount(files, limits) {
@@ -39,12 +39,15 @@ function checkCount(files, limits) {
 }
 // Size-only planning permits large-limit regressions without allocating audio.
 export function planZip(files, overrides = {}) {
-    const limits = limitsFor(overrides);
+    return planFiles(files, overrides, ZIP_LIMITS, safeZipName);
+}
+function planFiles(files, overrides, policy, validateName) {
+    const limits = limitsFor(overrides, policy);
     checkCount(files, limits);
     const names = new Set();
     let payload = 0, centralSize = 0;
     const entries = files.map((file) => {
-        const name = safeZipName(file?.name), key = name.toLowerCase();
+        const name = validateName(file?.name), key = name.toLowerCase();
         if (names.has(key)) throw new Error("ZIP filenames must be unique, including case");
         names.add(key);
         const size = file.size;
@@ -64,10 +67,23 @@ export function planZip(files, overrides = {}) {
     return { entries, payload, centralSize, size };
 }
 export function buildZip(files, overrides = {}) {
-    checkCount(files, limitsFor(overrides));
+    return buildFiles(files, overrides, ZIP_LIMITS, safeZipName);
+}
+// Canonical project paths are a separate allowlist; rendered session bundles
+// keep their existing flat-name contract and resource limits.
+export function buildProjectZip(files) {
+    const policy = { ...ZIP_LIMITS, maxEntries: 0xfffe, maxArchiveBytes: 256 * 1024 * 1024 };
+    return buildFiles(files, {}, policy, name => {
+        if (typeof name !== "string" || !/^(?:arrangement\.json|assets\/[0-9a-f]{64}\.wav)$/.test(name))
+            throw new Error("Project ZIP requires canonical manifest and hash-named WAV members");
+        return name;
+    });
+}
+function buildFiles(files, overrides, policy, validateName) {
+    checkCount(files, limitsFor(overrides, policy));
     if (files.some((file) => !(file?.bytes instanceof Uint8Array)))
         throw new Error("ZIP entries must provide Uint8Array bytes");
-    const plan = planZip(files.map((file) => ({ name: file.name, size: file.bytes.byteLength })), overrides);
+    const plan = planFiles(files.map((file) => ({ name: file.name, size: file.bytes.byteLength })), overrides, policy, validateName);
     // All validation precedes CRC scans, header allocation and Blob construction.
     const parts = [], central = [];
     for (let i = 0; i < plan.entries.length; i++) {

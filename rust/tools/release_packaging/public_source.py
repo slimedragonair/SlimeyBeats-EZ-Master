@@ -10,15 +10,23 @@ GUIDES = (
     'INSTALLATION.md', 'USER_GUIDE.md', 'BUILDING.md', 'RELEASING.md', 'GETTING_STARTED.html',
     'LINUX.md', 'WEB.md', 'WEB_VALIDATION.md', 'WEB_EXPORTS.md', 'WEB_EXPORT_VALIDATION.md',
     'BROWSER_PARITY_ROADMAP.md', 'MOBILE_PREVIEW.md', 'MCP.md', 'MCP_ARCHITECTURE.md',
-    'MCP_VALIDATION.md', 'STUDIO.md', 'STEM_LIVE_MONITORING.md', 'STEM_EDITOR.md',
+    'MCP_VALIDATION.md', 'MCP_TOOL_CATALOG.md', 'CI_CHECK_SCOPES.md', 'STUDIO.md', 'STEM_LIVE_MONITORING.md', 'STEM_EDITOR.md',
     'WEB_STEM_EDITOR.md', 'STEM_DOCTOR.md', 'UPDATES_AND_OPTIONAL_TOOLS.md',
     'RECOVERY_AND_REPORTING.md', 'STUDIO_DEVELOPMENT.md', 'STUDIO_BETA3_VALIDATION.md',
     'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
     'HOTFIX4.md', 'HYBRID_STUDIO.md', 'HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md',
+    'EQ_SUGGESTION_INTEGRATION.md',
+    'ARRANGEMENT_CORE.md', 'ARRANGEMENT_TRANSPORT.md', 'ARRANGEMENT_NATIVE_AUDIO.md', 'WEB_ARRANGEMENT_UI.md',
+    'ARRANGEMENT_NATIVE_UI.md',
+    'ARRANGEMENT_RECOVERY.md',
+    'NATIVE_STUDIO_NAVIGATION.md',
 )
 # Keep screenshots explicit: only reviewed public captures belong in the source
 # package, never an arbitrary image or private report added to the checkout.
 DOCUMENTATION_IMAGES = (
+    'arrangement-desktop.png', 'arrangement-compact.png',
+    'arrangement-eq-desktop.png', 'arrangement-eq-compact.png',
+    'arrangement-eq-scrolled-desktop.png', 'arrangement-eq-scrolled-compact.png',
     'welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
     'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png',
     'web-preview.png', 'web-phone-eq.png', 'studio-stems.png', 'studio-repair.png',
@@ -91,12 +99,19 @@ def copy_public_source(repository, destination):
             copy(path.relative_to(repository))
     for name in ('Cargo.toml', 'Cargo.lock'):
         copy(Path('mcp/server') / name)
+    copy(Path('mcp/ARRANGEMENT_PROJECTS.md'))
     for directory in ('mcp/server/src', 'mcp/server/tests', 'mcp/server/examples', 'mcp/tools'):
         for path in sorted((repository / directory).rglob('*')):
             if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                 copy(path.relative_to(repository))
+    for name in ('native_fixture.py', 'verify_arrangement_worker.py',
+                 'verify_arrangement_stream.py', 'verify_arrangement_http.py',
+                 'verify_arrangement_jobs.py', 'verify_arrangement_encoder.py',
+                 'verify_arrangement_archives.py', 'verify_arrangement_archive_input.py',
+                 'verify_arrangement_guest.py', 'verify_arrangement_many_sources.py'):
+        copy(Path('hybrid/tools') / name)
     for path in sorted((repository / '.github').rglob('*')):
-        if path.is_file():
+        if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
             copy(path.relative_to(repository))
     for name in ('Cargo.toml', 'Cargo.lock'):
         copy(Path('plugins/host') / name)

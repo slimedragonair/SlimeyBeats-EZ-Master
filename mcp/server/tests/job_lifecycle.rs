@@ -19,6 +19,7 @@ fn engine(dir: &std::path::Path) -> Arc<Engine> {
         profiles_root: None,
         studio_data: None,
         plugin_root: vec![],
+        tool_profile: slimeybeats_mcp::tool_catalog::ToolProfile::Compact,
         print_config: false,
     })
     .unwrap()

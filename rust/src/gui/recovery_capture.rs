@@ -13,9 +13,9 @@ pub(super) struct Capture {
     pub audio: Vec<Arc<Audio>>,
 }
 #[derive(Default)]
-struct Attachments(Vec<Arc<Audio>>);
+pub(super) struct Attachments(Vec<Arc<Audio>>);
 impl Attachments {
-    fn add(&mut self, audio: &Arc<Audio>) -> usize {
+    pub(super) fn add(&mut self, audio: &Arc<Audio>) -> usize {
         if let Some(index) = self.0.iter().position(|old| Arc::ptr_eq(old, audio)) {
             return index;
         }
@@ -73,6 +73,7 @@ pub(super) fn capture(app: &MasterCraftApp) -> Result<Capture> {
         .collect();
     let s = &app.studio;
     let studio = SavedStudio {
+        arrangement: s.capture_recovery_arrangement(&mut assets),
         source: s.source.as_ref().map(|s| SavedSource {
             path: s.path.clone(),
             audio: assets.add(&s.audio),
@@ -84,6 +85,7 @@ pub(super) fn capture(app: &MasterCraftApp) -> Result<Capture> {
         mix_dirty: s.mix_dirty,
         monitoring_mix: s.monitoring_mix,
         page: match s.page {
+            Page::Tracks => "tracks",
             Page::Stems => "stems",
             Page::Voice => "voice",
             Page::Repair => "repair",

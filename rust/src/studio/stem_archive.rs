@@ -29,6 +29,18 @@ fn open(mut reader: impl Read + Seek) -> Result<ZipIterable<impl Read + Seek>> {
 // This exact-pinned iterable API bounds metadata before indexing/decompression,
 // and preserves duplicate archive names so ambiguity cannot disappear silently.
 pub fn inspect(reader: impl Read + Seek, entry_limit: u64) -> Result<ImportPlan> {
+    let (files, skipped) = inspect_files(reader, entry_limit)?;
+    let mut plan = stem_import_plan::plan(files)?;
+    plan.skipped_files += skipped;
+    Ok(plan)
+}
+
+/// Bounded archive admission without imposing aligned-bank part-count rules.
+/// Arrangement imports may select just one source or unequal-length sources.
+pub fn inspect_files(
+    reader: impl Read + Seek,
+    entry_limit: u64,
+) -> Result<(Vec<ImportFile>, usize)> {
     let mut archive = open(reader)?;
     let entry_limit = entry_limit.min(MAX_ENTRY_BYTES);
     let mut metadata_bytes = 0;
@@ -76,9 +88,7 @@ pub fn inspect(reader: impl Read + Seek, entry_limit: u64) -> Result<ImportPlan>
             crc32: Some(entry.crc32()),
         });
     }
-    let mut plan = stem_import_plan::plan(files)?;
-    plan.skipped_files += skipped;
-    Ok(plan)
+    Ok((files, skipped))
 }
 
 pub fn copy_audio(

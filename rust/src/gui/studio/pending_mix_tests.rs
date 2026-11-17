@@ -39,6 +39,7 @@ fn loaded_studio(output: PathBuf) -> Studio {
     let mix = bank.defaults();
     let audio = Arc::new(stem_mix::render(&bank, &mix, &|| false).unwrap());
     let mut studio = Studio::new(output);
+    studio.page = super::state::Page::Stems;
     studio.player = crate::gui::player::Player::for_processing_tests();
     studio.source = Some(LoadedSource {
         audio: audio.clone(),

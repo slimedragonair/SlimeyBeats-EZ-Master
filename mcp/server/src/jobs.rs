@@ -66,6 +66,8 @@ pub enum Change {
     Reference(Option<Arc<Reference>>),
     Master(Arc<Master>),
     Studio(crate::studio_state::StudioState),
+    ArrangementPreview(Arc<crate::arrangement_state::RenderedArrangement>),
+    ArrangementProject(Box<crate::arrangement_project_operations::LoadedProject>),
 }
 pub struct Product {
     pub result: Value,
@@ -90,12 +92,20 @@ impl Engine {
         validate: impl FnOnce(&Snapshot) -> Result<()>,
         work: impl FnOnce(ContextData) -> Result<Product> + Send + 'static,
     ) -> Result<Value> {
+        self.start_checked(kind, move |store| validate(&store.session), work)
+    }
+    pub(crate) fn start_checked(
+        self: &Arc<Self>,
+        kind: &str,
+        validate: impl FnOnce(&crate::state::Store) -> Result<()>,
+        work: impl FnOnce(ContextData) -> Result<Product> + Send + 'static,
+    ) -> Result<Value> {
         let mut store = self.lock()?;
         ensure!(
             store.active.is_none(),
             "Another audio job is active. Poll get_job_status or cancel it first"
         );
-        validate(&store.session)?;
+        validate(&store)?;
         while store.order.len() >= HISTORY_LIMIT {
             if let Some(old) = store.order.pop_front() {
                 store.jobs.remove(&old);
@@ -144,6 +154,12 @@ impl Engine {
                 return;
             };
             let late_cancel = cancel.load(Ordering::Relaxed) || store.generation != generation;
+            let outcome = outcome.and_then(|product| {
+                if let Change::ArrangementProject(loaded) = &product.change {
+                    loaded.guard.check(&store)?;
+                }
+                Ok(product)
+            });
             let committed = outcome.as_ref().is_ok_and(|p| p.committed);
             let (status, result, error) = match outcome {
                 Ok(product) if !late_cancel || committed => {
@@ -181,6 +197,12 @@ impl Engine {
                                 store.session.master = Some(master);
                             }
                             Change::Studio(studio) => store.session.studio = studio,
+                            Change::ArrangementPreview(preview) => {
+                                store.arrangements.preview = Some(preview)
+                            }
+                            Change::ArrangementProject(loaded) => {
+                                store.arrangements = loaded.workspace;
+                            }
                         }
                     }
                     ("completed", Some(product.result), None)

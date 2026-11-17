@@ -44,6 +44,9 @@ self.onmessage = async ({ data: m }) => {
             case "suggest":
                 result = JSON.parse(session.suggest(m.settings));
                 break;
+            case "suggest_detailed":
+                result = JSON.parse(session.suggest_detailed(m.settings));
+                break;
             case "response":
                 result = response(m.settings, m.rate);
                 break;

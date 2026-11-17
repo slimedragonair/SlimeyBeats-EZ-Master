@@ -47,8 +47,9 @@ pub fn single(
         Operation::Suggest => {
             let measured = analysis::analyze(&audio, &profile)?;
             reference::validate(&measured, &request.limits)?;
-            let bands = mastercraft::dsp::eq_suggestion::suggest(&measured, &profile)?;
-            result.suggestion = Some(output::Suggestion { bands });
+            result.suggestion = Some(mastercraft::dsp::eq_suggestion::proposal(
+                &measured, &profile,
+            )?);
             result.analysis = Some(measured);
         }
         Operation::Master => {

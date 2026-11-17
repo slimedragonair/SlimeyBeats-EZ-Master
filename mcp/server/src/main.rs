@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
     }
     let engine = Engine::new(&args)?;
     let result = async {
-        let service = Companion::new(engine.clone())
+        let service = Companion::with_tool_profile(engine.clone(), args.tool_profile)
             .serve(rmcp::transport::stdio())
             .await?;
         service.waiting().await?;

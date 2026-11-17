@@ -114,10 +114,10 @@ fn save(ctx: ContextData, launch: bool) -> Result<Product> {
 #[tool_router(router=studio_handoff_router,vis="pub(crate)")]
 impl Companion {
     #[tool(
-        description = "Explicitly save a self-contained Studio project containing source/stems/before/preview working WAVs, mix settings and hashes in a new folder. It can be reopened without the model runtime or original library files. This persists working audio, not a final mastered export. Poll for project_path.",
+        description = "Legacy aligned stems and cleanup workspace ONLY: save its current source/stems/before/preview working WAVs, mix settings and hashes in a new self-contained folder. Does not save the Tracks clip arrangement, even when both workspaces exist. For Tracks use save_arrangement_project with current session_id/expected_revision; get_help(topic=arrangement) explains reopening. Legacy projects need no original library/model runtime to reopen. Not a final audio export; poll for project_path.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn save_studio_project(&self) -> Result<Json<Value>, String> {
+    pub(crate) fn save_studio_project(&self) -> Result<Json<Value>, String> {
         self.response(self.engine.start(
             "save_studio_project",
             |s| {
@@ -128,10 +128,10 @@ impl Companion {
         ))
     }
     #[tool(
-        description = "Open the current Studio workspace in the matching desktop app for listening/refinement. Saves a self-contained project with verified source/stem/preview WAVs; no model is needed to reopen those stems. No final mastered export. Poll. Later desktop/AI edits are independent.",
+        description = "Legacy aligned stems and cleanup workspace ONLY: save its current source/stems/before/preview and open that legacy project in the configured desktop. Does not hand off the Tracks clip arrangement, even when both workspaces exist. For Tracks use open_arrangement_in_desktop with current session_id/expected_revision; it separately verifies v2 support. No final audio export. Poll; desktop/AI edits are independent afterward.",
         annotations(destructive_hint = false, open_world_hint = false)
     )]
-    fn open_studio_in_desktop(&self) -> Result<Json<Value>, String> {
+    pub(crate) fn open_studio_in_desktop(&self) -> Result<Json<Value>, String> {
         self.response(self.engine.start(
             "open_studio_in_desktop",
             |s| {

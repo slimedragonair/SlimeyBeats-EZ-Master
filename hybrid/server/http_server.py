@@ -95,7 +95,8 @@ class Handler(BaseHTTPRequestHandler):
         self.connection.settimeout(self.server.config.request_timeout_seconds)
         self.send_response(status)
         self.send_header("Content-Type", mime)
-        self.send_header("Content-Length", str(length))
+        if length is not None:
+            self.send_header("Content-Length", str(length))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")

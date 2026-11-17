@@ -14,6 +14,9 @@ struct Arguments {
     /// Print the update identity without starting the GUI or opening any audio.
     #[arg(long, hide = true, conflicts_with_all = ["files", "session", "studio_session", "auto_master", "capture_ui"])]
     build_info: bool,
+    /// Machine-readable project support without opening a window or user data.
+    #[arg(long, hide = true, conflicts_with_all = ["files", "session", "studio_session", "auto_master", "capture_ui"])]
+    studio_project_capabilities: bool,
     /// Open a validated local session prepared by the MCP companion.
     #[arg(long, conflicts_with = "files")]
     session: Option<PathBuf>,
@@ -22,7 +25,7 @@ struct Arguments {
     files: Vec<PathBuf>,
     #[arg(long)]
     auto_master: bool,
-    #[arg(long,default_value="overview",value_parser=["overview","eq","report","stems","voice","repair","plugins"])]
+    #[arg(long,default_value="overview",value_parser=["overview","eq","report","tracks","stems","voice","repair","plugins"])]
     view: String,
     #[arg(long)]
     studio_data: Option<PathBuf>,
@@ -34,6 +37,8 @@ struct Arguments {
     studio_four_stems: bool,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
+    #[arg(long, hide = true, requires_all = ["capture_ui", "studio_session"], conflicts_with = "capture_doctor")]
+    capture_arrangement_eq: bool,
     /// Load and scan synthetic diagnostic audio before capturing the Doctor page.
     #[arg(long, hide = true, requires_all = ["capture_ui", "recovery_data", "files"],
         conflicts_with_all = ["session", "studio_session", "auto_master", "studio_action", "capture_learning", "capture_restore_recovery", "capture_wait_recovery", "capture_stay_open", "capture_save_settings"])]
@@ -65,6 +70,15 @@ fn main() -> eframe::Result {
             "{}",
             serde_json::to_string(&mastercraft::app_update::current())
                 .expect("valid build identity")
+        );
+        return Ok(());
+    }
+    if args.studio_project_capabilities {
+        println!(
+            "{}",
+            serde_json::json!({"format":"slimeybeats-desktop-project-capabilities",
+            "version":1,"engine_version":env!("CARGO_PKG_VERSION"),"studio_project_versions":[1,2],
+            "arrangement_live_editing":true,"autoplay_on_project_open":false})
         );
         return Ok(());
     }
@@ -104,8 +118,8 @@ fn main() -> eframe::Result {
         .with_inner_size(size)
         .with_min_inner_size([1100., 720.])
         .with_icon(mastercraft::gui::window_icon());
-    if args.capture_doctor {
-        viewport = viewport.with_active(false);
+    if args.capture_ui.is_some() {
+        viewport = viewport.with_active(false).with_resizable(false);
     }
     let result = eframe::run_native(
         mastercraft::branding::APP_NAME,
@@ -115,20 +129,23 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(move |cc| {
-            let queue_files = if studio_archive || (args.view == "stems" && studio_inputs.len() > 1)
+            let queue_files = if studio_archive
+                || args.view == "tracks"
+                || (args.view == "stems" && studio_inputs.len() > 1)
             {
                 vec![]
             } else {
                 files
             };
-            let mut app = if args.capture_doctor {
-                mastercraft::gui::MasterCraftApp::for_doctor_capture(
+            let mut app = if args.capture_ui.is_some()
+                && let Some(root) = args.recovery_data.as_ref()
+            {
+                mastercraft::gui::MasterCraftApp::with_private_capture_root(
                     cc,
                     queue_files,
-                    args.recovery_data
-                        .as_ref()
-                        .expect("Clap requires a private capture data directory")
-                        .clone(),
+                    args.auto_master,
+                    initial,
+                    root.clone(),
                 )
             } else {
                 mastercraft::gui::MasterCraftApp::with_initial_settings(
@@ -144,7 +161,7 @@ fn main() -> eframe::Result {
                 match args.view.as_str() {
                     "eq" => 1,
                     "report" => 2,
-                    "stems" | "voice" | "repair" | "plugins" => 3,
+                    "tracks" | "stems" | "voice" | "repair" | "plugins" => 3,
                     _ => 0,
                 }
             };
@@ -154,10 +171,14 @@ fn main() -> eframe::Result {
             if let Some(project) = args.studio_session {
                 app.tab = 3;
                 app.studio.load_project(project, &cc.egui_ctx);
+                if args.capture_arrangement_eq {
+                    app.studio.capture_arrangement_eq_on_load();
+                }
             }
             if app.tab == 3 {
                 use mastercraft::gui::studio::state::{AutoAction, Page};
                 app.studio.page = match args.view.as_str() {
+                    "tracks" => Page::Tracks,
                     "voice" => Page::Voice,
                     "repair" => Page::Repair,
                     "plugins" => Page::Plugins,
@@ -175,7 +196,10 @@ fn main() -> eframe::Result {
                     _ => AutoAction::Separate,
                 });
                 if let Some(path) = studio_source {
-                    if studio_archive {
+                    if app.studio.page == Page::Tracks {
+                        app.studio.auto_action = None;
+                        app.studio.prepare_track_files(studio_inputs, &cc.egui_ctx);
+                    } else if studio_archive {
                         app.studio.auto_action = None;
                         app.studio.prepare_stem_archive(path, &cc.egui_ctx);
                     } else if studio_inputs.len() > 1 && app.studio.page == Page::Stems {
@@ -197,11 +221,7 @@ fn main() -> eframe::Result {
             }
             if let Some(root) = args.recovery_data {
                 app.configure_recovery_capture(
-                    if args.capture_doctor {
-                        root.join("recovery")
-                    } else {
-                        root
-                    },
+                    root.join("recovery"),
                     args.capture_wait_recovery,
                     args.capture_restore_recovery,
                     args.capture_stay_open,
@@ -209,6 +229,7 @@ fn main() -> eframe::Result {
             }
             if let Some(offset) = args.capture_settings_scroll {
                 app.capture_settings_at(offset as f32);
+                app.studio.capture_arrangement_inspector_at(offset as f32);
             }
             if let Some(offset) = args.capture_workspace_scroll {
                 app.capture_workspace_at(offset as f32);

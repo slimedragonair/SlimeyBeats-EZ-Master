@@ -15,8 +15,12 @@ concurrency:
   group: pages-publication
   cancel-in-progress: false
 jobs:
+  scope:
+    uses: ./.github/workflows/change-scope.yml
   prepare:
+    needs: scope
     if: >-
+      needs.scope.outputs.web == 'true' &&
       github.repository == 'slimedragonair/SlimeyBeats-EZ-Master' &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.conclusion == 'success' &&
@@ -98,7 +102,8 @@ jobs:
           name: current-work-pages
           path: pages-root
   deploy:
-    needs: prepare
+    needs: [scope, prepare]
+    if: needs.scope.outputs.web == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import wave
-from protocol_client import Client
+from protocol_client import LegacyClient as Client
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'rust/tools'))
 from stem_bundle_fixtures import chunk, suno_fixture, zipped
 

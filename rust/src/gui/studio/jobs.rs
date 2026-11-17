@@ -9,6 +9,7 @@ use std::sync::{
 };
 
 pub enum Change {
+    Arrangement(Box<super::arrangement_runtime::Change>),
     Doctor(Box<super::doctor_jobs::Result>),
     StemImport(crate::studio_native::stem_bundle::PreparedImport),
     Session(Box<crate::studio_native::session::StudioSnapshot>),
@@ -85,7 +86,7 @@ impl Jobs {
                 let durable = matches!(
                     &result,
                     Ok(Change::Exported { .. }) | Ok(Change::EngineReady)
-                );
+                ) || matches!(&result, Ok(Change::Arrangement(change)) if change.durable());
                 let result = if cancel.load(Ordering::Relaxed) && !durable {
                     Err("Cancelled; previous preview preserved".into())
                 } else {

@@ -22,6 +22,7 @@ pub(super) struct Prepared {
     eq_waveform: Waveform,
 }
 pub(super) struct PreparedStudio {
+    pub arrangement: Option<super::studio::PreparedArrangement>,
     pub source: Option<LoadedSource>,
     pub bank: Option<Arc<StemSet>>,
     pub current: Option<Revision>,
@@ -79,8 +80,17 @@ fn bank(assets: &[Arc<Audio>], saved: &SavedBank) -> Result<Arc<StemSet>> {
     }
     Ok(Arc::new(set))
 }
+#[cfg(test)]
 pub(super) fn prepare(payload: serde_json::Value, assets: Vec<Arc<Audio>>) -> Result<Prepared> {
-    let doc: Document =
+    prepare_cancellable(payload, assets, &|| false)
+}
+pub(super) fn prepare_cancellable(
+    payload: serde_json::Value,
+    assets: Vec<Arc<Audio>>,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Prepared> {
+    ensure!(!cancel(), "Cancelled");
+    let mut doc: Document =
         serde_json::from_value(payload).context("Unsupported or damaged recovery editing state")?;
     ensure!(
         doc.version == 1 && doc.tracks.len() <= 4096 && doc.tab <= 3 && doc.selected_band < 7,
@@ -105,7 +115,7 @@ pub(super) fn prepare(payload: serde_json::Value, assets: Vec<Arc<Audio>>) -> Re
         "Unsupported recovery export format"
     );
     ensure!(
-        ["stems", "voice", "repair", "plugins"].contains(&doc.studio.page.as_str()),
+        ["tracks", "stems", "voice", "repair", "plugins"].contains(&doc.studio.page.as_str()),
         "Unknown recovery workspace"
     );
     ensure!(
@@ -252,10 +262,18 @@ pub(super) fn prepare(payload: serde_json::Value, assets: Vec<Arc<Audio>>) -> Re
             )
         })
         .unwrap_or_default();
+    let arrangement = doc
+        .studio
+        .arrangement
+        .take()
+        .map(|saved| super::studio::Studio::prepare_recovery_arrangement(saved, &assets, cancel))
+        .transpose()?;
+    ensure!(!cancel(), "Cancelled");
     Ok(Prepared {
         doc,
         tracks,
         studio: PreparedStudio {
+            arrangement,
             source,
             bank: active_bank,
             current,
@@ -268,7 +286,7 @@ pub(super) fn prepare(payload: serde_json::Value, assets: Vec<Arc<Audio>>) -> Re
 }
 impl Prepared {
     pub fn adopt(self, app: &mut MasterCraftApp) {
-        app.player.stop();
+        app.player.unload();
         app.studio.player.stop();
         app.tracks = self.tracks;
         app.settings = self.doc.settings.clone();

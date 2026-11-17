@@ -91,7 +91,7 @@ def private_pointer():
             future.result(timeout=10)
 
 
-def private_environment(out, app):
+def private_environment(out, app, capture_preferences=None):
     private = out / 'private'
     paths = {name: private / name for name in ('home', 'config', 'data', 'cache', 'runtime', 'temp', 'local', 'roaming')}
     for path in paths.values():
@@ -111,7 +111,7 @@ def private_environment(out, app):
                            WINIT_X11_SCALE_FACTOR='1', XDG_SESSION_TYPE='x11')
         environment.pop('WAYLAND_DISPLAY', None)
         environment.pop('WAYLAND_SOCKET', None)
-    preferences = (paths['config'] / 'slimeybeats-ez-master' if sys.platform.startswith('linux') else app / 'user_data')
+    preferences = capture_preferences or (paths['config'] / 'slimeybeats-ez-master' if sys.platform.startswith('linux') else app / 'user_data')
     preferences.mkdir(parents=True)
     write_json(preferences / 'update-preferences.json', {'automatic': False, 'last_check': 0})
     return environment, paths, preferences
@@ -170,14 +170,15 @@ class Verifier:
         self.app.mkdir(parents=True)
         self.gui = self.app / ('SlimeyBeats-EZ-Master.exe' if os.name == 'nt' else 'slimeybeats-ez-master-live')
         shutil.copy2(gui, self.gui)
-        self.environment, self.paths, self.preferences = private_environment(out, self.app)
         self.studio = out / 'Private studio'
-        self.recovery = out / 'Recovery data'
+        self.capture_root = out / 'Capture data'
+        self.recovery = self.capture_root / 'recovery'
+        self.environment, self.paths, self.preferences = private_environment(out, self.app, self.capture_root / 'preferences')
         self.records = []
         self.creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 
     def command(self, capture, extra, size):
-        return [str(self.gui), '--studio-data', str(self.studio), '--recovery-data', str(self.recovery),
+        return [str(self.gui), '--studio-data', str(self.studio), '--recovery-data', str(self.capture_root),
                 *map(str, extra), '--capture-ui', str(capture), '--capture-size', *map(str, size)]
 
     def run(self, name, extra=(), size=(1480, 940), crash=False):

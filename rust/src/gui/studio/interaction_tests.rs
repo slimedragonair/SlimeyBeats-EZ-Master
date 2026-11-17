@@ -18,6 +18,7 @@ use std::sync::Arc;
 
 pub(super) fn fixture(parts: u32) -> Studio {
     let mut studio = Studio::new("F:/Exports/Long project folder/Studio mixes".into());
+    studio.page = Page::Stems; // This fixture exercises the existing aligned stem editor.
     studio.player = crate::gui::player::Player::for_processing_tests();
     studio.plugin_host = None;
     studio.volume = 0.;
