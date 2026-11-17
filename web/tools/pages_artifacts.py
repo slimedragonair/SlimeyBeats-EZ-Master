@@ -9,12 +9,15 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 import zipfile
+from datetime import datetime, timezone
 
 REPOSITORY = 'slimedragonair/SlimeyBeats-EZ-Master'
 PUBLISH_ROOT = 'https://slimedragonair.github.io/SlimeyBeats-EZ-Master/'
 MAX_BYTES = 256 * 1024 * 1024
 MAX_FILES = 10000
 SHA = re.compile(r'[0-9a-f]{40}')
+MAIN_WORKFLOWS = {'web.yml': {'push', 'workflow_dispatch'},
+                  'browser-publication-resume.yml': {'workflow_dispatch'}}
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -107,35 +110,84 @@ def paginated(client, path, key):
 
 
 def assert_main_idle(client):
-    for status in ('queued', 'in_progress', 'waiting', 'pending', 'requested'):
-        runs = client.api('actions/workflows/web.yml/runs?' + urlencode({
-            'branch': 'main', 'status': status, 'per_page': 1}))['workflow_runs']
-        if runs:
-            raise ValueError('Main browser workflow is active; retry after it finishes')
+    for workflow in MAIN_WORKFLOWS:
+        for status in ('queued', 'in_progress', 'waiting', 'pending', 'requested'):
+            runs = client.api(f'actions/workflows/{workflow}/runs?' + urlencode({
+                'branch': 'main', 'status': status, 'per_page': 1}))['workflow_runs']
+            if runs:
+                raise ValueError('Main publication workflow is active; retry after it finishes')
+
+
+def main_run_created(run, workflow):
+    """Return a sortable creation time only for an explicitly trusted main run."""
+    if not isinstance(run, dict):
+        return None
+    repository, head = run.get('repository', {}), run.get('head_repository', {})
+    if not isinstance(repository, dict) or not isinstance(head, dict):
+        return None
+    paths = {f'.github/workflows/{workflow}' + suffix for suffix in ('', '@main', '@refs/heads/main')}
+    if (run.get('path') not in paths or run.get('event') not in MAIN_WORKFLOWS[workflow]
+            or run.get('head_branch') != 'main' or run.get('status') != 'completed'
+            or run.get('conclusion') != 'success' or type(run.get('id')) is not int or run['id'] <= 0
+            or not isinstance(run.get('head_sha'), str) or not SHA.fullmatch(run['head_sha'])
+            or repository.get('full_name') != REPOSITORY or head.get('full_name') != REPOSITORY
+            or type(repository.get('id')) is not int or repository['id'] <= 0
+            or type(head.get('id')) is not int
+            or repository['id'] != head.get('id')):
+        return None
+    try:
+        created = datetime.fromisoformat(run['created_at'].replace('Z', '+00:00'))
+        return created.astimezone(timezone.utc) if created.tzinfo is not None else None
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+
+
+def main_run_published(client, run, workflow):
+    """Ignore scope skips only when both publication jobs prove they never ran."""
+    attempt = run.get('run_attempt')
+    if type(attempt) is not int or attempt <= 0:
+        raise ValueError('Main publication run has no valid attempt identity')
+    jobs = list(paginated(client, f"actions/runs/{run['id']}/attempts/{attempt}/jobs", 'jobs'))
+    conclusions = []
+    for name in ('browser', 'deploy'):
+        matches = [job for job in jobs if isinstance(job, dict) and job.get('name') == name]
+        if (len(matches) != 1 or matches[0].get('run_id') != run['id']
+                or matches[0].get('head_sha') != run['head_sha']
+                or matches[0].get('status') != 'completed'):
+            raise ValueError('Main publication job identity or completion could not be verified')
+        conclusions.append(matches[0].get('conclusion'))
+    if conclusions == ['success', 'success']:
+        return True
+    if workflow == 'web.yml' and conclusions == ['skipped', 'skipped']:
+        return False
+    raise ValueError('Main publication jobs did not both succeed or prove a scope-only skip')
 
 
 def select_main_artifact(client, allow_expired=False):
     assert_main_idle(client)
-    for run in paginated(client, 'actions/workflows/web.yml/runs?branch=main&status=success',
-                         'workflow_runs'):
-        if (run.get('head_branch') != 'main' or run.get('status') != 'completed'
-                or run.get('conclusion') != 'success' or not SHA.fullmatch(run['head_sha'])
-                or run.get('head_repository', {}).get('full_name') != REPOSITORY):
-            continue
-        artifacts = [artifact for artifact in paginated(
-            client, f"actions/runs/{int(run['id'])}/artifacts", 'artifacts')
-            if artifact['name'] == 'github-pages']
-        if len(artifacts) > 1:
-            raise ValueError('Ambiguous main Pages artifact')
-        if artifacts:
-            if not 0 < artifacts[0]['size_in_bytes'] <= MAX_BYTES:
-                raise ValueError('Pages artifact exceeds byte limit')
-            if allow_expired or not artifacts[0]['expired']:
-                return run, artifacts[0]
-        if allow_expired:
-            return run, artifacts[0] if artifacts else None
-        raise ValueError('Latest successful main has no retained Pages artifact')
-    raise ValueError('No successful main browser workflow exists')
+    candidates = []
+    for workflow in MAIN_WORKFLOWS:
+        for run in paginated(client, f'actions/workflows/{workflow}/runs?branch=main&status=success', 'workflow_runs'):
+            created = main_run_created(run, workflow)
+            if created is not None:
+                candidates.append((created, run['id'], workflow, run))
+    for _, _, workflow, run in sorted(candidates, key=lambda value: value[:2], reverse=True):
+        if main_run_published(client, run, workflow):
+            break
+    else:
+        raise ValueError('No successful trusted main publication workflow exists')
+    artifacts = [artifact for artifact in paginated(
+        client, f"actions/runs/{run['id']}/artifacts", 'artifacts') if artifact['name'] == 'github-pages']
+    if len(artifacts) > 1:
+        raise ValueError('Ambiguous main Pages artifact')
+    if artifacts:
+        if not 0 < artifacts[0]['size_in_bytes'] <= MAX_BYTES:
+            raise ValueError('Pages artifact exceeds byte limit')
+        if allow_expired or not artifacts[0]['expired']:
+            return run, artifacts[0]
+    if allow_expired:
+        return run, artifacts[0] if artifacts else None
+    raise ValueError('Latest successful main has no retained Pages artifact')
 
 
 def assert_main_source(client, run_id, commit, artifact_id):

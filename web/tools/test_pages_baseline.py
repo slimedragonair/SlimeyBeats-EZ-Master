@@ -94,7 +94,7 @@ class BaselineTests(unittest.TestCase):
 
     def test_missing_original_artifact_can_use_proven_baseline(self):
         original = self.client.api
-        self.client.api = lambda path: {'artifacts': []} if path.startswith('actions/runs/42/') else original(path)
+        self.client.api = lambda path: {'artifacts': []} if path.startswith('actions/runs/42/artifacts?') else original(path)
         report = self.compose()
         self.assertEqual(report['main_artifact_id'], 84)
         self.assertTrue(verify_report(report, REPOSITORY, self.client)['verified'])

@@ -51,4 +51,6 @@ jobs:
         run: python3 .github/ci/check_scope.py
       - name: Test changed scope policy once
         if: (steps.changed.outputs.ci == 'true' && github.workflow == 'Native checks') || github.event_name == 'workflow_dispatch'
-        run: python3 -m unittest discover -s .github/ci -p test_check_scope.py
+        run: |
+          python3 -m unittest discover -s .github/ci -p 'test_*.py'
+          python3 -m unittest discover -s web/tools -p 'test_pages_*.py'

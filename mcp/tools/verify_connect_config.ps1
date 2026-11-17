@@ -134,7 +134,7 @@ try {
                 $config = ($utf8.GetString($bytes) | ConvertFrom-Json).mcpServers.slimeybeats
                 Assert-True ($config.command -ceq $serverPath) 'Executable path failed exact Unicode roundtrip.'
                 # Rust canonicalizes existing paths with the Windows extended path prefix.
-                $expectedArgs = @('--input-root', ('\\?\' + $inputFolder), '--output-root', $exportFolder,
+                $expectedArgs = @('--input-root', ('\\?\' + $inputFolder), '--tool-profile', 'compact', '--output-root', $exportFolder,
                     '--max-decoded-mib', '512', '--decode-timeout-seconds', '300', '--desktop-exe', ('\\?\' + $desktopPath))
                 Assert-True ($config.args.Count -eq $expectedArgs.Count) 'Generated argument count changed.'
                 for ($i = 0; $i -lt $expectedArgs.Count; $i++) {

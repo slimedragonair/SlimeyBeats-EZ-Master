@@ -32,6 +32,13 @@ class ClassificationTests(unittest.TestCase):
     def test_ci_policy_changes_select_only_ci(self):
         self.assert_scopes([".github/workflows/change-scope.yml", ".github/ci/test_check_scope.py"], {"ci"})
 
+    def test_guarded_publication_recovery_changes_do_not_repeat_unrelated_app_suites(self):
+        self.assert_scopes(["web/tools/region_edit_ui_checks.py", "web/tools/test_region_edit_download.py",
+                            ".github/ci/browser_resume.py", ".github/workflows/browser-publication-resume.yml",
+                            "web/tools/pages_artifacts.py", "web/tools/pages_baseline.py",
+                            "web/tools/compose_pages_preview.py", "web/tools/test_pages_preview.py"], {"ci"})
+        self.assert_scopes(["web/site/studio-exports.js"], {"web", "arrangement"})
+
     def test_shared_rust_and_manifests_select_all_consumers(self):
         for path in ["rust/src/audio.rs", "rust/src/studio/arrangement/playback.rs", "rust/src/hybrid_worker/mod.rs", "rust/Cargo.toml", "rust/Cargo.lock"]:
             with self.subTest(path=path): self.assert_scopes([path], scope.SHARED_RUST)

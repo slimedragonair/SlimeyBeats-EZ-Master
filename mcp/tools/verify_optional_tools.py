@@ -13,14 +13,19 @@ import wave
 from protocol_client import LegacyClient as Client
 
 
-EXPECTED_TOOLS = set("""get_capabilities get_help list_audio_files load_audio load_reference
+# This verifier deliberately uses LegacyClient; compact discovery has its own
+# strict catalog verifier and must remain at 33 tools.
+EXPECTED_LEGACY_TOOLS = set("""get_capabilities get_help list_audio_files load_audio load_reference
 clear_reference analyze_audio suggest_eq master_preview apply_eq get_session get_job_status
 cancel_job open_in_desktop export_audio clear_session get_stem_engine_status install_stem_engine
 get_studio_session analyze_studio_audio separate_stems import_stems inspect_stem_bundle
 import_stem_bundle mix_stems clean_voice repair_audio undo_studio_edit redo_studio_edit
 apply_preview_to_stem edit_stem_region scan_audio_issues preview_stem_doctor export_studio_audio export_stems save_studio_project open_studio_in_desktop
 use_studio_for_mastering list_plugins probe_plugin render_plugin get_optional_tool_status
-prepare_optional_tool prepare_support_report save_support_report""".split())
+prepare_optional_tool prepare_support_report save_support_report
+create_arrangement add_arrangement_assets edit_arrangement undo_arrangement get_arrangement
+get_arrangement_waveform get_arrangement_eq_response suggest_arrangement_eq render_arrangement
+export_arrangement save_arrangement_project load_arrangement_project open_arrangement_in_desktop""".split())
 
 
 def verify(server):
@@ -52,7 +57,7 @@ def verify(server):
         client = Client(command, env=env)
         try:
             tools = {t["name"]: t for t in client.request("tools/list", {})["result"]["tools"]}
-            assert set(tools) == EXPECTED_TOOLS, (set(tools) - EXPECTED_TOOLS, EXPECTED_TOOLS - set(tools))
+            assert set(tools) == EXPECTED_LEGACY_TOOLS, (set(tools) - EXPECTED_LEGACY_TOOLS, EXPECTED_LEGACY_TOOLS - set(tools))
             assert tools["get_optional_tool_status"]["annotations"]["readOnlyHint"]
             assert not tools["get_optional_tool_status"]["annotations"]["openWorldHint"]
             assert tools["prepare_optional_tool"]["annotations"]["openWorldHint"]
@@ -64,6 +69,7 @@ def verify(server):
                 tool_schema = schema["$defs"][tool_schema["$ref"].split("/")[-1]]
             assert set(tool_schema["enum"]) == {"audio_codecs", "vst3_host"}
             caps = client.call("get_capabilities")
+            assert caps["tool_profile"] == "legacy" and caps["tool_count"] == len(EXPECTED_LEGACY_TOOLS)
             policy = caps["optional_tools"]
             assert policy["allow_download_default"] is False
             assert policy["audio_codecs"]["max_download_bytes"] == {"windows_x86_64": 192 * 1024**2, "linux_x86_64_gnu": 160 * 1024**2}

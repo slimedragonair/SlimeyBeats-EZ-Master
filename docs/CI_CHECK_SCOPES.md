@@ -28,3 +28,21 @@ suites and mobile publication are unnecessary. The older extended DSP/model/
 codec/plugin smoke runs remain available for relevant shared-engine changes or
 manual full validation. The compact protocol smoke checks the current 33-tool
 catalog, typed routing, preserved work, persistence and the legacy profile.
+Optional-tool safety also runs for MCP changes on both platforms; the generated
+connection configuration receives the Windows PowerShell 5.1 Unicode checks.
+
+
+## Resume an unchanged application's publication
+
+The manual **Resume qualified main browser publication** workflow can finish the
+specific main run that stopped in the stem-editor check. It verifies the trusted
+repository/main run, its actual successful prefix and artifact, and unchanged
+application inputs. The rebuilt JS/WASM/CSS/HTML runtime must match the passed
+baseline reports. It reruns the failed stem-editor check and every later check
+that did not run before publishing. A product/runtime change refuses reuse and
+requires the normal full browser workflow.
+
+Only the explicitly listed validator/publisher-policy files select CI-only
+checks; their offline regressions still run. This exception does not apply to
+application JS/CSS, Rust/WASM, audio, build or encoder changes. Main and preview
+publication retain their source, origin, artifact and rollback-protection guards.
