@@ -58,11 +58,50 @@ def selection(page, start='0.2', end='0.6'):
 
 
 def save(page, selector, path):
-    with page.expect_download(timeout=60000) as event:
-        page.locator(selector).click()
-    event.value.save_as(str(path))
-    ready(page)
-    return path.read_bytes()
+    page.evaluate('''selector => {
+        if (!window.regionDownloadTrace) {
+            const record = event => {
+                const trace = window.regionDownloadTrace;
+                const button = event.target.closest?.(trace.selector);
+                const anchor = event.target.closest?.('a[download]');
+                if ((button || anchor) && trace.events.length < 32)
+                    trace.events.push({ kind: button ? 'button_' + event.type : 'download_anchor',
+                        trusted: event.isTrusted, id: button?.id, name: anchor?.download,
+                        disabled: button?.disabled, status: document.querySelector('#s-status')?.textContent,
+                        scheme: anchor ? new URL(anchor.href).protocol : undefined,
+                        time: performance.now(), focused: document.hasFocus(),
+                        activation: navigator.userActivation?.isActive });
+            };
+            for (const type of ['pointerdown', 'pointerup', 'click']) document.addEventListener(type, record, true);
+        }
+        window.regionDownloadTrace = { selector, events: [], start: performance.now(),
+            calls_before: window.regionUi?.calls.length, replies_before: window.regionUi?.replies.length };
+    }''', selector)
+    try:
+        with page.expect_download(timeout=60000) as event:
+            page.locator(selector).click()
+        download = event.value
+        assert download.failure() is None, download.failure()
+        download.save_as(str(path))
+        ready(page)
+        return path.read_bytes()
+    except Exception as error:
+        state = page.evaluate('''() => {
+            const trace = window.regionDownloadTrace, button = document.querySelector(trace.selector);
+            return { ...trace, elapsed_ms: performance.now() - trace.start,
+                ready_state: document.readyState, focused: document.hasFocus(), visibility: document.visibilityState,
+                active_element: document.activeElement?.id, button: button?.outerHTML,
+                status: document.querySelector('#s-status')?.textContent,
+                pending: document.querySelector('#s-pending')?.textContent,
+                format: document.querySelector('#s-format')?.value,
+                calls: window.regionUi?.calls.slice(trace.calls_before),
+                replies: window.regionUi?.replies.slice(trace.replies_before), errors: window.regionUi?.errors,
+                worker_pending: Array.from(window.regionUi?.client?.pending?.keys() || []) };
+        }''')
+        diagnostic = path.with_name(path.name + '.download.json')
+        diagnostic.write_text(json.dumps(state, indent=2), encoding='utf-8')
+        raise AssertionError(f'UI download failed for {selector} -> {path.name}; '
+                             f'diagnostics={diagnostic.name}; {json.dumps(state)}') from error
 
 
 def touch(page, selector):

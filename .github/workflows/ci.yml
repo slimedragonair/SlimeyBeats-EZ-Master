@@ -55,8 +55,11 @@ jobs:
         if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Verify Unicode connection setup in Windows PowerShell 5.1
-        if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
         run: powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File ../mcp/tools/verify_connect_config.ps1 -Server ../mcp/server/target/release/slimeybeats-mcp.exe -Evidence '${{ runner.temp }}/SlimeyBeats-UTF8-config'
+      - name: Verify optional-tool discovery and safety
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
+        run: python ../mcp/tools/verify_optional_tools.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
       - name: Verify Studio DSP routes and model-cache handling
         if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: |
@@ -66,7 +69,6 @@ jobs:
           python tools/test_documentation_links.py
           python tools/test_update_packaging.py
           python tools/test_license_payload.py
-          python ../mcp/tools/verify_optional_tools.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/verify_profiles_root.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
           python ../mcp/tools/test_companion_package.py
           python ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp.exe
@@ -138,6 +140,9 @@ jobs:
       - name: Verify private support reports over stdio
         if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: python3 ../mcp/tools/verify_support_reports.py --server ../mcp/server/target/release/slimeybeats-mcp
+      - name: Verify optional-tool discovery and safety
+        if: ${{ needs.scope.outputs.mcp == 'true' }}
+        run: python3 ../mcp/tools/verify_optional_tools.py --server ../mcp/server/target/release/slimeybeats-mcp
       - name: Verify Studio DSP routes and model-cache handling
         if: ${{ needs.scope.outputs.mcp == 'true' && (needs.scope.outputs.native == 'true' || github.event_name == 'workflow_dispatch') }}
         run: |
@@ -147,7 +152,6 @@ jobs:
           python3 tools/test_documentation_links.py
           python3 tools/test_update_packaging.py
           python3 tools/test_license_payload.py
-          python3 ../mcp/tools/verify_optional_tools.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/verify_profiles_root.py --server ../mcp/server/target/release/slimeybeats-mcp
           python3 ../mcp/tools/test_companion_package.py
           python3 ../mcp/tools/verify_studio.py --server ../mcp/server/target/release/slimeybeats-mcp

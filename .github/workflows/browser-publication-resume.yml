@@ -1,0 +1,163 @@
+name: Resume qualified main browser publication
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_run:
+        description: Trusted failed web.yml main push at cb521041440b
+        required: true
+        default: '44029858651'
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: browser-publication-resume-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  browser:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Initialize audit receipt path
+        run: echo "RECEIPT=$RUNNER_TEMP/browser-resume/receipt.json" >> "$GITHUB_ENV"
+      - name: Test fail-closed resume policy offline
+        run: python3 -m unittest discover -s .github/ci -p 'test_browser_resume.py' -v
+      - name: Test stem download validator regression offline
+        run: python3 web/tools/test_region_edit_download.py
+      - name: Verify trusted baseline and unchanged application inputs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASELINE_RUN: ${{ inputs.baseline_run }}
+        run: python3 .github/ci/browser_resume.py baseline --baseline-run "$BASELINE_RUN" --receipt "$RECEIPT"
+      - name: Download qualified baseline reports
+        uses: actions/download-artifact@v8
+        with:
+          name: SlimeyBeats-browser-validation
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.baseline_run }}
+          path: ${{ runner.temp }}/baseline-browser-checks
+      - name: Set up matching Rust and WebAssembly build
+        run: |
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
+          echo '9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f  /tmp/wasm-bindgen.tar.gz' | sha256sum --check
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          echo '/tmp/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl' >> "$GITHUB_PATH"
+      - name: Rebuild the unchanged static site and license inventory
+        run: python3 web/tools/build.py
+      - name: Bind rebuilt runtime to three passed baseline reports
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/ci/browser_resume.py qualify --receipt "$RECEIPT" --site web/dist --reports '${{ runner.temp }}/baseline-browser-checks'
+      - name: Install matching browser test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_test'
+          echo 'PULSE_SINK=slimeybeats_test' >> "$GITHUB_ENV"
+          python3 -m pip install playwright==1.57.0 numpy==2.5.2
+          python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Verify browser stem timeline and shared time edits
+        run: |
+          node --test web/tools/timeline_state.test.mjs
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_region_edit_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/stem-editor-$browser"
+          done
+      - name: Verify shared Issue Detector and Stem Doctor in three engines
+        run: |
+          node --test web/tools/doctor_state_checks.js web/tools/doctor_controller_checks.js
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_doctor_browser.py --browser "$browser" --out "${{ runner.temp }}/browser-checks/doctor-$browser"
+          done
+      - name: Verify Studio replacement and decoded input bounds
+        run: python3 web/tools/verify_studio_memory.py --tracks 4 --seconds 10 --check-limits --out '${{ runner.temp }}/browser-checks/studio-memory'
+      - name: Verify audible live stems and exclusive playback in three engines
+        run: |
+          python3 web/tools/verify_studio_live.py --out '${{ runner.temp }}/browser-checks/studio-live-chromium'
+          python3 web/tools/verify_studio_live.py --browser firefox --out '${{ runner.temp }}/browser-checks/studio-live-firefox'
+          python3 web/tools/verify_studio_live.py --browser webkit --out '${{ runner.temp }}/browser-checks/studio-live-webkit'
+      - name: Verify learning, persistent choices and compact layouts
+        run: |
+          python3 web/tools/verify_learning_browser.py --out '${{ runner.temp }}/browser-checks/learning-chromium'
+          python3 web/tools/verify_learning_browser.py --browser firefox --out '${{ runner.temp }}/browser-checks/learning-firefox'
+          python3 web/tools/verify_learning_browser.py --browser webkit --out '${{ runner.temp }}/browser-checks/learning-webkit'
+      - name: Recheck source, main head, runtime and qualified site bytes
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/ci/browser_resume.py guard --receipt "$RECEIPT" --site web/dist
+      - name: Upload qualified rebuilt site
+        uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-browser-resumed-site
+          path: web/dist
+          if-no-files-found: error
+          include-hidden-files: true
+      - name: Record reused baseline evidence and resumed results
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          echo "## Browser resume: $RESULT" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Only the successful baseline prefix is reused; the failed step and every later validation group must pass here.' >> "$GITHUB_STEP_SUMMARY"
+          if test -f "$RECEIPT"; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat "$RECEIPT" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Baseline not qualified; no earlier checks accepted and publication blocked.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload resume audit and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: SlimeyBeats-browser-resume-validation
+          path: |
+            ${{ runner.temp }}/browser-resume
+            ${{ runner.temp }}/browser-checks
+          if-no-files-found: warn
+  deploy:
+    needs: browser
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: pages-publication
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: SlimeyBeats-browser-resumed-site
+          path: ${{ runner.temp }}/resume-site
+      - uses: actions/download-artifact@v8
+        with:
+          name: SlimeyBeats-browser-resume-validation
+          path: ${{ runner.temp }}/resume-audit
+      - name: Guard publication under the shared Pages lock
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/ci/browser_resume.py guard --receipt '${{ runner.temp }}/resume-audit/browser-resume/receipt.json' --site '${{ runner.temp }}/resume-site'
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/resume-site
+      - name: Reject a main-head advance immediately before deploy
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/ci/browser_resume.py guard --receipt '${{ runner.temp }}/resume-audit/browser-resume/receipt.json' --site '${{ runner.temp }}/resume-site'
+      - name: Publish the qualified main static site
+        id: deployment
+        uses: actions/deploy-pages@v4

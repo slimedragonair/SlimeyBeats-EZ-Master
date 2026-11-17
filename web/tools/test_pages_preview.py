@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import re
 from pathlib import Path
 import tarfile
 import tempfile
@@ -12,7 +13,7 @@ import zipfile
 
 from compose_pages_preview import compose, verify_report
 from pages_artifacts import (GitHubClient, PUBLISH_ROOT, REPOSITORY, copy_bounded,
-                             extract_main, select_main_artifact)
+                             extract_main, main_run_created, select_main_artifact)
 
 COMMIT, MAIN_COMMIT = 'a' * 40, 'b' * 40
 VERSION = '0123456789abcdef'
@@ -41,8 +42,12 @@ class FakeClient:
         self.payload = payload or archive([('index.html', b'stable'), ('assets/app.js', b'root'),
                                           ('current-work/old.js', b'old preview')])
         self.run = {'id': 42, 'head_sha': MAIN_COMMIT, 'head_branch': 'main',
+                    'run_attempt': 1,
                     'status': 'completed', 'conclusion': 'success',
-                    'head_repository': {'full_name': REPOSITORY}}
+                    'event': 'push', 'path': '.github/workflows/web.yml',
+                    'created_at': '2026-11-17T01:00:00Z',
+                    'repository': {'full_name': REPOSITORY, 'id': 123},
+                    'head_repository': {'full_name': REPOSITORY, 'id': 123}}
         self.artifact = {'id': 84, 'name': 'github-pages', 'expired': False,
                          'size_in_bytes': len(self.payload)}
         self.commit, self.live, self.active = COMMIT, b'stable', None
@@ -50,8 +55,12 @@ class FakeClient:
     def api(self, path):
         if path == 'git/ref/heads/current-work':
             return {'object': {'sha': self.commit}}
+        if re.match(r'actions/runs/\d+/attempts/\d+/jobs\?', path):
+            return {'jobs': publication_jobs(self.run)}
         if path.startswith('actions/runs/'):
             return {'artifacts': [self.artifact]}
+        if path.startswith('actions/workflows/browser-publication-resume.yml/'):
+            return {'workflow_runs': []}
         return {'workflow_runs': [self.run] if 'status=success' in path
                 or (self.active and f'status={self.active}' in path) else []}
 
@@ -66,6 +75,39 @@ class Response(io.BytesIO):
     def __init__(self, data=b'', status=200, headers=None):
         super().__init__(data)
         self.status, self.headers = status, headers or {}
+
+
+def publication_jobs(run, conclusion='success'):
+    return [{'name': name, 'run_id': run['id'], 'head_sha': run['head_sha'],
+             'status': 'completed', 'conclusion': conclusion} for name in ('browser', 'deploy')]
+
+
+class MainPublicationClient(FakeClient):
+    def __init__(self):
+        super().__init__()
+        self.resume = self.run | {'id': 43, 'head_sha': 'c' * 40,
+                                  'path': '.github/workflows/browser-publication-resume.yml',
+                                  'event': 'workflow_dispatch', 'created_at': '2026-11-17T02:00:00Z'}
+        self.runs = {'web.yml': [self.run], 'browser-publication-resume.yml': [self.resume]}
+        self.artifacts = {42: [self.artifact], 43: [self.artifact | {'id': 85}]}
+        self.jobs = {42: publication_jobs(self.run), 43: publication_jobs(self.resume)}
+        self.resume_active = None
+
+    def api(self, path):
+        match = re.match(r'actions/runs/(\d+)/attempts/\d+/jobs\?', path)
+        if match:
+            return {'jobs': self.jobs.get(int(match[1]), [])}
+        match = re.match(r'actions/workflows/([^/]+)/runs\?', path)
+        if match and match[1] in self.runs:
+            runs = self.runs[match[1]] if 'status=success' in path else []
+            if (match[1] == 'browser-publication-resume.yml' and self.resume_active
+                    and f'status={self.resume_active}' in path):
+                runs = [self.resume]
+            return {'workflow_runs': runs}
+        match = re.match(r'actions/runs/(\d+)/artifacts', path)
+        if match:
+            return {'artifacts': self.artifacts.get(int(match[1]), [])}
+        return super().api(path)
 
 
 class PreviewTests(unittest.TestCase):
@@ -180,6 +222,185 @@ class PreviewTests(unittest.TestCase):
             if path.startswith('actions/runs/41/') else original(path))
         with self.assertRaises(ValueError):
             select_main_artifact(self.client)
+
+    def test_newest_trusted_publication_wins_across_both_workflows(self):
+        client = MainPublicationClient()
+        report = self.compose(client=client)
+        self.assertEqual((report['preview']['main_run_id'], report['main_artifact_id']), (43, 85))
+        self.assertTrue(verify_report(report, REPOSITORY, client)['verified'])
+        client.run['created_at'] = client.resume['created_at']
+        self.assertEqual(select_main_artifact(client)[0]['id'], 43)
+        client.run['created_at'] = '2026-11-17T03:00:00Z'
+        self.assertEqual(select_main_artifact(client)[0]['id'], 42)
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            verify_report(report, REPOSITORY, client)
+        client.runs['web.yml'].insert(0, client.run | {'id': 41, 'created_at': '2026-11-17T00:00:00Z'})
+        self.assertEqual(select_main_artifact(client)[0]['id'], 42)
+
+    def test_rejects_untrusted_resume_provenance_without_selecting_its_artifact(self):
+        invalid = [{'event': event} for event in ('push', 'pull_request', 'workflow_run')]
+        invalid += [{'conclusion': 'failure'}, {'status': 'in_progress'}, {'head_branch': 'current-work'},
+                    {'path': '.github/workflows/web.yml'},
+                    {'path': '.github/workflows/browser-publication-resume.yml@refs/pull/16/merge'},
+                    {'repository': {'full_name': 'fork/repo', 'id': 123}},
+                    {'head_repository': {'full_name': 'fork/repo', 'id': 123}},
+                    {'head_repository': {'full_name': REPOSITORY, 'id': 456}},
+                    {'repository': None}, {'head_repository': []}, {'id': True},
+                    {'head_sha': 'invalid'}, {'created_at': 'invalid'}, {'created_at': None},
+                    {'created_at': '2026-11-17T04:00:00'}]
+        for update in invalid:
+            client = MainPublicationClient()
+            client.resume.update(update)
+            with self.subTest(update=update):
+                self.assertEqual(select_main_artifact(client)[0]['id'], 42)
+                client.runs['web.yml'] = []
+                with self.assertRaisesRegex(ValueError, 'trusted'):
+                    select_main_artifact(client)
+        self.assertIsNone(main_run_created(None, 'web.yml'))
+
+    def test_accepts_only_explicit_main_workflow_refs_and_web_manual_runs(self):
+        client = MainPublicationClient()
+        for workflow, run in [('web.yml', client.run), ('browser-publication-resume.yml', client.resume)]:
+            for suffix in ('', '@main', '@refs/heads/main'):
+                with self.subTest(workflow=workflow, suffix=suffix):
+                    self.assertIsNotNone(main_run_created(run | {
+                        'path': f'.github/workflows/{workflow}{suffix}',
+                        'event': 'workflow_dispatch'}, workflow))
+            self.assertIsNone(main_run_created(run | {'event': 'pull_request'}, workflow))
+
+    def test_scope_only_main_success_does_not_outrank_resume_publication(self):
+        client = MainPublicationClient()
+        client.run['created_at'] = '2026-11-17T03:00:00Z'
+        client.jobs[42] = publication_jobs(client.run, 'skipped')
+        client.artifacts[42] = []
+        report = self.compose(client=client)
+        self.assertEqual((report['preview']['main_run_id'], report['main_artifact_id']), (43, 85))
+        self.assertTrue(verify_report(report, REPOSITORY, client)['verified'])
+        client.runs['browser-publication-resume.yml'] = []
+        with self.assertRaisesRegex(ValueError, 'trusted main publication'):
+            select_main_artifact(client)
+
+    def test_ambiguous_or_unsuccessful_jobs_cannot_be_ignored_as_scope_skips(self):
+        for update in ('missing', 'duplicate', 'wrong_run', 'wrong_sha', 'incomplete',
+                       'partial_skip', 'failure', 'missing_attempt'):
+            client = MainPublicationClient()
+            client.run['created_at'] = '2026-11-17T03:00:00Z'
+            jobs = client.jobs[42]
+            if update == 'missing':
+                jobs.pop()
+            elif update == 'duplicate':
+                jobs.append(jobs[0].copy())
+            elif update == 'wrong_run':
+                jobs[0]['run_id'] = 999
+            elif update == 'wrong_sha':
+                jobs[0]['head_sha'] = 'd' * 40
+            elif update == 'incomplete':
+                jobs[0]['status'] = 'in_progress'
+            elif update == 'partial_skip':
+                jobs[1]['conclusion'] = 'skipped'
+            elif update == 'failure':
+                jobs[1]['conclusion'] = 'failure'
+            else:
+                client.run.pop('run_attempt')
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                select_main_artifact(client, allow_expired=True)
+        client = MainPublicationClient()
+        client.jobs[43] = publication_jobs(client.resume, 'skipped')
+        with self.assertRaises(ValueError):
+            select_main_artifact(client)
+
+    def test_successful_deploy_without_live_artifact_keeps_identity_instead_of_rollback(self):
+        client = MainPublicationClient()
+        client.run['created_at'] = '2026-11-17T03:00:00Z'
+        client.artifacts[42] = []
+        with self.assertRaisesRegex(ValueError, 'retained'):
+            select_main_artifact(client)
+        self.assertEqual(select_main_artifact(client, allow_expired=True), (client.run, None))
+        client.artifacts[42] = [client.artifact | {'expired': True}]
+        with self.assertRaisesRegex(ValueError, 'retained'):
+            select_main_artifact(client)
+        run, artifact = select_main_artifact(client, allow_expired=True)
+        self.assertEqual((run['id'], artifact['id'], artifact['expired']), (42, 84, True))
+
+    def test_active_or_expired_resume_cannot_roll_back_to_older_live_web(self):
+        client = MainPublicationClient()
+        for status in ('queued', 'in_progress', 'waiting', 'pending', 'requested'):
+            client.resume_active = status
+            with self.subTest(status=status), self.assertRaisesRegex(ValueError, 'active'):
+                select_main_artifact(client)
+        client.resume_active = None
+        client.artifacts[43][0]['expired'] = True
+        with self.assertRaisesRegex(ValueError, 'retained'):
+            select_main_artifact(client)
+        self.assertEqual(select_main_artifact(client, allow_expired=True)[0]['id'], 43)
+        client.artifacts[43] = []
+        self.assertEqual(select_main_artifact(client, allow_expired=True), (client.resume, None))
+
+    def test_resume_expiry_renews_exact_retained_baseline_and_rejects_old_web_identity(self):
+        from test_pages_baseline import BaselineClient, wrapped_baseline
+        client = BaselineClient()
+        resume = MainPublicationClient().resume
+        original = client.api
+        def api(path):
+            if path.startswith('actions/runs/43/attempts/'):
+                return {'jobs': publication_jobs(resume)}
+            if path.startswith('actions/workflows/browser-publication-resume.yml/'):
+                return {'workflow_runs': [resume] if 'status=success' in path else []}
+            if path.startswith('actions/runs/43/artifacts'):
+                return {'artifacts': [client.artifact | {'id': 85}]}
+            return original(path)
+        client.api = api
+        record = {'schema': 1, 'main_run_id': 43, 'main_commit': resume['head_sha'],
+                  'main_artifact_id': 85, 'zip_sha256': hashlib.sha256(client.payload).hexdigest()}
+        client.wrapper = wrapped_baseline(client.payload, record)
+        client.baseline_run.update(head_branch='main', event='workflow_run')
+        baseline = self.root / 'baseline'
+        report = self.compose(client=client, baseline_out=baseline)
+        self.assertEqual(client.downloads, [200])
+        self.assertEqual(json.loads((baseline / 'main.json').read_text()), record)
+        self.assertTrue(verify_report(report, REPOSITORY, client)['verified'])
+        client.wrapper = wrapped_baseline(client.payload)
+        with self.assertRaisesRegex(ValueError, 'identity'):
+            self.compose(client=client, out=self.root / 'reject-old')
+
+    def test_actual_callback_gate_forces_trusted_resume_but_rejects_untrusted_events(self):
+        workflow = (Path(__file__).resolve().parents[2] /
+                    '.github/workflows/current-work-preview.yml').read_text(encoding='utf-8')
+        expression = re.search(r'  prepare:\n    needs: scope\n    if: >-\n(.*?)    runs-on:',
+                               workflow, re.S)[1]
+        defaults = {'github.repository': REPOSITORY, 'github.event.repository.full_name': REPOSITORY,
+                    'github.event_name': 'workflow_run', 'needs.scope.outputs.web': 'false',
+                    'github.event.workflow_run.status': 'completed',
+                    'github.event.workflow_run.conclusion': 'success',
+                    'github.event.workflow_run.head_branch': 'main',
+                    'github.event.workflow_run.head_repository.full_name': REPOSITORY,
+                    'github.event.workflow_run.path': '.github/workflows/browser-publication-resume.yml',
+                    'github.event.workflow_run.event': 'workflow_dispatch'}
+        def allowed(**updates):
+            values = defaults | updates
+            translated = re.sub(r'\b(?:github|needs)\.[a-zA-Z_.]+',
+                                lambda match: repr(values[match[0]]), expression)
+            translated = ' '.join(translated.replace('&&', 'and').replace('||', 'or').split())
+            return eval(translated, {'__builtins__': {}, 'fromJSON': json.loads,
+                                    'contains': lambda collection, item: item in collection})
+        self.assertTrue(allowed())
+        for key, value in [('github.repository', 'fork/repo'),
+                           ('github.event.repository.full_name', 'fork/repo'),
+                           ('github.event.workflow_run.head_repository.full_name', 'fork/repo'),
+                           ('github.event.workflow_run.conclusion', 'failure'),
+                           ('github.event.workflow_run.status', 'in_progress'),
+                           ('github.event.workflow_run.head_branch', 'current-work'),
+                           ('github.event.workflow_run.path', '.github/workflows/untrusted.yml'),
+                           ('github.event.workflow_run.event', 'push')]:
+            with self.subTest(key=key, value=value):
+                self.assertFalse(allowed(**{key: value}))
+        self.assertFalse(allowed(**{'github.event_name': 'push'}))
+        self.assertTrue(allowed(**{'github.event_name': 'push', 'needs.scope.outputs.web': 'true'}))
+        self.assertFalse(allowed(**{'github.event.workflow_run.path': '.github/workflows/web.yml'}))
+        self.assertTrue(allowed(**{'github.event.workflow_run.path': '.github/workflows/web.yml',
+                                   'needs.scope.outputs.web': 'true'}))
+        self.assertIn('workflows: [Browser preview, Resume qualified main browser publication]', workflow)
+        self.assertIn("if: needs.prepare.result == 'success'", workflow)
 
     def test_rejects_preview_and_output_symlinks(self):
         link = self.preview / 'linked.html'

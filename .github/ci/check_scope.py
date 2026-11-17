@@ -17,6 +17,14 @@ SCOPES = ("native", "mcp", "web", "arrangement", "hybrid", "plugins", "docs", "c
 SHARED_RUST = {"native", "mcp", "web", "arrangement", "hybrid"}
 DESKTOP_FILES = {"rust/src/main.rs", "rust/src/desktop_integration.rs", "rust/src/playback.rs"}
 PACKAGING_FILES = {"rust/tools/public_source.py"}
+# These change validation/publication policy, not shipped app bytes. Their
+# guarded workflow and offline policy tests run without replaying the app suite.
+VALIDATION_ONLY_FILES = {
+    "web/tools/region_edit_ui_checks.py", "web/tools/test_region_edit_download.py",
+    "web/tools/pages_artifacts.py", "web/tools/pages_baseline.py",
+    "web/tools/compose_pages_preview.py", "web/tools/test_pages_preview.py",
+    "web/tools/test_pages_baseline.py", "web/tools/test_pages_artifacts.py",
+}
 SHARED_FILES = {"OUTPUT_OWNERSHIP.md", "THIRD-PARTY-NOTICES.txt", "examples/audio/CREDITS.md"}
 
 
@@ -34,7 +42,7 @@ def classify_files(files):
         if not path or not parts or path.startswith("/") or ".." in parts or ":" in path:
             return outputs(SCOPES)
         name = parts[-1]
-        if path.startswith((".github/workflows/", ".github/ci/")):
+        if path.startswith((".github/workflows/", ".github/ci/")) or path in VALIDATION_ONLY_FILES:
             selected.add("ci")
         elif path in SHARED_FILES or (len(parts) == 1 and name.startswith("LICENSE")):
             selected.update({"docs", "native", "web"})
