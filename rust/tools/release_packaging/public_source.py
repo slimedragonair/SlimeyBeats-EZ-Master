@@ -16,6 +16,9 @@ GUIDES = (
     'MERGE_VALIDATION.md', 'LEARNING_AND_HELP.md', 'UX_DEVELOPMENT.md', 'UX_VALIDATION.md',
     'HOTFIX4.md', 'HYBRID_STUDIO.md', 'HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md',
     'EQ_SUGGESTION_INTEGRATION.md',
+    'ARRANGEMENT_CORE.md', 'ARRANGEMENT_TRANSPORT.md', 'ARRANGEMENT_NATIVE_AUDIO.md', 'WEB_ARRANGEMENT_UI.md',
+    'ARRANGEMENT_NATIVE_UI.md',
+    'ARRANGEMENT_RECOVERY.md',
 )
 # Keep screenshots explicit: only reviewed public captures belong in the source
 # package, never an arbitrary image or private report added to the checkout.

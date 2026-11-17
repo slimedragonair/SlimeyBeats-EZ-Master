@@ -13,6 +13,8 @@ PROJECT = re.compile(r"/v2/projects/([a-f0-9]{32})(?:/(.*))?\Z")
 UPLOAD = re.compile(r"uploads/([a-f0-9]{32})\Z")
 MEDIA = re.compile(r"assets/([a-f0-9]{32})/(audio|preview|waveform)\Z")
 ARTIFACT = re.compile(r"artifacts/([a-f0-9]{32})\Z")
+ARRANGEMENT_STREAM = re.compile(r"arrangement/streams/([a-f0-9]{32})\Z")
+ARRANGEMENT_JOB = re.compile(r"arrangement/jobs/([a-f0-9]{32})(/cancel)?\Z")
 
 
 def empty_body(handler):
@@ -51,6 +53,29 @@ def dispatch(handler, parsed, principal):
         return
     if parsed.query:
         raise ApiError(400, "query_not_allowed")
+    if action == 'arrangement/jobs' and method == 'POST':
+        from .arrangement_jobs import submit as submit_arrangement
+        result = submit_arrangement(store,project_id,handler.body(65536,json_body=True),principal,
+                                    client_key(handler) if not principal.is_owner else None)
+        handler.json_response(202,result)
+        return
+    arrangement_job = ARRANGEMENT_JOB.fullmatch(action or '')
+    if arrangement_job and (method == 'GET' and not arrangement_job[2] or method == 'POST' and arrangement_job[2]):
+        from .arrangement_jobs import get as get_arrangement_job
+        if method == 'POST':
+            empty_body(handler)
+        handler.json_response(200,get_arrangement_job(store,project_id,arrangement_job[1],principal,cancel=method=='POST'))
+        return
+    arrangement_stream = ARRANGEMENT_STREAM.fullmatch(action or "")
+    if arrangement_stream and method == "GET":
+        from .arrangement_media import stream as arrangement_stream_media
+        arrangement_stream_media(handler, store, project_id, arrangement_stream[1], principal)
+        return
+    if action == "arrangement" and method in ("GET", "POST"):
+        from .arrangement_session import dispatch as arrangement_dispatch
+        request = {"operation": "read"} if method == "GET" else handler.body(16 * 1024 * 1024, json_body=True)
+        handler.json_response(200, arrangement_dispatch(store, project_id, request, principal))
+        return
     status = 200
     if action is None and method == "GET":
         result = store.snapshot(project_id, principal)

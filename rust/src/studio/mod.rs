@@ -1,4 +1,7 @@
 //! Shared audio editing primitives; no model runtimes, filesystem or GUI dependencies.
+pub mod arrangement;
+pub mod arrangement_project;
+pub mod arrangement_session;
 pub mod doctor;
 pub mod realtime_mix;
 pub mod region_edit;

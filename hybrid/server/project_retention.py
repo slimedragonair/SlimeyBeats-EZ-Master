@@ -10,6 +10,8 @@ COMMAND_DIRECTORY = re.compile(r"command-[a-f0-9]{32}\Z")
 
 def retain_history_assets(project):
     referenced = set(project.reference_assets)
+    if project.arrangement is not None:
+        referenced.update(project.arrangement.source_asset_ids)
     referenced.update(key for key, asset in project.assets.items() if asset["role"] == "reference")
     for state in [project.checkpoint(), *project.undo, *project.redo]:
         for field in ("original_id", "master_id", "preview_id", "reference_id", "input_id", "before_id"):

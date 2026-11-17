@@ -73,5 +73,6 @@ pub(super) fn key(app: &MasterCraftApp) -> Result<u64> {
             .hash(&mut hash);
         serde_json::to_vec(&(&r.label, &r.notes, &r.mix))?.hash(&mut hash);
     }
+    s.hash_recovery_arrangement(&mut hash)?;
     Ok(hash.finish())
 }

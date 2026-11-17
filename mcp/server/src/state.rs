@@ -67,6 +67,7 @@ impl Snapshot {
 }
 
 pub struct Store {
+    pub arrangements: crate::arrangement_state::ArrangementWorkspace,
     pub session: Snapshot,
     pub generation: u64,
     pub sequence: u64,
@@ -148,6 +149,7 @@ impl Engine {
             plugin_host: mastercraft::studio_native::plugins::VstHost::find(),
             plugin_roots,
             store: Mutex::new(Store {
+                arrangements: Default::default(),
                 session: Snapshot {
                     source: None,
                     reference: None,
@@ -200,6 +202,7 @@ impl Engine {
                 .store(true, std::sync::atomic::Ordering::Relaxed);
         }
         store.generation += 1;
+        store.arrangements = Default::default();
         let settings = Settings {
             out_dir: self.policy.output.clone(),
             ..Default::default()

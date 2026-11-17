@@ -94,6 +94,17 @@ impl MasterCraftApp {
     ) -> Self {
         Self::with_preferences_root(cc, files, false, None, Some(private_root))
     }
+    /// Diagnostic renderer runs isolate preferences and recovery before construction.
+    #[doc(hidden)]
+    pub fn with_private_capture_root(
+        cc: &eframe::CreationContext<'_>,
+        files: Vec<PathBuf>,
+        auto_master: bool,
+        initial: Option<Settings>,
+        private_root: PathBuf,
+    ) -> Self {
+        Self::with_preferences_root(cc, files, auto_master, initial, Some(private_root))
+    }
     fn with_preferences_root(
         cc: &eframe::CreationContext<'_>,
         files: Vec<PathBuf>,

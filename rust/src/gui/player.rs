@@ -1,9 +1,13 @@
 use super::{
+    arrangement_mailbox::ArrangementMailbox,
     audio_source::{ABSource, LivePath},
+    live_arrangement_path::LiveArrangementPath,
     live_stem_path::{LiveStemPath, MixMailbox},
     playback_loop::{FrameRange, LoopControl},
     playback_tap::PlaybackTap,
 };
+#[path = "player_arrangement.rs"]
+mod arrangement;
 use crate::{
     audio::Audio,
     dsp::{eq_chain::EqParameters, realtime_eq::RealtimeEq},
@@ -62,6 +66,9 @@ pub struct Player {
     pub tap: Arc<PlaybackTap>,
     live_sender: Option<Sender<EqParameters>>,
     mix_sender: Option<MixMailbox>,
+    arrangement_sender: Option<ArrangementMailbox>,
+    #[cfg(test)]
+    test_arrangement_source: Option<ABSource>,
     #[cfg(test)]
     without_output_device: bool,
     #[cfg(test)]
@@ -70,6 +77,7 @@ pub struct Player {
 enum RealtimeInput {
     Eq(Arc<Audio>, Box<EqParameters>),
     Stems(Arc<StemSet>, MixSettings),
+    Arrangement(Box<crate::studio::arrangement::ArrangementPlayer>),
 }
 impl Player {
     #[cfg(test)]
@@ -84,6 +92,13 @@ impl Player {
         self.mix_sender.clone()
     }
     pub fn unload(&mut self) {
+        if let Some(mailbox) = self.arrangement_sender.take() {
+            mailbox.close();
+        }
+        #[cfg(test)]
+        {
+            self.test_arrangement_source = None;
+        }
         self.controls.playing.store(false, Ordering::Relaxed);
         self.controls.audition_loop.set(None);
         if let Some(sink) = self.sink.take() {
@@ -148,6 +163,17 @@ impl Player {
         after_lufs: f64,
         live_input: Option<RealtimeInput>,
     ) -> Result<()> {
+        let frames = match &live_input {
+            Some(RealtimeInput::Arrangement(player)) => usize::try_from(player.duration_frames())?,
+            _ => before.frames(),
+        };
+        if let Some(mailbox) = self.arrangement_sender.take() {
+            mailbox.close();
+        }
+        #[cfg(test)]
+        {
+            self.test_arrangement_source = None;
+        }
         self.controls.playing.store(false, Ordering::Relaxed);
         self.controls.audition_loop.set(None);
         self.controls.position.store(0, Ordering::Relaxed);
@@ -156,9 +182,9 @@ impl Player {
         if self.without_output_device {
             // Controller/DSP tests own and verify their rendered Audio buffers.
             // They must not open a real native device or claim audible playback.
-            self.duration = before.duration();
+            self.duration = frames as f64 / before.sample_rate as f64;
             self.rate = before.sample_rate;
-            self.frames = before.frames();
+            self.frames = frames;
             self.live_sender = None;
             self.mix_sender = None;
             self.test_live_receiver = None;
@@ -171,6 +197,30 @@ impl Player {
             if matches!(live_input, Some(RealtimeInput::Stems(..))) {
                 self.mix_sender = Some(MixMailbox::default());
             }
+            if let Some(RealtimeInput::Arrangement(prepared)) = live_input {
+                let path = LiveArrangementPath::new(*prepared, self.controls.clone())?;
+                self.arrangement_sender = Some(path.updates.clone());
+                self.test_arrangement_source = Some(ABSource {
+                    before,
+                    after,
+                    controls: self.controls.clone(),
+                    tap: self.tap.clone(),
+                    live: None,
+                    stems: None,
+                    arrangement: Some(path),
+                    cursor: 0,
+                    blend: 1.,
+                    gain: 0.,
+                    channels: self.arrangement_sender.as_ref().unwrap().0.channels,
+                    gain_a: 1.,
+                    gain_b: 1.,
+                    cached_frame: None,
+                    frame_a: [0.; 2],
+                    frame_b: [0.; 2],
+                    loop_range: None,
+                    control_frames: 0,
+                });
+            }
             return Ok(());
         }
         if self.stream.is_none() {
@@ -179,9 +229,9 @@ impl Player {
         if let Some(sink) = self.sink.take() {
             sink.stop();
         }
-        self.duration = before.duration();
+        self.duration = frames as f64 / before.sample_rate as f64;
         self.rate = before.sample_rate;
-        self.frames = before.frames();
+        self.frames = frames;
         let sink = Sink::connect_new(self.stream.as_ref().unwrap().mixer());
         self.controls.failure.store(false, Ordering::Relaxed);
         self.tap.clear();
@@ -189,6 +239,7 @@ impl Player {
         self.mix_sender = None;
         let mut live = None;
         let mut stems = None;
+        let mut arrangement = None;
         if let Some(input) = live_input {
             match input {
                 RealtimeInput::Eq(raw, parameters) => {
@@ -208,6 +259,11 @@ impl Player {
                         active: false,
                     });
                     self.mix_sender = Some(mailbox);
+                }
+                RealtimeInput::Arrangement(prepared) => {
+                    let path = LiveArrangementPath::new(*prepared, self.controls.clone())?;
+                    self.arrangement_sender = Some(path.updates.clone());
+                    arrangement = Some(path);
                 }
             }
         }
@@ -229,6 +285,7 @@ impl Player {
             gain_b: b,
             live,
             stems,
+            arrangement,
             tap: self.tap.clone(),
             cached_frame: None,
             frame_a: [0.; 2],
@@ -381,6 +438,7 @@ mod tests {
             gain_b: 0.5,
             live: None,
             stems: None,
+            arrangement: None,
             tap: Arc::new(PlaybackTap::default()),
             cached_frame: None,
             frame_a: [0.; 2],

@@ -1,3 +1,4 @@
+mod arrangement;
 mod encoded_audio;
 mod import_limits;
 mod live_eq;

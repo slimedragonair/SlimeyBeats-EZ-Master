@@ -22,7 +22,7 @@ struct Arguments {
     files: Vec<PathBuf>,
     #[arg(long)]
     auto_master: bool,
-    #[arg(long,default_value="overview",value_parser=["overview","eq","report","stems","voice","repair","plugins"])]
+    #[arg(long,default_value="overview",value_parser=["overview","eq","report","tracks","stems","voice","repair","plugins"])]
     view: String,
     #[arg(long)]
     studio_data: Option<PathBuf>,
@@ -104,8 +104,8 @@ fn main() -> eframe::Result {
         .with_inner_size(size)
         .with_min_inner_size([1100., 720.])
         .with_icon(mastercraft::gui::window_icon());
-    if args.capture_doctor {
-        viewport = viewport.with_active(false);
+    if args.capture_ui.is_some() {
+        viewport = viewport.with_active(false).with_resizable(false);
     }
     let result = eframe::run_native(
         mastercraft::branding::APP_NAME,
@@ -121,14 +121,15 @@ fn main() -> eframe::Result {
             } else {
                 files
             };
-            let mut app = if args.capture_doctor {
-                mastercraft::gui::MasterCraftApp::for_doctor_capture(
+            let mut app = if args.capture_ui.is_some()
+                && let Some(root) = args.recovery_data.as_ref()
+            {
+                mastercraft::gui::MasterCraftApp::with_private_capture_root(
                     cc,
                     queue_files,
-                    args.recovery_data
-                        .as_ref()
-                        .expect("Clap requires a private capture data directory")
-                        .clone(),
+                    args.auto_master,
+                    initial,
+                    root.clone(),
                 )
             } else {
                 mastercraft::gui::MasterCraftApp::with_initial_settings(
@@ -144,7 +145,7 @@ fn main() -> eframe::Result {
                 match args.view.as_str() {
                     "eq" => 1,
                     "report" => 2,
-                    "stems" | "voice" | "repair" | "plugins" => 3,
+                    "tracks" | "stems" | "voice" | "repair" | "plugins" => 3,
                     _ => 0,
                 }
             };
@@ -158,6 +159,7 @@ fn main() -> eframe::Result {
             if app.tab == 3 {
                 use mastercraft::gui::studio::state::{AutoAction, Page};
                 app.studio.page = match args.view.as_str() {
+                    "tracks" => Page::Tracks,
                     "voice" => Page::Voice,
                     "repair" => Page::Repair,
                     "plugins" => Page::Plugins,
@@ -197,11 +199,7 @@ fn main() -> eframe::Result {
             }
             if let Some(root) = args.recovery_data {
                 app.configure_recovery_capture(
-                    if args.capture_doctor {
-                        root.join("recovery")
-                    } else {
-                        root
-                    },
+                    root.join("recovery"),
                     args.capture_wait_recovery,
                     args.capture_restore_recovery,
                     args.capture_stay_open,

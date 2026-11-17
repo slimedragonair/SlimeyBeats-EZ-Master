@@ -1,0 +1,52 @@
+name: Arrangement editing checks
+on:
+  push:
+    branches: [main, current-work]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: arrangement-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Rust and WebAssembly
+        run: |
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+      - name: Install matching bindings and browser dependencies
+        run: |
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.130/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl.tar.gz -o /tmp/wasm-bindgen.tar.gz
+          echo '9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f  /tmp/wasm-bindgen.tar.gz' | sha256sum --check
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          echo '/tmp/wasm-bindgen-0.2.130-x86_64-unknown-linux-musl' >> "$GITHUB_PATH"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg pulseaudio
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --load='module-null-sink sink_name=slimeybeats_arrangement'
+          echo 'PULSE_SINK=slimeybeats_arrangement' >> "$GITHUB_ENV"
+          python3 -m pip install playwright==1.57.0 numpy==2.5.2
+          python3 -m playwright install --with-deps chromium firefox webkit
+      - name: Check state and build matching WASM and frontend
+        run: |
+          node --test web/site/arrangement-timeline-*.test.mjs
+          python3 web/tools/build.py
+      - name: Verify actual editing, playback, scoped EQ and project delivery
+        run: |
+          for browser in chromium firefox webkit; do
+            python3 web/tools/verify_arrangement_ui.py --browser "$browser" --out "${{ runner.temp }}/arrangement/ui-$browser"
+            python3 web/tools/verify_arrangement_audio.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/audio-$browser"
+            python3 web/tools/verify_arrangement_browser.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/editing-$browser"
+            python3 web/tools/verify_arrangement_project_ui.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/project-$browser"
+            python3 web/tools/verify_arrangement_mp3_ui.py --site web/dist --browser "$browser" --out "${{ runner.temp }}/arrangement/mp3-$browser"
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: arrangement-browser-validation
+          path: ${{ runner.temp }}/arrangement
+          if-no-files-found: warn

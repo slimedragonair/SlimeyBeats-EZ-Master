@@ -41,7 +41,7 @@ def write_fixture(path, *, damaged=False):
 def discovery(client):
     tools = {tool['name']: tool for tool in client.request('tools/list', {})['result']['tools']}
     caps = client.call('get_capabilities')
-    assert len(tools) == caps['tool_count'] == 45
+    assert len(tools) == caps['tool_count'] == 55
     assert tools['scan_audio_issues']['annotations']['readOnlyHint'] is True
     assert tools['scan_audio_issues']['annotations']['openWorldHint'] is False
     assert tools['preview_stem_doctor']['annotations']['destructiveHint'] is False
@@ -69,7 +69,7 @@ def verify(server, destination):
         client = Client([str(server), '--input-root', str(library), '--output-root', str(output)])
         try:
             discovery(client)
-            checks.append('45-tool discovery, strict shared request schema, annotations and self-contained help')
+            checks.append('55-tool discovery, strict shared request schema, annotations and self-contained help')
             clean_id = client.run('load_audio', {'library': 0, 'path': clean.name})['source_id']
             before = client.call('get_studio_session')
             report = client.run('scan_audio_issues', {'audio_id': clean_id})['report']

@@ -88,6 +88,9 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
         'WEB_EXPORT_VALIDATION.md', 'BROWSER_PARITY_ROADMAP.md', 'MOBILE_PREVIEW.md',
         'HOTFIX4.md', 'HYBRID_STUDIO.md', 'HYBRID_REMOTE_PROTOCOL.md', 'HYBRID_V2_VALIDATION.md',
         'EQ_SUGGESTION_INTEGRATION.md',
+        'ARRANGEMENT_CORE.md', 'ARRANGEMENT_TRANSPORT.md', 'ARRANGEMENT_NATIVE_AUDIO.md', 'WEB_ARRANGEMENT_UI.md',
+        'ARRANGEMENT_NATIVE_UI.md',
+        'ARRANGEMENT_RECOVERY.md',
     )
     NEW_IMAGES = (
         'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',

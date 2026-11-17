@@ -63,6 +63,7 @@ class JobStore:
         self.queue = deque()
         self.idempotency = {}
         self.stopping = False
+        self.arrangement_active = None
         self.sessions = GuestRegistry(config)
         from .project_store import ProjectStore
         self.projects = ProjectStore(self)
@@ -178,6 +179,9 @@ class JobStore:
     def claim(self):
         with self.changed:
             while not self.stopping:
+                if self.arrangement_active is not None:
+                    self.changed.wait(timeout=0.1)
+                    continue
                 while self.queue:
                     job_id = self.queue.popleft()
                     if isinstance(job_id, tuple):
@@ -288,4 +292,9 @@ class JobStore:
             for project in self.projects.projects.values():
                 if project.command:
                     project.command.cancel.set()
+                if project.arrangement is not None:
+                    if project.arrangement.active_job is not None:
+                        project.arrangement.active_job.cancel.set()
+                    if project.arrangement.stream is not None:
+                        project.arrangement.stream.cancel.set()
             self.changed.notify_all()

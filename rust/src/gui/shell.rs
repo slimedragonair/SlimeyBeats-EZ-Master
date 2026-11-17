@@ -51,6 +51,7 @@ impl MasterCraftApp {
         self.enforce_playback_owner();
         self.poll();
         let ctx = ui.ctx().clone();
+        self.studio.set_arrangement_profile(&self.settings.profile);
         self.studio.poll(&ctx);
         self.tick_recovery(&ctx);
         if super::recovery_dialog::blocking(self, ui, &ctx) {
@@ -246,6 +247,9 @@ impl MasterCraftApp {
             && (recovery_ready || self.recovery.error.is_some());
         if self.capture.is_some() {
             let state = super::ui_capture::CaptureState {
+                arrangement_tracks: self.studio.arrangement_counts().0,
+                arrangement_clips: self.studio.arrangement_counts().1,
+                arrangement_effects: self.studio.arrangement_counts().2,
                 recovery_saved: self.recovery.last_saved.is_some(),
                 recovery_enabled: self.recovery.preferences.enabled,
                 recovery_error: self.recovery.error.clone(),
@@ -275,7 +279,7 @@ impl MasterCraftApp {
                     self.error.clone()
                 },
                 preview_ready: if self.tab == 3 {
-                    self.studio.current.is_some()
+                    self.studio.current.is_some() || self.studio.player.has_live_arrangement()
                 } else {
                     self.current().is_some()
                 },
@@ -532,7 +536,12 @@ impl MasterCraftApp {
                     });
                 });
         }
-        let name = if self.tab == 3 {
+        let name = if self.tab == 3 && self.studio.page == super::studio::state::Page::Tracks {
+            format!(
+                "Multitrack studio · {} tracks",
+                self.studio.arrangement_counts().0
+            )
+        } else if self.tab == 3 {
             self.studio
                 .source
                 .as_ref()

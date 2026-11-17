@@ -3,6 +3,8 @@ import { doctorTemplate, doctorWaveOverlay } from "./studio-doctor-template.js";
 export const studioTemplate = `
 <div class="edit-heading"><div><span class="eyebrow teal">Private audio editing</span><h2>Your Studio workspace</h2></div><button id="s-close">Close Studio</button></div>
 <div id="s-status" class="edit-notice" role="status" aria-live="polite">Choose audio.</div>
+<nav id="s-workspace-views" class="edit-actions" aria-label="Studio workspace" hidden><button id="s-legacy-entry" class="selected" aria-pressed="true">Stem tools</button><button id="s-arrange-entry" aria-pressed="false">Arrange tracks · Local</button></nav>
+<div id="s-legacy-workspace">
 <div class="edit-actions"><button id="s-source" aria-label="Choose Studio audio">Choose audio</button><input id="s-file" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a" hidden><button id="s-use-main">Use Mastering mix</button><button id="s-cancel" disabled>Cancel</button></div>
 <p id="s-engine-note" class="muted">Import aligned stems, rebalance, clean a voice, or repair a precise region. Local Studio has a 128 MiB decoded bank limit. Server processing adds larger files and neural separation.</p>
 <div id="s-separation" class="edit-actions" hidden><label>Separate this song<select id="s-separation-mode"><option value="vocal_instrumental">Vocals + instrumental</option><option value="four_stems">Vocals, drums, bass + other</option></select></label><button id="s-separate" class="primary" disabled>Separate stems</button><p class="small">Runs on the server. Separation is an estimate and may leave artifacts; the original stays intact.</p></div>
@@ -37,10 +39,15 @@ ${bulkImportTemplate}
   <button id="s-export-session" class="wide" disabled title="Selected-format preview, available aligned WAV stems, analysis and committed settings.">Download session ZIP</button>
   <button id="s-promote" class="wide" disabled>Use preview for mastering</button><p class="small">Preview first. Your listening volume never changes saved samples.</p><p class="small">Session ZIP includes the selected-format preview, aligned WAV stems when available, analysis and committed settings. The full source mix and undo history are not added. Use local recovery to restore a workspace.</p></aside>
 </div>
+</div>
+<div id="s-arrangement-page" hidden></div>
+<div id="s-arrangement-server-page" hidden></div>
 <details id="s-playback-details" class="playback-details">
  <summary>Waveforms, volume &amp; seeking</summary>
+ <div id="s-legacy-waves">
  <div class="edit-wave-legend" aria-label="Waveform lanes"><span>Before · upper waveform</span><span>Saved preview · lower waveform</span></div>
  ${doctorWaveOverlay}
+ </div>
  <div class="edit-detail-controls"><label>Volume<input id="s-volume" type="range" min="0" max="1" step="0.01" value="0.7"></label><time id="s-clock">0:00 / 0:00</time></div>
  <label class="edit-seek">Position<input id="s-seek" type="range" min="0" max="1" step="0.01" value="0" disabled aria-label="Studio playback position"></label>
 </details>

@@ -30,7 +30,7 @@ def upload_request(value, config):
             or any(ord(c) < 32 or ord(c) == 127 for c in filename) or any(c in filename for c in "/\\:")
             or filename.endswith((" ", "."))):
         raise ApiError(400, "invalid_filename")
-    role = choice(value["role"], ("original", "reference", "stem", "stem_bundle"))
+    role = choice(value["role"], ("original", "reference", "stem", "stem_bundle", "arrangement_project"))
     if "kind" in value:
         if role != "stem":
             raise ApiError(400, "invalid_stem_kind")
@@ -40,7 +40,7 @@ def upload_request(value, config):
                               or any(ord(c) < 32 or ord(c) == 127 for c in label) or any(c in label for c in "/\\:") or ".." in label):
         raise ApiError(400, "invalid_stem_label")
     extension = filename.rsplit(".", 1)[-1].lower()
-    if "." not in filename or extension not in (("zip",) if role == "stem_bundle" else INPUT_FORMATS):
+    if "." not in filename or extension not in (("zip",) if role in ("stem_bundle", "arrangement_project") else INPUT_FORMATS):
         raise ApiError(400, "unsupported_input")
     size = value["bytes"]
     if type(size) is not int or size <= 0:

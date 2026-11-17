@@ -31,7 +31,6 @@ pub mod recovery_store;
 pub mod report;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod session_document;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod source_identity;
 pub mod studio;
 #[cfg(not(target_arch = "wasm32"))]

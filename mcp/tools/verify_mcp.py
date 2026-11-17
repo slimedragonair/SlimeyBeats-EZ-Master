@@ -49,21 +49,32 @@ def verify(server, fixture, codecs):
                 prepared = client.run("prepare_optional_tool", {"tool": "audio_codecs", "allow_download": True})
                 assert prepared["verification"] == "encode_probe_decode_checked"
             tools = client.request("tools/list", {})["result"]["tools"]
-            assert len(tools) == 45, len(tools)
+            assert len(tools) == 55, len(tools)
+            names = {tool["name"] for tool in tools}
+            assert {"create_arrangement", "get_arrangement", "add_arrangement_assets", "edit_arrangement",
+                    "undo_arrangement", "get_arrangement_waveform", "get_arrangement_eq_response",
+                    "suggest_arrangement_eq", "render_arrangement", "export_arrangement"} <= names
+            instructions = client.initialized["result"].get("instructions", "")
+            assert "create_arrangement" in instructions and "get_help(topic=arrangement)" in instructions
+            assert "This exposes no clip arrangement" not in instructions
             assert all("inputSchema" in tool and "annotations" in tool for tool in tools)
             caps = client.call("get_capabilities")
             assert caps["concurrent_audio_jobs"] == 1
             assert caps["hybrid_studio"]["remote_processing_from_mcp"] is False
             assert caps["hybrid_studio"]["public_http_transport"] is False
             assert "hybrid" in caps["help_topics"]
+            assert "arrangement" in caps["help_topics"] and caps["tool_count"] == 55
             if not caps["desktop_configured"]:
                 assert "desktop is not configured" in " ".join(caps["workflow"])
             neutral = next(p for p in caps["profiles"] if p["id"] == "neutral")
             assert isinstance(neutral["targets_lufs"]["streaming_safe"], (int, float))
             guide = client.call("get_help")
             assert guide["steps"] and guide["job_example"]
-            for topic in ("mastering", "eq", "export", "troubleshooting", "privacy", "hybrid"):
+            for topic in ("mastering", "eq", "export", "troubleshooting", "privacy", "hybrid", "arrangement"):
                 assert client.call("get_help", {"topic": topic})
+            arrangement_help = json.dumps(client.call("get_help", {"topic": "arrangement"}))
+            for term in ("SOURCE frames", "PROJECT frames", "exclude_eq_id", "immutable", "render_arrangement"):
+                assert term in arrangement_help, term
             assert "do not connect" in client.call("get_help", {"topic": "hybrid"})["local_companion"]
             # Some hosts consume text content instead of structuredContent.
             raw = client.request("tools/call", {"name": "get_help", "arguments": {}})["result"]
@@ -79,6 +90,12 @@ def verify(server, fixture, codecs):
             client.call("load_audio", {"library": 0, "path": "../outside.wav"}, error=True)
             loaded = client.run("load_audio", {"library": 0, "path": source.name})
             source_id = loaded["source_id"]
+            source_info = client.call("get_session")["source"]
+            arranged = client.call("create_arrangement", {"sample_rate": source_info["sample_rate"], "channels": source_info["channels"]})
+            arranged = client.call("add_arrangement_assets", {"session_id": arranged["session_id"], "expected_revision": arranged["revision"],
+                                   "sources": [{"audio_id": source_id, "name": "Explicitly selected source"}]})
+            assert len(arranged["arrangement"]["lanes"]) == 1 and arranged["preview"] is None
+            assert client.call("get_session")["source"]["source_id"] == source_id
             failed = client.finish(client.call("load_audio", {"library": 0, "path": "broken.wav"}))
             assert failed["status"] == "failed"
             assert client.call("get_session")["source"]["source_id"] == source_id

@@ -22,6 +22,9 @@ import { time } from "./view.js";
 import { wireStudioFeedback } from "./studio-feedback.js";
 import { wireStudioPreviewStatus, MIX_PENDING_NOTICE } from "./studio-preview-status.js";
 import { createStudioTimeline } from "./studio-timeline.js";
+import { createArrangementAdapter } from "./arrangement-adapter.js";
+import { ARRANGEMENT_UI_ENABLED, createArrangementStudioWorkspace } from "./arrangement-studio-workspace.js";
+import { wireStudioTransportControls } from "./studio-transport-controls.js";
 import { wireStudioDoctor } from "./studio-doctor.js";
 import { changedRecovery } from "./recovery-bridge.js";
 import { captureStudioRecovery, prepareStudioRecovery, studioRecoverySize, restoreStudioFields } from "./studio-recovery.js";
@@ -87,6 +90,15 @@ export function createStudio({
             await job("Preparing this workspace on the server…", migrateCurrent, false, false, false);
             if (!client.remote) throw new Error("The server workspace could not be prepared. Your local work is kept.");
         } });
+    const arrangement = createArrangementStudioWorkspace({
+        createAdapter: createArrangementAdapter, legacyPlayback: playback, pauseMain,
+        legacyBusy: () => busy || !!cancelPending,
+        notice, changed: () => {
+            sync(); onState();
+            if (audition()?.playing && active && !frame) frame = requestAnimationFrame(animate);
+        },
+    });
+    const audition = () => arrangement.transport() || playback;
     function notice(text, error = false) {
         if (pendingMix && !error && text !== MIX_PENDING_NOTICE)
             text = `${text} ${MIX_PENDING_NOTICE}`;
@@ -96,14 +108,14 @@ export function createStudio({
         if (active) onStatus(text, error);
     }
     function draw() {
-        if (!active) return;
+        if (!active || arrangement.selected) return;
         waveform($("wave"), playback);
         chart = spectrum($("spectrum-canvas"), image, selection());
         timeline.draw();
     }
     function sync() {
-        const locked = busy || !!cancelPending;
-        document.getElementById("studio-tools").dataset.loaded = String(info.loaded);
+        const locked = busy || !!cancelPending || arrangement.busy;
+        document.getElementById("studio-tools").dataset.loaded = String(arrangement.selected ? arrangement.loaded : info.loaded);
         const hasStems = info.stems.length > 0;
         $("stem-views").hidden = !hasStems;
         $("editor-view").hidden = !hasStems || stemView !== "timeline";
@@ -156,6 +168,7 @@ export function createStudio({
         previewStatus(pendingMix, playback.monitorMix);
         timeline.sync();
         doctor.sync();
+        arrangement.sync();
     }
     function requireUpdatedMix() {
         if (!pendingMix) return true;
@@ -314,6 +327,7 @@ export function createStudio({
     }
     async function load(file) {
         if (!file) return;
+        if (arrangement.selected) return arrangement.importFiles([file]);
         await job(serverProcessing.enabled ? "Uploading Studio audio to the server…" : "Decoding Studio audio locally…", async () => {
             if (serverProcessing.enabled) {
                 await mutate("load-file", { file }, [], true, file.name, remoteClient); return;
@@ -369,7 +383,7 @@ export function createStudio({
     for (const event of ["input", "change"])
         document.getElementById("studio-tools").addEventListener(event, (event) => {
             // Timeline navigation is transient; applied edits mark recovery in job().
-            if (!event.target.closest("#s-editor, #s-doctor-page")) changedRecovery();
+            if (!event.target.closest("#s-editor, #s-doctor-page, #s-arrangement-page, #s-arrangement-server-page")) changedRecovery();
         });
     const importer = wireStemImport({
         client,
@@ -465,6 +479,7 @@ export function createStudio({
         sync();
     };
     $("close").onclick = async () => {
+        if (arrangement.selected) { arrangement.pause(); leave(); return; }
         if (client.remote) {
             await job("Deleting the temporary Studio project…", () => remoteClient.close(), false, false, false);
             if (remoteProject.id) return;
@@ -511,16 +526,7 @@ export function createStudio({
         };
     for (const id of ["voice-page", "repair-page"])
         $(id).addEventListener("input", changed);
-    $("play").onclick = () => {
-        pauseMain();
-        if (playback.playing) playback.pause();
-        else playback.play().catch((error) => notice(error.message, true));
-    };
-    $("stop").onclick = () => playback.stop();
-    $("before").onclick = () => playback.choose("before");
-    $("after").onclick = () => playback.choose("after");
-    $("volume").oninput = () => playback.setVolume(Number($("volume").value));
-    $("seek").oninput = () => playback.seek(Number($("seek").value));
+    wireStudioTransportControls({ transport: audition, beforePlay: pauseMain, notice });
     wireSelection(
         $("spectrum-canvas"),
         () => (busy ? null : image),
@@ -534,7 +540,7 @@ export function createStudio({
         frame = 0;
     function animate() {
         frame = 0;
-        if (active && playback.playing) {
+        if (active && audition()?.playing) {
             if (++tick % 4 === 0) {
                 draw();
                 sync();
@@ -557,6 +563,8 @@ export function createStudio({
             document.body.classList.toggle("studio-mode", value);
             if (value) pauseMain();
             else playback.pause();
+            arrangement.activate(value);
+            if (value && ARRANGEMENT_UI_ENABLED) void arrangement.initialise();
             if (value)
                 onStatus(
                     $("status").textContent,
@@ -566,8 +574,12 @@ export function createStudio({
             requestAnimationFrame(draw);
         },
         load,
-        pause() { playback.pause(); },
+        pause() { playback.pause(); arrangement.pause(); },
         analyze() {
+            if (arrangement.selected) {
+                notice("Choose the explicit mix, track, clip or range in Shape this part to measure an arrangement EQ proposal.");
+                return;
+            }
             return job(
                 "Measuring the selected Studio input locally…",
                 async () => {
@@ -586,20 +598,23 @@ export function createStudio({
             );
         },
         get busy() {
-            return busy || !!cancelPending;
+            return busy || !!cancelPending || arrangement.busy;
         },
         get loaded() {
-            return info.loaded;
+            return info.loaded || arrangement.loaded;
         },
         get label() {
-            return info.loaded ? filename : "Studio editor";
+            return arrangement.selected ? "Studio arrangement" : info.loaded ? filename : "Studio editor";
         },
         recovery: {
-            get busy() { return busy; },
-            get loaded() { return info.loaded; },
+            get busy() { return busy || arrangement.busy; },
+            get loaded() { return info.loaded || arrangement.loaded; },
             get stemCount() { return info.stems.length; },
             estimate: () => info.loaded ? studioRecoverySize(playback) : 0,
-            capture: () => captureStudioRecovery(client, playback, { info, controls, pendingMix, dirty, filename }),
+            capture: () => {
+                if (arrangement.loaded) throw new Error("This recovery format does not include arrangement tracks. Keep this page open until you can save an arrangement project.");
+                return captureStudioRecovery(client, playback, { info, controls, pendingMix, dirty, filename });
+            },
             async prepare(value, current) {
                 const staged = await prepareStudioRecovery(StudioClient, value, playback, current);
                 let adopted = false;

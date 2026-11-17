@@ -60,6 +60,7 @@ pub(super) fn context(app: &MasterCraftApp) -> ReportContext {
         1 => Workflow::ManualEq,
         2 => Workflow::ProcessingReport,
         3 => match app.studio.page {
+            Page::Tracks => Workflow::StemStudio,
             Page::Stems => Workflow::StemStudio,
             Page::Voice => Workflow::VoiceCleanup,
             Page::Repair => Workflow::SpectralRepair,
@@ -73,9 +74,12 @@ pub(super) fn context(app: &MasterCraftApp) -> ReportContext {
         .bank
         .as_ref()
         .map(|b| b.tracks.len().min(u32::MAX as usize) as u32)
-        .unwrap_or(0);
+        .unwrap_or(0)
+        .max(app.studio.arrangement_counts().0.min(u32::MAX as usize) as u32);
     context.counts.eq_bands = app.settings.manual_eq.len().min(u32::MAX as usize) as u32;
-    context.activity.session_loaded = !app.tracks.is_empty() || app.studio.source.is_some();
+    context.activity.session_loaded = !app.tracks.is_empty()
+        || app.studio.source.is_some()
+        || app.studio.arrangement_counts().0 > 0;
     context.activity.preview_available =
         app.current().is_some_and(|(_, r)| r.after.is_some()) || app.studio.current.is_some();
     context.activity.processing_active = app.busy || app.studio.busy() || app.updates.busy();

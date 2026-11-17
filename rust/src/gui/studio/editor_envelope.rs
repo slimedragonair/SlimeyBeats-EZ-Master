@@ -6,18 +6,24 @@ const BUCKET_FRAMES: usize = 64;
 /// Rebuild this cache whenever the source PCM changes.
 pub(super) struct Envelope {
     levels: Vec<Vec<f32>>,
+    channel: Option<usize>,
 }
 
 impl Envelope {
     pub fn new(audio: &Audio) -> Self {
+        Self::build(audio, None)
+    }
+
+    pub fn for_channel(audio: &Audio, channel: usize) -> anyhow::Result<Self> {
+        anyhow::ensure!(channel < audio.channels, "Waveform channel is unavailable");
+        Ok(Self::build(audio, Some(channel)))
+    }
+
+    fn build(audio: &Audio, channel: Option<usize>) -> Self {
         let mut level: Vec<f32> = audio
             .samples
             .chunks(BUCKET_FRAMES * audio.channels)
-            .map(|samples| {
-                samples
-                    .iter()
-                    .fold(0.0_f32, |peak, sample| peak.max(sample.abs()))
-            })
+            .map(|samples| sample_peak(samples, audio.channels, channel))
             .collect();
         let mut levels = Vec::new();
         while !level.is_empty() {
@@ -32,7 +38,7 @@ impl Envelope {
             levels.push(level);
             level = next;
         }
-        Self { levels }
+        Self { levels, channel }
     }
 
     /// Returns the maximum absolute sample in the clamped frame range [start, end).
@@ -45,17 +51,23 @@ impl Envelope {
             return 0.0;
         }
         if end - start <= BUCKET_FRAMES {
-            return peak_frames(audio, start, end);
+            return peak_frames(audio, start, end, self.channel);
         }
 
         let first_bucket = start.div_ceil(BUCKET_FRAMES);
         let last_bucket = end / BUCKET_FRAMES;
         // Only the two partial boundary buckets read PCM: at most 126 frames.
-        let mut peak = peak_frames(audio, start, (first_bucket * BUCKET_FRAMES).min(end));
+        let mut peak = peak_frames(
+            audio,
+            start,
+            (first_bucket * BUCKET_FRAMES).min(end),
+            self.channel,
+        );
         peak = peak.max(peak_frames(
             audio,
             (last_bucket * BUCKET_FRAMES).max(start),
             end,
+            self.channel,
         ));
 
         let mut bucket = first_bucket;
@@ -71,10 +83,24 @@ impl Envelope {
     }
 }
 
-fn peak_frames(audio: &Audio, start: usize, end: usize) -> f32 {
-    audio.samples[start * audio.channels..end * audio.channels]
-        .iter()
-        .fold(0.0_f32, |peak, sample| peak.max(sample.abs()))
+fn peak_frames(audio: &Audio, start: usize, end: usize, channel: Option<usize>) -> f32 {
+    sample_peak(
+        &audio.samples[start * audio.channels..end * audio.channels],
+        audio.channels,
+        channel,
+    )
+}
+
+fn sample_peak(samples: &[f32], channels: usize, channel: Option<usize>) -> f32 {
+    if let Some(channel) = channel {
+        samples
+            .chunks_exact(channels)
+            .fold(0., |peak: f32, frame| peak.max(frame[channel].abs()))
+    } else {
+        samples
+            .iter()
+            .fold(0., |peak: f32, sample| peak.max(sample.abs()))
+    }
 }
 
 #[cfg(test)]
@@ -232,6 +258,30 @@ mod tests {
         let envelope = Envelope::new(&audio);
         assert!(envelope.levels.is_empty());
         assert_eq!(envelope.peak(&audio, 0, usize::MAX), 0.0);
+    }
+
+    #[test]
+    fn separate_channel_caches_match_pcm_without_cross_channel_leakage() {
+        let mut audio = deterministic_audio(4099, 2);
+        for frame in audio.samples.as_chunks_mut::<2>().0 {
+            frame[1] *= 0.01;
+        }
+        for channel in 0..2 {
+            let envelope = Envelope::for_channel(&audio, channel).unwrap();
+            for start in [0, 1, 63, 64, 127, 255, 1023, 4000] {
+                for width in [1, 3, 64, 128, 1024, 4099] {
+                    let end = (start + width).min(audio.frames());
+                    let expected = audio.samples[start * 2..end * 2]
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .map(|frame| frame[channel].abs())
+                        .fold(0_f32, f32::max);
+                    assert_eq!(envelope.peak(&audio, start, end), expected);
+                }
+            }
+        }
+        assert!(Envelope::for_channel(&audio, 2).is_err());
     }
 
     #[test]

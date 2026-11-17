@@ -4,7 +4,9 @@ use crate::app_update::{self, UpdateProgress};
 use eframe::egui;
 
 pub(super) fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
-    let working_audio = !app.tracks.is_empty() || app.studio.source.is_some();
+    let working_audio = !app.tracks.is_empty()
+        || app.studio.source.is_some()
+        || app.studio.arrangement_counts().0 > 0;
     let audio_busy = app.busy || app.studio.busy() || app.experience.mcp.busy();
     let state = &mut app.updates;
     ui.strong("Keep SlimeyBeats up to date");

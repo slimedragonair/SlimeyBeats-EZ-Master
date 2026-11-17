@@ -8,6 +8,14 @@ use std::{
 };
 
 pub fn load(path: &Path, limits: &Limits, budget: usize) -> Result<Audio> {
+    Ok(load_identified(path, limits, budget)?.0)
+}
+
+pub fn load_identified(
+    path: &Path,
+    limits: &Limits,
+    budget: usize,
+) -> Result<(Audio, mastercraft::source_identity::SourceIdentity)> {
     let budget = budget.min(limits.max_pcm_bytes);
     if path
         .extension()
@@ -24,14 +32,14 @@ pub fn load(path: &Path, limits: &Limits, budget: usize) -> Result<Audio> {
             "Input exceeds configured decoded PCM budget"
         );
     }
-    let (audio, _) = audio_import::load(
+    let (audio, identity) = audio_import::load(
         path,
         budget,
         Duration::from_secs(limits.decode_timeout_seconds),
         Arc::new(AtomicBool::new(false)),
     )?;
     validate(&audio, limits, budget)?;
-    Ok(audio)
+    Ok((audio, identity))
 }
 
 pub fn validate(audio: &Audio, limits: &Limits, budget: usize) -> Result<()> {

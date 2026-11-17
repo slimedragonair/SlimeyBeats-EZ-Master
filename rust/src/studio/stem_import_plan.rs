@@ -167,6 +167,15 @@ fn suggested_role(name: &str) -> (StemKind, u8) {
 }
 
 pub fn plan(files: Vec<ImportFile>) -> Result<ImportPlan> {
+    plan_with_minimum(files, 2)
+}
+
+/// Arrange independent audio clips without imposing the aligned-bank minimum.
+pub fn plan_audio(files: Vec<ImportFile>) -> Result<ImportPlan> {
+    plan_with_minimum(files, 1)
+}
+
+fn plan_with_minimum(files: Vec<ImportFile>, minimum: usize) -> Result<ImportPlan> {
     let mut groups: BTreeMap<(String, String), ImportPart> = BTreeMap::new();
     let mut metadata_bytes = 0;
     let mut skipped_files = 0;
@@ -212,8 +221,8 @@ pub fn plan(files: Vec<ImportFile>) -> Result<ImportPlan> {
         group.versions.push(file);
     }
     ensure!(
-        groups.len() >= 2,
-        "Choose at least two distinct audio stems (WAV/MP3 versions of one part count once)"
+        groups.len() >= minimum,
+        "Choose at least {minimum} distinct audio part(s); alternate WAV/MP3 versions count once"
     );
     let mut folders: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for (folder, basename) in groups.keys() {

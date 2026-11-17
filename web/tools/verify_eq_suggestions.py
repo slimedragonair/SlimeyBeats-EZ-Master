@@ -70,6 +70,11 @@ def check_width(browser, base, width, args, result, source, replacement):
     try:
         page.goto(base, wait_until='networkidle')
         expect(page.locator('#engine-status')).to_have_text('RUST · LOCAL', timeout=30000)
+        # Hosted branch previews namespace storage after init scripts. Dismiss
+        # their fresh welcome through the real control instead of forcing a click.
+        if page.locator('#learning-dialog').is_visible():
+            page.locator('#tutorial-decline').click()
+        expect(page.locator('#learning-dialog')).not_to_be_visible()
         page.locator('#file').set_input_files(str(source))
         expect(page.locator('#master')).to_be_enabled(timeout=30000)
         page.locator('#master:visible, #mobile-master:visible').first.click()

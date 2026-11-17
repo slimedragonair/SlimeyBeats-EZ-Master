@@ -93,7 +93,7 @@ class CompanionPackageTests(unittest.TestCase):
     def test_readme_describes_current_tool_count_consent_and_private_cache_setup(self):
         result = self.package("Hotfix2")
         readme = (Path(result["folder"]) / "README.txt").read_text(encoding="utf-8")
-        for text in ["45 tools", "get_optional_tool_status", "prepare_optional_tool", "allow_download=true", "automatically prepare", "private user cache", "private recovery cache", "No AI model is bundled", "Package label: Hotfix2"]:
+        for text in ["55 tools", "get_optional_tool_status", "prepare_optional_tool", "allow_download=true", "automatically prepare", "private user cache", "private recovery cache", "No AI model is bundled", "Package label: Hotfix2"]:
             self.assertIn(text, readme)
         for text in ["prepare_support_report", "save_support_report", "owner_review_confirmed=true", "model provider", "before review or saving", "cannot retract client input", "This companion does not upload files or post issues"]:
             self.assertIn(text, readme)
@@ -107,6 +107,18 @@ class CompanionPackageTests(unittest.TestCase):
         with patch.object(package_companion, "copy_documentation",
                           lambda unused, target: copy_documentation(repository, target)):
             result = self.package("EQGuide")
+        folder = Path(result["folder"])
+        self.assertEqual((folder / guide).read_text(encoding="utf-8"), expected)
+        with zipfile.ZipFile(result["zip"]) as bundle:
+            self.assertEqual(bundle.read(folder.name + "/" + guide), (folder / guide).read_bytes())
+
+    def test_arrangement_integration_guide_ships_in_the_actual_companion_archive(self):
+        from release_packaging.documentation_payload import copy_documentation, offline_guide
+        repository = Path(__file__).resolve().parents[2]
+        guide = "docs/ARRANGEMENT_TRANSPORT.md"
+        expected = offline_guide((repository / guide).read_text(encoding="utf-8"))
+        with patch.object(package_companion, "copy_documentation", lambda unused, target: copy_documentation(repository, target)):
+            result = self.package("ArrangementGuide")
         folder = Path(result["folder"])
         self.assertEqual((folder / guide).read_text(encoding="utf-8"), expected)
         with zipfile.ZipFile(result["zip"]) as bundle:

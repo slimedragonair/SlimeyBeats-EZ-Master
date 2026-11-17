@@ -1,8 +1,9 @@
 import { serverEndpoint } from "./endpoint-policy.js";
 import { capabilities, snapshot } from "./protocol.js";
 import { ArtifactDownloadError, checkArtifactDownload, readArtifactDownload } from "./artifact-download.js";
-import { readBoundedJson, JsonResponseError, AUTHENTICATED_JSON_LIMIT_BYTES, PROJECT_JSON_LIMIT_BYTES } from "./bounded-json.js";
+import { readBoundedJson, readArrangementJson, JsonResponseError, AUTHENTICATED_JSON_LIMIT_BYTES, PROJECT_JSON_LIMIT_BYTES } from "./bounded-json.js";
 import { readMasterWav } from "./pcm-transfer.js";
+import { isRemoteMediaPath } from "./remote-media-policy.js";
 
 export class ServerClient {
     #token = "";
@@ -35,19 +36,32 @@ export class ServerClient {
     disconnect() { ++this.#epoch; this.cancelPending(); this.#token = ""; }
     get connectionRevision() { return this.#epoch; }
     replyMediaAccess(port, path) {
-        if (!/^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/(?:assets\/[A-Za-z0-9_-]{1,128}\/(?:preview|audio)|artifacts\/[A-Za-z0-9_-]{1,128})$/.test(path))
+        if (!isRemoteMediaPath(path))
             throw new Error("Invalid server media path.");
         port.postMessage({ path, endpoint: this.endpoint, token: this.#token });
     }
     remoteRequest(path, { method = "GET", body, binary = false, signal } = {}) {
         if (!/^\/v2\/(?:capabilities|projects(?:\/[A-Za-z0-9_/?=&.-]+)?)$/.test(path))
             throw new Error("Invalid server project path.");
+        return this.#remoteRequest(path, { method, body, binary, signal },
+            (response, signal) => readBoundedJson(response, { maxBytes: PROJECT_JSON_LIMIT_BYTES, signal }));
+    }
+    arrangementRequest(path, { method = "GET", body, signal, compact = false } = {}) {
+        if (!/^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/arrangement$/.test(path) || !["GET", "POST"].includes(method))
+            throw new Error("Invalid server arrangement path.");
+        return this.#remoteRequest(path, { method, body, signal }, compact
+            ? (response, signal) => readBoundedJson(response, { signal })
+            : (response, signal) => readArrangementJson(response, { signal }), 16 * 1024 * 1024);
+    }
+    #remoteRequest(path, { method, body, binary = false, signal }, read, bodyLimit = 0) {
         const options = { method, signal };
         if (body !== undefined) {
             options.body = binary ? body : JSON.stringify(body);
+            if (bodyLimit && new TextEncoder().encode(options.body).byteLength > bodyLimit)
+                throw new Error("Arrangement request exceeds the 16 MiB metadata budget.");
             options.headers = { "Content-Type": binary ? "application/octet-stream" : "application/json" };
         }
-        return this.#request(path, options, (response, signal) => readBoundedJson(response, { maxBytes: PROJECT_JSON_LIMIT_BYTES, signal })).catch(error => {
+        return this.#request(path, options, read).catch(error => {
             if (signal?.aborted) throw signal.reason;
             this.onRemoteFailure?.(error); throw error;
         });

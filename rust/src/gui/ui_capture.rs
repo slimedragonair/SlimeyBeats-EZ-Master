@@ -131,6 +131,9 @@ pub(super) struct CaptureState {
     pub playback_ready: bool,
     pub pending_stem_parts: usize,
     pub selected_stem_parts: usize,
+    pub arrangement_tracks: usize,
+    pub arrangement_clips: usize,
+    pub arrangement_effects: usize,
 }
 
 pub(super) struct UiCapture {

@@ -1,4 +1,10 @@
 pub mod arguments;
+pub mod arrangement_arguments;
+pub mod arrangement_commands;
+pub mod arrangement_help;
+pub mod arrangement_operations;
+pub mod arrangement_protocol;
+pub mod arrangement_state;
 pub mod artifact_files;
 pub mod audio_input;
 pub mod capabilities;

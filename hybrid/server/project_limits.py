@@ -20,6 +20,8 @@ OPERATIONS = ("import", "reference", "analyze", "master", "render", "issues", "r
 
 
 def validate_config(config):
+    if type(config.v2_arrangement_enabled) is not bool:
+        raise ValueError("Arrangement enablement must be an explicit boolean")
     bounds = {"v2_max_upload_bytes": 8 * 1024 * MIB, "v2_max_decoded_bytes": 4 * 1024 * MIB - 64,
               "v2_max_audio_seconds": 4 * 3600, "v2_max_project_disk_bytes": 128 * 1024 * MIB,
               "v2_retention_seconds": 3600, "v2_memory_bytes": 256 * 1024 * MIB,
@@ -73,6 +75,9 @@ def capabilities(config):
     available = config.studio_cli is not None and config.ffmpeg is not None
     separation = available and config.stem_python is not None
     return {"api_version": 2, "available": available,
+            "arrangement": {"available": config.v2_arrangement_enabled and config.studio_cli is not None,
+                            "metadata_commands": True, "playback": config.v2_arrangement_enabled and available, "max_resident_sessions": 1,
+                            "max_snapshot_bytes": 33 * MIB, "max_metadata_request_bytes": 16 * MIB},
             "operations": [op for op in OPERATIONS if op != "separate" or separation] if available else [],
             "formats": list(FORMATS), "input_formats": list(INPUT_FORMATS),
             "profiles": [{"id": key, "label": value} for key, value in PROFILES.items()],

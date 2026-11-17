@@ -150,6 +150,9 @@ class ProjectStore:
                 command.cancel.set()
                 if command.state == "queued":
                     command.state = "cancelled"
+            arrangement = project.arrangement
+        if arrangement is not None:
+            arrangement.close()
         if (command and (not command.done.wait(30) or command.unreaped)
                 or not project.downloads_done.wait(30) or not project.uploads_done.wait(30)):
             raise ApiError(503, "cleanup_pending")

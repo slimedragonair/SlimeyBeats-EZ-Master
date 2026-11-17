@@ -1,6 +1,6 @@
 use super::{
-    live_stem_path::LiveStemPath, playback_loop::FrameRange, playback_tap::PlaybackTap,
-    player::Controls,
+    live_arrangement_path::LiveArrangementPath, live_stem_path::LiveStemPath,
+    playback_loop::FrameRange, playback_tap::PlaybackTap, player::Controls,
 };
 use crate::{
     audio::Audio,
@@ -27,6 +27,7 @@ pub(super) struct ABSource {
     pub tap: Arc<PlaybackTap>,
     pub live: Option<LivePath>,
     pub stems: Option<LiveStemPath>,
+    pub arrangement: Option<LiveArrangementPath>,
     pub cursor: usize,
     pub blend: f32,
     pub gain: f32,
@@ -66,7 +67,12 @@ impl ABSource {
     fn prime_frame(&mut self, position: usize, read_updates: bool) {
         self.tap.clear();
         self.cached_frame = None;
-        if let Some(live) = &mut self.live {
+        if let Some(arrangement) = &mut self.arrangement {
+            if position != arrangement.processor.position() as usize {
+                arrangement.request_seek(position as u64);
+            }
+            self.cursor = position * self.channels;
+        } else if let Some(live) = &mut self.live {
             let parameters = live.processor.parameters();
             live.processor.reset(parameters);
             let end = position + live.processor.delay();
@@ -103,7 +109,10 @@ impl ABSource {
         // receive live edits without polling the stem mailbox on every wrap.
         let poll_controls = self.control_frames.is_multiple_of(64);
         self.control_frames = self.control_frames.wrapping_add(1);
-        let delay = if let Some(live) = &mut self.live {
+        let delay = if let Some(arrangement) = &mut self.arrangement {
+            self.frame_b = arrangement.next(index as u64);
+            0
+        } else if let Some(live) = &mut self.live {
             let mut latest = None;
             if poll_controls {
                 while let Ok(parameters) = live.updates.try_recv() {
@@ -143,7 +152,13 @@ impl ABSource {
                 .unwrap_or_else(|| frame(&self.before, index));
             0
         };
-        self.frame_a = if index >= delay {
+        self.frame_a = if self
+            .arrangement
+            .as_ref()
+            .is_some_and(|path| index as u64 >= path.duration_frames())
+        {
+            [0.; 2]
+        } else if index >= delay {
             frame(&self.before, index - delay)
         } else {
             [0.; 2]
@@ -163,8 +178,20 @@ impl Iterator for ABSource {
         if self.cursor.is_multiple_of(self.channels) {
             let seek = self.controls.seek.swap(u64::MAX, Ordering::Relaxed);
             if seek != u64::MAX {
-                self.prime((seek as usize).min(self.before.frames()));
+                let frames = self
+                    .arrangement
+                    .as_ref()
+                    .map_or(self.before.frames() as u64, |path| path.duration_frames());
+                self.prime(seek.min(frames) as usize);
                 self.gain = 0.;
+            }
+            if let Some(arrangement) = &mut self.arrangement
+                && let Some(position) =
+                    arrangement.maintenance((self.cursor / self.channels) as u64)
+            {
+                self.cursor = position as usize * self.channels;
+                self.cached_frame = None;
+                self.controls.position.store(position, Ordering::Relaxed);
             }
             if let Some(range) = self.controls.audition_loop.try_range() {
                 self.loop_range = range;
@@ -183,7 +210,11 @@ impl Iterator for ABSource {
         let index = self.cursor / self.channels;
         let channel = self.cursor % self.channels;
         let delay = self.latency_frames();
-        let end = index >= self.before.frames() + delay;
+        let frames = self
+            .arrangement
+            .as_ref()
+            .map_or(self.before.frames(), |path| path.duration_frames() as usize);
+        let end = index >= frames + delay;
         if end {
             self.controls.playing.store(false, Ordering::Relaxed);
         }
@@ -219,20 +250,26 @@ impl Iterator for ABSource {
         let a = self.frame_a[channel] as f32 * self.gain_a;
         let b = self.frame_b[channel] as f32 * self.gain_b;
         let output = ((1. - self.blend) * a + self.blend * b) * self.gain;
-        if playing || self.gain > 1e-6 || !self.cursor.is_multiple_of(self.channels) {
+        let seeking = self.arrangement.as_ref().is_some_and(|path| path.seeking());
+        if (!seeking && (playing || self.gain > 1e-6)) || !self.cursor.is_multiple_of(self.channels)
+        {
             self.cursor = self.cursor.saturating_add(1);
             if self.cursor.is_multiple_of(self.channels) {
-                self.controls.position.store(
-                    (self.cursor / self.channels).saturating_sub(delay) as u64,
-                    Ordering::Relaxed,
-                );
+                let position = (self.cursor / self.channels).saturating_sub(delay) as u64;
+                let position = self
+                    .arrangement
+                    .as_ref()
+                    .map_or(position, |path| position.min(path.duration_frames()));
+                self.controls.position.store(position, Ordering::Relaxed);
             }
         }
-        Some(if self.controls.audible.load(Ordering::Relaxed) {
-            output.clamp(-1., 1.)
-        } else {
-            0.
-        })
+        Some(
+            if !seeking && self.controls.audible.load(Ordering::Relaxed) {
+                output.clamp(-1., 1.)
+            } else {
+                0.
+            },
+        )
     }
 }
 impl Source for ABSource {
@@ -289,6 +326,7 @@ mod tests {
                 updates: rx,
             }),
             stems: None,
+            arrangement: None,
             cursor: 0,
             blend: 1.,
             gain: 1.,

@@ -48,7 +48,8 @@ class Service:
             self.sweeper.join(timeout=35)
         self.http.server_close()
         if (self.worker.is_alive() or any(job.unreaped for job in self.store.jobs.values())
-                or any(project.command and project.command.unreaped for project in self.store.projects.projects.values())):
+                or any(project.command and project.command.unreaped for project in self.store.projects.projects.values())
+                or any(project.arrangement and any(job.unreaped for job in project.arrangement.jobs.values()) for project in self.store.projects.projects.values())):
             raise ProcessingError("Owned worker is still stopping; storage remains locked")
         try:
             for job_id in list(self.store.jobs):

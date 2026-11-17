@@ -107,8 +107,11 @@ pub(super) fn start(root: PathBuf, ctx: egui::Context) -> std::io::Result<Worker
                                         backup.finish(&cancelled)?;
                                     }
                                     let saved = recovery_store::load(&root, &key, &cancelled)?;
-                                    let prepared =
-                                        recovery_restore::prepare(saved.payload, saved.audio)?;
+                                    let prepared = recovery_restore::prepare_cancellable(
+                                        saved.payload,
+                                        saved.audio,
+                                        &cancelled,
+                                    )?;
                                     anyhow::ensure!(!cancelled(), "Cancelled");
                                     Outcome::Restored(Box::new(prepared))
                                 }

@@ -1,10 +1,14 @@
 // Media addresses contain only opaque resource IDs. Credentials are requested
 // from the controlling tab for each fetch and never put in URLs or storage.
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
+export function isRemoteMediaPath(path) {
+    return typeof path === "string" && /^\/v2\/projects\/[A-Za-z0-9_-]{1,128}\/(?:assets\/[A-Za-z0-9_-]{1,128}\/(?:preview|audio)|artifacts\/[A-Za-z0-9_-]{1,128}|arrangement\/streams\/[A-Za-z0-9_-]{1,128})$/.test(path);
+}
 export function remoteMediaPath(project, id, kind = "preview") {
-    if (!ID.test(project) || !ID.test(id) || !["preview", "audio", "artifact"].includes(kind))
+    if (!ID.test(project) || !ID.test(id) || !["preview", "audio", "artifact", "arrangement"].includes(kind))
         throw new Error("Invalid server media identity.");
-    return kind === "artifact" ? `/v2/projects/${project}/artifacts/${id}`
+    return kind === "arrangement" ? `/v2/projects/${project}/arrangement/streams/${id}`
+        : kind === "artifact" ? `/v2/projects/${project}/artifacts/${id}`
         : `/v2/projects/${project}/assets/${id}/${kind}`;
 }
 export function parseMediaUrl(url, scope) {

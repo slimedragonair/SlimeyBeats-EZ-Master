@@ -78,6 +78,7 @@ class Config:
     expected_host: str | None = None
     trust_relay_client_ip: bool = False
     studio_cli: Path | None = None
+    v2_arrangement_enabled: bool = False
     stem_python: Path | None = None
     stem_models: Path | None = None
     v2_max_upload_bytes: int = 2 * 1024 * MIB
@@ -159,6 +160,7 @@ def from_arguments(argv=None):
     parser.add_argument("--cli", type=Path, required=True)
     parser.add_argument("--ffmpeg", type=Path)
     parser.add_argument("--studio-cli", type=Path)
+    parser.add_argument("--enable-arrangement", dest="v2_arrangement_enabled", action="store_true")
     parser.add_argument("--stem-python", type=Path)
     parser.add_argument("--stem-models", type=Path)
     for name in ("v2-max-upload-bytes", "v2-max-decoded-bytes", "v2-max-audio-seconds",

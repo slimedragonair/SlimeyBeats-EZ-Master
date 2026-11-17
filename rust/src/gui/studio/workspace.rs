@@ -13,7 +13,11 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
     }
     let mut promote = false;
     let compact = ui.available_height() < 800.;
-    transport::dock(studio, ui, compact);
+    if studio.page == Page::Tracks {
+        super::arrangement_transport::dock(studio, ui);
+    } else {
+        transport::dock(studio, ui, compact);
+    }
     if !compact {
         ui.horizontal_wrapped(|ui| {
             if studio.busy() {
@@ -32,6 +36,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
     }
     let tabs = |studio: &mut Studio, ui: &mut egui::Ui| {
         for (page, name) in [
+            (Page::Tracks, "Tracks"),
             (Page::Stems, if compact { "Stems" } else { "Stem Studio" }),
             (Page::Voice, if compact { "Voice" } else { "Voice cleanup" }),
             (
@@ -64,6 +69,9 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
         }
     };
     let history = |studio: &mut Studio, ui: &mut egui::Ui| -> bool {
+        if studio.page == Page::Tracks {
+            return false;
+        }
         if ui
             .add_enabled(
                 !studio.busy() && !studio.undo.is_empty(),
@@ -137,6 +145,9 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             analysis.metrics.integrated_lufs, analysis.metrics.true_peak_dbtp, analysis.sample_rate
         ));
     }
+    if studio.page == Page::Tracks {
+        return super::arrangement_workspace::show(studio, ui, ctx);
+    }
     if studio.page == Page::Stems && studio.bank.is_some() && studio.bulk_import.is_none() {
         super::editor_toolbar::show(studio, ui);
         if studio.editor.timeline {
@@ -147,6 +158,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
     let workspace_height = ui.available_height().max(0.);
     egui::ScrollArea::vertical().id_salt(("studio-workspace", studio.page, super::doctor_controls::active(studio))).max_height(workspace_height).show(ui,|ui| {
         match studio.page {
+            Page::Tracks => {},
             Page::Stems=>{
                 if studio.bulk_import.is_some() {
                     ui.label(theme::display("Review your stem set.",if compact {20.} else {24.}));

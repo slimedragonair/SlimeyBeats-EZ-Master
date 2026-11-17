@@ -1,6 +1,8 @@
+#[cfg(not(target_arch = "wasm32"))]
 use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+#[cfg(not(target_arch = "wasm32"))]
 use std::{fs::File, io::Read, path::Path};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -11,6 +13,16 @@ pub struct SourceIdentity {
 }
 
 impl SourceIdentity {
+    pub fn for_bytes(bytes: &[u8]) -> Self {
+        Self {
+            bytes: bytes.len() as u64,
+            sha256: Sha256::digest(bytes)
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect(),
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn read(path: &Path, cancel: &dyn Fn() -> bool) -> Result<Self> {
         let mut file = File::open(path)?;
         ensure!(file.metadata()?.is_file(), "Choose an ordinary audio file");
@@ -34,6 +46,7 @@ impl SourceIdentity {
         Ok(Self { bytes, sha256 })
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn verify(&self, path: &Path) -> Result<()> {
         ensure!(
             self.sha256.len() == 64 && self.sha256.bytes().all(|b| b.is_ascii_hexdigit()),

@@ -103,6 +103,7 @@ impl Companion {
             support_reports: Arc::default(),
             tool_router: Self::tool_router()
                 + Self::studio_router()
+                + Self::arrangement_router()
                 + Self::plugin_router()
                 + Self::stem_router()
                 + Self::region_edit_router()

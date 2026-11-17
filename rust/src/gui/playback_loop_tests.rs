@@ -56,6 +56,7 @@ fn fixture(channels: usize, frames: usize) -> (Player, ABSource) {
         tap: Arc::new(PlaybackTap::default()),
         live: None,
         stems: None,
+        arrangement: None,
         cursor: 0,
         blend: 1.,
         gain: 1.,

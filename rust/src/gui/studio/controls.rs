@@ -12,6 +12,10 @@ pub fn show(
     ctx: &egui::Context,
     advanced: bool,
 ) {
+    if studio.page == Page::Tracks {
+        super::arrangement_workspace::sidebar(studio, ui, ctx, advanced);
+        return;
+    }
     super::preview_actions::dock(studio, ui, ctx);
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().button_padding.x = 5.;
@@ -36,6 +40,7 @@ pub fn show(
         if !stem_editor { ui.separator(); }
         let available = !studio.busy();
         ui.add_enabled_ui(available, |ui| match studio.page {
+            Page::Tracks => {},
             Page::Stems => {
                 if studio.bank.is_some() && studio.bulk_import.is_none() {
                     super::editor_controls::show(studio, ui, ctx, advanced);

@@ -18,6 +18,7 @@ use std::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {
+    Tracks,
     Stems,
     Voice,
     Repair,
@@ -56,6 +57,7 @@ pub struct Revision {
 }
 
 pub struct Studio {
+    pub(super) arrangement: super::arrangement_runtime::NativeArrangement,
     pub(super) doctor: super::doctor_state::Doctor,
     pub(super) editor: super::editor_state::EditorState,
     pub(super) editor_waveforms: super::editor_timeline::Waveforms,
@@ -111,6 +113,7 @@ impl Studio {
             .err()
             .map(|e| format!("Cannot create a private Studio cache: {e}"));
         Self {
+            arrangement: Default::default(),
             doctor: Default::default(),
             editor: Default::default(),
             editor_waveforms: Default::default(),
@@ -123,7 +126,7 @@ impl Studio {
             plugin_values: vec![],
             auto_action: None,
             analysis: None,
-            page: Page::Stems,
+            page: Page::Tracks,
             target: Target::Source,
             source: None,
             bank: None,
@@ -204,11 +207,21 @@ impl Studio {
         }
     }
     pub(super) fn editing_target(&self) -> anyhow::Result<Arc<Audio>> {
+        self.require_current_timeline()?;
         anyhow::ensure!(
             !self.mix_dirty,
             "Update mix preview to apply pending fader changes before preparing another edit"
         );
         self.audio_target()
+    }
+    pub(super) fn require_current_timeline(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !self
+                .arrangement
+                .snapshot_is_stale(self.source.as_ref().map(|source| &source.audio)),
+            "The timeline changed. Open Tracks and choose Use mix in tools to prepare its current revision first."
+        );
+        Ok(())
     }
     pub fn poll(&mut self, ctx: &egui::Context) {
         self.sync_doctor_input();
@@ -221,6 +234,7 @@ impl Studio {
                 Event::Done(id, result) if self.jobs.active == Some(id) => {
                     self.jobs.active = None;
                     match result {
+                        Ok(Change::Arrangement(change)) => self.accept_arrangement(*change, ctx),
                         Ok(Change::Doctor(result)) => self.accept_doctor_result(*result),
                         Err(error) => {
                             self.reveal_spectrogram = false;

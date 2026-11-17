@@ -1,3 +1,26 @@
+mod arrangement_actions;
+mod arrangement_clip_controls;
+mod arrangement_eq_controls;
+mod arrangement_eq_curve;
+mod arrangement_eq_effects;
+mod arrangement_eq_targets;
+mod arrangement_events;
+mod arrangement_fields;
+mod arrangement_gestures;
+mod arrangement_inspector;
+#[cfg(test)]
+mod arrangement_interaction_tests;
+mod arrangement_lane_controls;
+mod arrangement_loading;
+mod arrangement_runtime;
+mod arrangement_state;
+#[cfg(test)]
+mod arrangement_state_tests;
+mod arrangement_timeline;
+mod arrangement_toolbar;
+mod arrangement_transport;
+mod arrangement_waveforms;
+mod arrangement_workspace;
 pub mod controls;
 pub(super) mod doctor_capture;
 mod doctor_controls;
@@ -24,6 +47,7 @@ mod pending_mix_tests;
 mod plugin_controls;
 mod projects;
 mod recovery;
+pub(in crate::gui) use recovery::PreparedArrangement;
 mod spectral_view;
 pub mod state;
 mod stem_bulk_import;
