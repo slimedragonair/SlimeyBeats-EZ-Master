@@ -30,11 +30,13 @@ def validate_config(config):
               "v2_max_audio_seconds": 4 * 3600, "v2_max_project_disk_bytes": 128 * 1024 * MIB,
               "v2_retention_seconds": 3600, "v2_memory_bytes": 256 * 1024 * MIB,
               "v2_cpu_seconds": 86400, "v2_worker_timeout_seconds": 14400,
-              "v2_decode_timeout_seconds": 3600, "v2_threads": 32}
+              "v2_decode_timeout_seconds": 3600, "v2_threads": 32, "v2_arrangement_sessions": 16}
     for name, maximum in bounds.items():
         value = getattr(config, name)
         if type(value) is not int or not 1 <= value <= maximum:
             raise ValueError(f"{name} is outside its operator bounds")
+    if config.v2_memory_bytes // config.v2_arrangement_sessions < 256 * MIB:
+        raise ValueError("Each resident arrangement requires at least 256 MiB memory budget")
     if config.v2_max_upload_bytes > config.v2_max_project_disk_bytes:
         raise ValueError("Project storage must cover an upload")
     if type(config.v2_preview_kbps) is not int or not 96 <= config.v2_preview_kbps <= 320:
@@ -75,12 +77,24 @@ def processing_config(config):
     return view
 
 
+def arrangement_config(config):
+    """Partition the existing resident budget, never multiply it by slot count."""
+    view = processing_config(config)
+    slots = config.v2_arrangement_sessions
+    view.memory_bytes = config.v2_memory_bytes // slots
+    view.max_bank_pcm_bytes = min(MAX_BANK_PCM_BYTES // slots, view.memory_bytes // 4)
+    view.max_decoded_bytes = min(view.max_decoded_bytes, view.max_bank_pcm_bytes)
+    view.worker_threads = max(1, config.v2_threads // slots)
+    return view
+
+
 def capabilities(config):
     available = config.studio_cli is not None and config.ffmpeg is not None
     separation = available and config.stem_python is not None
     return {"api_version": 2, "available": available,
             "arrangement": {"available": config.v2_arrangement_enabled and config.studio_cli is not None,
-                            "metadata_commands": True, "playback": config.v2_arrangement_enabled and available, "max_resident_sessions": 1,
+                            "metadata_commands": True, "playback": config.v2_arrangement_enabled and available, "max_resident_sessions": config.v2_arrangement_sessions,
+                            "max_bank_pcm_bytes_per_session": arrangement_config(config).max_bank_pcm_bytes,
                             "import_zip": config.v2_arrangement_enabled and config.studio_cli is not None,
                             "archive_admission_uses_heavy_quota": False,
                             "preview_containers": list(PREVIEW_CONTAINERS) if config.v2_arrangement_enabled and available else [],

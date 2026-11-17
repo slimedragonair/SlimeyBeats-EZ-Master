@@ -1,4 +1,4 @@
-const BLOCK = 2048, QUEUE = 3;
+import { ARRANGEMENT_BLOCK_FRAMES as BLOCK, arrangementQueueBlocks } from "./audio/arrangement-buffer.js";
 
 // A persistent transport facade. The normal worker owns every DSP operation;
 // the worklet only drains bounded, transferable PCM blocks.
@@ -8,6 +8,7 @@ export function createArrangementPreview(client, { beforePlay = () => {}, onErro
     let clockTime = 0, clockFrame = 0, volume = 0.7, ready;
     const listeners = new Set(), recycled = [];
     const limit = () => info?.frames ?? 0;
+    const queueLimit = () => arrangementQueueBlocks(layout.sample_rate);
     const error = value => { playing = false; node?.port.postMessage({ kind: "run", generation, running: false }); emit(value); onError(value); };
     function positionFrame() {
         if (!playing || !context) return frame;
@@ -30,7 +31,7 @@ export function createArrangementPreview(client, { beforePlay = () => {}, onErro
                 throw new Error("This device cannot play the project sample rate. Conform the project explicitly before playback.");
             }
             await context.audioWorklet.addModule(new URL("./audio/arrangement-sink.js", import.meta.url));
-            node = new AudioWorkletNode(context, "arrangement-sink", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [layout.channels] });
+            node = new AudioWorkletNode(context, "arrangement-sink", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [layout.channels], processorOptions: { queueBlocks: queueLimit() } });
             gain = context.createGain(); gain.gain.value = volume;
             node.connect(gain); gain.connect(context.destination);
             node.port.onmessage = ({ data: m }) => {
@@ -54,10 +55,10 @@ export function createArrangementPreview(client, { beforePlay = () => {}, onErro
         node?.port.postMessage({ kind: "reset", generation, frame });
     }
     async function pump() {
-        if (pumping) { await pumping; if (queued < QUEUE && !exhausted && playing) return pump(); return; }
+        if (pumping) { await pumping; if (queued < queueLimit() && !exhausted && playing) return pump(); return; }
         const token = generation;
         const work = (async () => {
-            while (!disposed && token === generation && queued < QUEUE && !exhausted) {
+            while (!disposed && token === generation && queued < queueLimit() && !exhausted) {
                 const buffer = recycled.pop();
                 const block = await client.request("render-block", { buffer }, { transfer: buffer ? [buffer] : [] });
                 if (token !== generation || disposed) { recycled.push(block.buffer); return; }
@@ -91,6 +92,7 @@ export function createArrangementPreview(client, { beforePlay = () => {}, onErro
         get identity() { return snapshot?.preview.identity; },
         get before_identity() { return snapshot ? `${snapshot.epoch}:${snapshot.revision}:before` : null; },
         get after_identity() { return snapshot?.preview.identity; },
+        get max_buffered_frames() { return layout ? queueLimit() * BLOCK : 0; },
         get sample_rate() { return layout?.sample_rate; }, get channels() { return layout?.channels; },
         get duration_frames() { return snapshot?.preview.frames || 0; },
         get side_duration_frames() { return limit(); },

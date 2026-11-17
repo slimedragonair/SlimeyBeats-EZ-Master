@@ -72,8 +72,17 @@ running state; paused selection remains paused. Stop invalidates late resumes.
 Fast faders and fixed-scope existing EQ update the running shared player without
 seeking or rendering a song. Structural changes use bounded worker preparation,
 with at most 1.5 seconds of filter warmup, an approximation of older IIR history.
-Explicit offline exports replay the core renderer. The sink holds at most three
-2048-frame blocks and only copies PCM into audio outputs. Context/project rates
+Explicit offline exports replay the core renderer. The sink uses rate-aware scheduling headroom of approximately 320 ms, rounded
+up to whole 2048-frame blocks (minimum three, hard maximum 32). At 48 kHz this
+is eight blocks, 341 ms, and 128 KiB of stereo PCM; at all rates the queue is
+capped at 512 KiB of stereo PCM. This bounds memory while tolerating ordinary
+worker/main-thread scheduling stalls. Live DSP edits can take up to that queued
+audio duration to become audible; it is a listening-preview latency tradeoff,
+not a change to saved PCM. Stop/seek discard queued audio immediately. The
+worklet only copies PCM and reports underrun counters without skipping source
+frames or hiding missing output. Qualification waits a fixed documented queue
+drain interval before measuring settled gain; deterministic tests separately
+assert the live-edit latency bound and a 250 ms delayed-producer regression. Context/project rates
 must match. Unsupported AudioWorklet environments do not advertise playback.
 
 Loose WAV/MP3 and safe stored/deflated WAV/MP3 ZIPs support one or more independent

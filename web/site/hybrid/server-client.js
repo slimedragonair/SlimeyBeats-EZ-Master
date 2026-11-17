@@ -1,3 +1,4 @@
+import { traceFetch } from "../session-trace.js";
 import { serverEndpoint } from "./endpoint-policy.js";
 import { capabilities, snapshot } from "./protocol.js";
 import { ArtifactDownloadError, checkArtifactDownload, readArtifactDownload } from "./artifact-download.js";
@@ -11,7 +12,7 @@ export class ServerClient {
     #epoch = 0;
     #fetch;
     constructor({ fetchImpl = globalThis.fetch.bind(globalThis), pageUrl = globalThis.location?.href } = {}) {
-        this.#fetch = fetchImpl;
+        this.#fetch = traceFetch(fetchImpl);
         this.pageUrl = pageUrl;
         this.endpoint = "";
     }
@@ -84,19 +85,28 @@ export class ServerClient {
                 signal: controller.signal, credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer",
             });
             if (!response.ok) {
-                if (response.status === 429) {
+                if (response.status === 429 || response.status === 503) {
                     let value;
                     try { value = await readBoundedJson(response, { signal: controller.signal }); } catch { /* Keep the generic bounded failure below. */ }
                     const limits = {
+                        maintenance_draining: "The server is preparing for maintenance and is temporarily not accepting new sessions or projects. Existing work is preserved. Please try again later.",
+                        arrangement_capacity: "All server arrangement slots are occupied by retained sessions. Your local work is preserved. Wait for a slot, or save your work before deleting your own server project. Refreshing or switching Server Off does not release retained sessions.",
+                        project_capacity: "The server has reached its retained-project capacity. Your local work is preserved. Wait for a slot, or save your work before deleting your own server project.",
                         guest_job_limit: "This guest session has used its processing allowance. Current work is kept in this tab, but the session cannot start another processing job.",
                         guest_job_ip_limit: "This connection has reached the server's hourly processing allowance. Current work is kept; retry after the reported limit resets.",
                         public_job_limit: "The public server has reached its hourly processing allowance. Current work is kept; retry after the reported limit resets.",
                         guest_admission_limit: "This guest session has used its track-admission allowance. Existing tracks and edits are kept.",
                     };
                     const code = value?.error === "Guest job rate limit reached" ? "guest_job_limit" : value?.error;
-                    if (Object.hasOwn(limits, code)) {
+                    if (Object.hasOwn(limits, code) && (response.status === 429 || code === "maintenance_draining")) {
                         const error = new Error(limits[code]);
-                        error.status = 429; error.code = code; error.serverQuota = true; throw error;
+                        error.status = response.status; error.code = code; error.serverQuota = response.status === 429; error.serverMaintenance = code === "maintenance_draining";
+                        const retry = response.headers.get("Retry-After");
+                        if (/^\d{1,8}$/.test(retry ?? "")) {
+                            error.retryAfterSeconds = Math.min(86400, Number(retry));
+                            error.message += ` Retry in about ${error.retryAfterSeconds} seconds; availability is not guaranteed.`;
+                        }
+                        throw error;
                     }
                 }
                 const hint = response.status === 401 || response.status === 403 ? " Check your token." :
@@ -111,7 +121,7 @@ export class ServerClient {
         } catch (error) {
             if (controller.signal.aborted) throw new Error("Request stopped or timed out. Server work or deletion may not have stopped; check the job before retrying.");
             // Never reflect an exception/response body that could echo a token.
-            if (error.serverQuota || error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
+            if (error.serverQuota || error.serverMaintenance || error instanceof ArtifactDownloadError || error instanceof JsonResponseError || /^Server request failed \(HTTP \d+\)\./.test(error.message)) throw error;
             throw new Error("The server could not be reached or its response could not be read. Check network, server CORS and the site's connection policy, then retry.");
         } finally { clearTimeout(timeout); external?.removeEventListener("abort", stop); this.#requests.delete(controller); }
     }

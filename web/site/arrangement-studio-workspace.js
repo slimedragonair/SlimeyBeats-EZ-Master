@@ -1,3 +1,4 @@
+import { sessionTrace } from "./session-trace.js";
 import { createArrangementStudioPane } from "./arrangement-studio-pane.js";
 import { serverProcessing } from "./hybrid/main-controls.js";
 import { time } from "./view.js";
@@ -9,6 +10,8 @@ export const ARRANGEMENT_SERVER_UI_ENABLED = true;
 // Server On selects the destination of the existing Arrange tracks action.
 // Each engine retains its own document; switching never uploads local assets.
 export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback, pauseMain, legacyBusy, notice, changed }) {
+    const displayNotice = notice;
+    notice = (text, error) => { sessionTrace.message(text, error); displayNotice(text, error); };
     const $ = name => document.getElementById(`s-${name}`), panes = new Map();
     let selected = false, mode = "local", active = false, selecting = false, generation = 0;
     let requested = serverProcessing.enabled ? "server" : "local";
@@ -109,6 +112,7 @@ export function createArrangementStudioWorkspace({ createAdapter, legacyPlayback
         for (const [name, value] of [["arrange-entry", selected && mode === requestedMode], ["legacy-entry", !selected]]) {
             $(name).classList.toggle("selected", value); $(name).setAttribute("aria-pressed", String(value));
         }
+        $("legacy-source-actions").hidden = selected;
         $("legacy-workspace").hidden = selected;
         $("arrangement-page").hidden = !selected || mode !== "local";
         $("arrangement-server-page").hidden = !selected || mode !== "server";

@@ -63,10 +63,30 @@ class JobStore:
         self.queue = deque()
         self.idempotency = {}
         self.stopping = False
+        self.draining = False
         self.arrangement_active = None
         self.sessions = GuestRegistry(config)
         from .project_store import ProjectStore
         self.projects = ProjectStore(self)
+
+    def maintenance(self, enabled=None):
+        # Shares the admission lock: once enabled returns, no previously checked
+        # create can slip through later. Existing work is deliberately untouched.
+        with self.lock:
+            if enabled is not None:
+                self.draining = enabled
+            return {"draining": self.draining, "retained_jobs": len(self.jobs),
+                    "retained_projects": len(self.projects.projects)}
+
+    def check_admission(self):
+        # Caller holds self.lock through admission and reservation.
+        if self.draining:
+            raise ApiError(503, "maintenance_draining", retry_after=60)
+
+    def mint_guest(self, key):
+        with self.lock:
+            self.check_admission()
+            return self.sessions.mint(key)
 
     def retained(self):
         return [*self.jobs.values(), *self.projects.projects.values()]
@@ -101,6 +121,7 @@ class JobStore:
                 if fingerprint != previous_fingerprint:
                     raise ApiError(409, "Idempotency-Key was used for different job fields")
                 return self._get(previous_id, principal).snapshot()
+            self.check_admission()
             now = time.monotonic()
             if not principal.is_owner:
                 retained = [job for job in self.retained() if job.principal_id == principal.id]

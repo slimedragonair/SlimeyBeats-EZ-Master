@@ -1,8 +1,11 @@
+import { traceAdapter, sessionTrace } from "./session-trace.js";
 import { createArrangementTimeline } from "./arrangement-timeline-controller.js";
 
 // One engine owns one document, draft inspector and source transport. Hiding a
 // pane pauses audition while preserving its immutable assets and Undo history.
 export function createArrangementStudioPane({ mode, host, createAdapter, volume, pauseMain, changed, notice, isEditable = () => true }) {
+    const displayNotice = notice;
+    notice = (text, error) => { sessionTrace.message(text, error); displayNotice(text, error); };
     let adapter, controller, source, unsubscribe, opening, latest, lastNotice = "";
     function install(next) {
         if (source === next) return;
@@ -17,9 +20,9 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
             if (controller?.ready()) return true;
             if (opening) return opening;
             opening = (async () => {
-                adapter = createAdapter({ mode, beforePlay: pauseMain,
+                adapter = traceAdapter(createAdapter({ mode, beforePlay: pauseMain,
                     onChange: () => { if (controller) void controller.refresh(); },
-                    onError: error => notice(error.message || String(error), true) });
+                    onError: error => notice(error.message || String(error), true) }), mode);
                 latest = await adapter.read();
                 if (!latest.capabilities?.playback) throw new Error(latest.capabilities?.playback_unavailable_reason || `${mode === "server" ? "Server" : "Local"} arrangement playback is unavailable.`);
                 const bands = latest.defaults?.bands;
@@ -38,6 +41,10 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
                 controller?.dispose(); controller = null; unsubscribe?.(); unsubscribe = null;
                 adapter?.clear?.(); adapter = null; source = null; throw error;
             }).finally(() => { opening = null; changed(); });
+            // Lock the whole opening interval, including the first adapter read.
+            // Otherwise legacy export buttons appear enabled until controller
+            // creation, then become disabled between pointerdown and click.
+            changed();
             return opening;
         },
         state: () => controller?.state() || latest,
@@ -59,7 +66,7 @@ export function createArrangementStudioPane({ mode, host, createAdapter, volume,
         source: () => source,
         importFiles: files => controller?.importFiles(files),
         get ready() { return !!controller?.ready(); },
-        get busy() { return !!controller?.state().job_busy; },
+        get busy() { return !!opening || !!controller?.state().job_busy; },
         get loaded() { return !!latest?.arrangement?.lanes.some(lane => lane.clips.length); },
         dispose() { unsubscribe?.(); controller?.dispose(); adapter?.clear?.(); },
     };
