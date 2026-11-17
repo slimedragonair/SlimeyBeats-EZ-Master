@@ -15,13 +15,14 @@ def stream(handler, store, project_id, stream_id, principal):
             project.downloads += 1
             project.downloads_done.clear()
     try:
+        mime = selected.descriptor.get('preview_mime', 'audio/mpeg').split(';', 1)[0]
         if selected.descriptor['start_frame'] >= selected.descriptor['side_duration_frames']:
-            handler.headers_for(200, 0, 'audio/mpeg', extra_headers={'Accept-Ranges': 'none'})
+            handler.headers_for(200, 0, mime, extra_headers={'Accept-Ranges': 'none'})
             return
         source = selected.start()
         # Close-delimited HTTP streams need no guessed Content-Length or false
         # byte-range mapping. Seeking prepares a new source-frame stream.
-        handler.headers_for(200, None, 'audio/mpeg', extra_headers={'Accept-Ranges': 'none'})
+        handler.headers_for(200, None, mime, extra_headers={'Accept-Ranges': 'none'})
         while not selected.cancel.is_set():
             block = source.read1(8192)
             if not block:

@@ -62,6 +62,13 @@ impl Workspace {
     }
     pub fn execute(&mut self, command: Command) -> Result<Value> {
         match command {
+            Command::InspectArchive { file } => self.inspect_archive(&file),
+            Command::ExtractArchive {
+                file,
+                files,
+                output_id,
+                max_total_bytes,
+            } => self.extract_archive(&file, &files, &output_id, max_total_bytes),
             Command::Create {
                 sample_rate,
                 channels,

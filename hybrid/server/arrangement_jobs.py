@@ -10,6 +10,7 @@ from .client_identity import client_key
 from .errors import ApiError
 from .project_requests import identifier
 from .studio_driver import safe_file
+from .arrangement_archives import checked_upload, selection, MAX_PENDING_REVIEWS, extraction_budget
 
 
 def selected(store, project_id, principal):
@@ -33,21 +34,37 @@ def submit(store, project_id, value, principal, client_identity=None):
         prune_terminal_jobs(state)
         if len(state.jobs) >= MAX_JOB_RECORDS:
             raise ApiError(429, 'arrangement_job_history_limit')
-        upload_path = None
+        upload_path, review = None, None
         if request['operation'] == 'open_project':
             upload = project.uploads.get(request['upload_id'])
             if upload is None or upload.role != 'arrangement_project' or upload.uploaded_bytes != upload.total_bytes:
                 raise ApiError(409, 'arrangement_project_upload_incomplete')
             upload_path = safe_file(upload.path, project.directory)
             request.update(new_epoch=secrets.token_hex(16), cache_id=secrets.token_hex(16))
+        elif request['operation'] == 'review_archive':
+            upload_path = checked_upload(project, request['upload_id'])
+            if len(state.reviews) >= MAX_PENDING_REVIEWS:
+                raise ApiError(429, 'arrangement_import_review_limit')
+            if any(item.upload_id == request['upload_id'] for item in state.reviews.values()):
+                raise ApiError(409, 'arrangement_archive_already_reviewed')
+        elif request['operation'] == 'commit_import':
+            review, request['selected_files'] = selection(state, request)
+            upload_path = checked_upload(project, review.upload_id)
+            # Reserve the job directory, transfer manifest and extraction
+            # directory as well as one immutable file per selected source.
+            extraction_budget(project, [item['file'] for item in request['selected_files']], extra_entries=3)
         if not principal.is_owner:
             if client_identity is None:
                 raise ApiError(400, 'guest_client_identity_required')
-            store.jobs.sessions.start_job(principal, client_identity)
+            if request['operation'] in ('review_archive', 'commit_import'):
+                store.jobs.sessions.start_command(principal, client_identity, coded=True)
+            else:
+                store.jobs.sessions.start_job(principal, client_identity, coded=True)
         job_id = secrets.token_hex(16)
         job = ArrangementJob(job_id, request['operation'], state.snapshot['epoch'], state.snapshot['revision'],
                              project.directory / ('arrangement-job-' + job_id), request, deepcopy(state.snapshot))
         job.upload_path = upload_path
+        job.review = review
         state.jobs[job_id] = state.active_job = job
         store.jobs.arrangement_active = (project.id, job_id)
         job.thread = threading.Thread(target=execute, args=(store, state, job), name='arrangement-job', daemon=False)

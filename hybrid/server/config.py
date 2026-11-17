@@ -10,6 +10,8 @@ import shutil
 import sys
 import tempfile
 from urllib.parse import urlsplit
+from .guest_policy import (DEFAULT_JOBS_PER_SESSION, DEFAULT_JOBS_PER_IP_HOUR,
+                           DEFAULT_JOBS_PER_HOUR, public_limits as guest_public_limits)
 
 MIB = 1024 * 1024
 PROFILES = {
@@ -74,6 +76,9 @@ class Config:
     max_connections: int = 16
     public_enabled: bool = False
     guest_session_ttl_seconds: int = 3600
+    guest_jobs_per_session: int = DEFAULT_JOBS_PER_SESSION
+    guest_jobs_per_ip_hour: int = DEFAULT_JOBS_PER_IP_HOUR
+    guest_jobs_per_hour: int = DEFAULT_JOBS_PER_HOUR
     trust_cloudflare_client_ip: bool = False
     expected_host: str | None = None
     trust_relay_client_ip: bool = False
@@ -110,6 +115,8 @@ class Config:
         if (type(self.guest_session_ttl_seconds) is not int
                 or not 1 <= self.guest_session_ttl_seconds <= 3600):
             raise ValueError("Guest sessions must expire within one hour")
+        from .guest_policy import validate as validate_guest_policy
+        validate_guest_policy(self)
         if self.expected_host is not None and self.expected_host != "api.slimedragon.net":
             raise ValueError("Expected host must be api.slimedragon.net")
         if (self.trust_cloudflare_client_ip or self.trust_relay_client_ip) and (not address.is_loopback
@@ -150,7 +157,7 @@ class Config:
             "profiles": [{"id": key, "label": value} for key, value in PROFILES.items()],
             "limits": {name: getattr(self, name) for name in
                        ("max_upload_bytes", "chunk_bytes", "max_jobs", "retention_seconds",
-                        "max_audio_seconds", "max_decoded_bytes")},
+                        "max_audio_seconds", "max_decoded_bytes")} | guest_public_limits(self),
             "privacy": {"temporary_storage": True, "retention_seconds": self.retention_seconds},
         }
 
@@ -177,7 +184,8 @@ def from_arguments(argv=None):
                         default=Path(tempfile.gettempdir()) / "slimeybeats-hybrid-private")
     for name in ("max-upload-bytes", "chunk-bytes", "max-jobs", "retention-seconds",
                  "max-decoded-bytes", "max-audio-seconds", "max-job-disk-bytes",
-                 "min-free-bytes", "memory-bytes", "cpu-seconds"):
+                 "min-free-bytes", "memory-bytes", "cpu-seconds", 'guest-jobs-per-session',
+                 'guest-jobs-per-ip-hour', 'guest-jobs-per-hour'):
         parser.add_argument("--" + name, type=int, default=argparse.SUPPRESS)
     parser.add_argument("--worker-timeout-seconds", type=float, default=argparse.SUPPRESS)
     parser.add_argument("--decode-timeout-seconds", type=float, default=argparse.SUPPRESS)

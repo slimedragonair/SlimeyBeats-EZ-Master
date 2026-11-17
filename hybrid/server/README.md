@@ -144,9 +144,16 @@ namespaced by principal; retries never claim a job from another session. Guest
 audio/job expiry is clamped to session expiry, including queued/running jobs and
 downloads; the existing expiry sweeper cancels work and removes owned files.
 
-Guest limits are deliberately small: 64 live sessions; four session creations
-per IP and 64 globally per 10-minute window; three v1 starts per session, eight per
-IP and 32 globally per hour. Only the first successful run transition counts;
+Guest limits are bounded: 64 live sessions; four session creations per IP and
+64 globally per 10-minute window. Heavy work defaults to 16 starts per session,
+32 per IP/hour and 128 globally/hour, configurable with
+`--guest-jobs-per-session`, `--guest-jobs-per-ip-hour` and `--guest-jobs-per-hour`.
+These limits cover v1 mastering starts and heavy arrangement jobs (including
+project Open, suggestions, exports and project Save). ZIP review and selected
+import use the independent existing v2 command budget: 120 per session, 480 per
+IP/hour and 1,920 globally/hour. They retain the same native concurrency,
+CPU/time, memory, archive, source and storage bounds. Public capability limits
+advertise both budgets. Only the first successful v1 run transition counts;
 idempotent run retries do not. Sessions and jobs share the existing four retained
 jobs and one worker. Owner processing bypasses guest rate limits, but still obeys
 the global job/storage bounds. Rate and capacity failures return 429 with an
@@ -156,6 +163,20 @@ intact. There are at most 256 watched IP/operation windows plus fixed global
 counters (two for v1 and one additional v2 editing counter); live windows are
 never evicted to accept rotated IPs. IP metadata is
 HMAC-hashed in memory with a process-secret nonce, never persisted or logged.
+
+Arrangement quota errors retain explicit codes: `guest_job_limit`,
+`guest_job_ip_limit`, `public_job_limit`, `guest_admission_limit`,
+`guest_command_ip_limit`, `public_command_limit` and `guest_rate_capacity`.
+Legacy v1 error wording remains supported. Project admission and CPU-job record
+retention are separate limits; deleting or expiring a task record never resets
+the session/IP budget or deletes its owned download artifact.
+
+Arrangement ZIP selection has no instrument-count ceiling. It uses a separate
+immutable source library rather than legacy `Project.assets`. Metadata bytes,
+decoded PCM, project storage and the existing 4,096 storage-entry budget bound
+admission; files and directories count toward that budget. Source extraction
+reserves its required entries before work begins. One encoding is selected for
+each included part, and differing source durations are allowed.
 
 Client identity uses the socket peer by default, ignoring `X-Forwarded-For`,
 `CF-Connecting-IP`, and `X-SlimeyBeats-Client-IP`. For an operator-controlled Caddy

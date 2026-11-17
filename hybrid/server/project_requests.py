@@ -3,7 +3,7 @@
 import re
 
 from .errors import ApiError
-from .project_limits import FORMATS, INPUT_FORMATS, MAX_STEMS, OPERATIONS
+from .project_limits import FORMATS, INPUT_FORMATS, MAX_STEMS, OPERATIONS, MAX_ARRANGEMENT_ARCHIVE_BYTES
 from .project_settings import boolean, choice, number, object_fields, settings_projection
 
 ID = re.compile(r"[a-f0-9]{32}\Z")
@@ -30,7 +30,7 @@ def upload_request(value, config):
             or any(ord(c) < 32 or ord(c) == 127 for c in filename) or any(c in filename for c in "/\\:")
             or filename.endswith((" ", "."))):
         raise ApiError(400, "invalid_filename")
-    role = choice(value["role"], ("original", "reference", "stem", "stem_bundle", "arrangement_project"))
+    role = choice(value["role"], ("original", "reference", "stem", "stem_bundle", "arrangement_project", "arrangement_archive"))
     if "kind" in value:
         if role != "stem":
             raise ApiError(400, "invalid_stem_kind")
@@ -40,13 +40,15 @@ def upload_request(value, config):
                               or any(ord(c) < 32 or ord(c) == 127 for c in label) or any(c in label for c in "/\\:") or ".." in label):
         raise ApiError(400, "invalid_stem_label")
     extension = filename.rsplit(".", 1)[-1].lower()
-    if "." not in filename or extension not in (("zip",) if role in ("stem_bundle", "arrangement_project") else INPUT_FORMATS):
+    if "." not in filename or extension not in (("zip",) if role in ("stem_bundle", "arrangement_project", "arrangement_archive") else INPUT_FORMATS):
         raise ApiError(400, "unsupported_input")
     size = value["bytes"]
     if type(size) is not int or size <= 0:
         raise ApiError(400, "invalid_bytes")
     if size > config.v2_max_upload_bytes:
         raise ApiError(413, "upload_limit")
+    if role == 'arrangement_archive' and size > MAX_ARRANGEMENT_ARCHIVE_BYTES:
+        raise ApiError(413, 'arrangement_archive_size_limit')
     return extension, size, role
 
 

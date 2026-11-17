@@ -43,6 +43,7 @@ class ArrangementJob:
     thread: object = None
     native: object = None
     upload_path: object = None
+    review: object = None
     unreaped: bool = False
     failure: str | None = field(default=None, repr=False)
 

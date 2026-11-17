@@ -105,7 +105,98 @@ edits preserve the legacy bank and do not render; all audio jobs use the existin
 job/cancellation machinery. Three focused adapter tests passed for atomic/stale
 and busy admission, source retention, actual preview/export PCM and clearing.
 
-Server arrangement transport and remote live preview are **pending**. The
-current facade rejects unavailable server arrangement mode explicitly. Existing
-server/mastering and aligned-bank APIs remain unchanged. No service restart or
-production rollout is part of this checkpoint.
+Server arrangement transport is opt-in (`--enable-arrangement`), disabled by
+default. Its persistent native actor edits metadata and feeds a continuous MP3
+stream from shared-core frame blocks. Preview output is 48 kHz; project-frame
+mapping subtracts 1,105 encoded priming frames. The encoder runs at most 150 ms
+ahead of GET wall time. That bound does not include browser media buffering.
+Explicit raw-PCM probe limits prevent FFmpeg retaining seconds of input before
+its first packet; no frame-dropping `nobuffer` mode is used.
+
+Heavy operations use `POST /v2/projects/{id}/arrangement/jobs`, then GET the
+returned job ID or POST its `/cancel` endpoint. Every request supplies epoch and
+expected revision. Scoped suggestions remain unapplied; export selects one of
+the six existing native formats. Save returns a canonical v2 project ZIP; Open
+accepts a completed owned `arrangement_project` upload and adopts only a fully
+validated snapshot. Heavy work runs in a disposable native shadow. Failed or
+cancelled jobs preserve the primary workspace, and successful Open restores
+paused with a new epoch. Downloads retain separate project-owned artifact IDs.
+
+Linux persistent actors follow the backend process lifetime through a pidfd
+guard (parent-process check fallback), retaining the supervisor's limits and
+descendant reaping. They survive the creating HTTP/job thread's exit, including
+after a shadow actor is promoted. Delayed empty-project preparation and actual
+parent-process death with a detached helper have separate regressions.
+
+Server ZIP import uploads the original once with role `arrangement_archive`.
+The `review_archive` job takes `upload_id` and returns owned `review_id`, opaque
+part/version IDs and a WAV-preferred default per part. The `commit_import` job
+takes that review ID and `selection: [{part_id, version_id}]`. Shared Rust
+`stem_archive::inspect_files` and `stem_import_plan::plan_audio` perform review;
+only selected members are extracted to generated contained filenames. Native
+`AddFiles` admits them in one metadata/history transaction. One source and
+different durations are allowed without changing aligned-bank rules. No ZIP
+decode or full-song render runs on the phone. Successful import consumes the
+review/upload while retaining immutable selected files. Failure or cancellation
+preserves the current arrangement and review. Direct `discard_import` accepts
+the owned review ID, is idempotent, and releases only an unconsumed upload.
+
+Archive admission is capped at the smaller of the operator upload limit and
+1 GiB; each entry is capped at 512 MiB. Pending reviews share an 8 MiB metadata
+budget and a four-review limit. There is no separate instrument/part-count cap;
+choose one encoding per included part. Selection is bounded by its 8 MiB metadata
+budget, source PCM, project bytes and the existing 4,096-entry storage quota
+(files and directories, including retained sources, artifacts and temporary job
+files). Admission reserves the actual entries required for selected extraction
+and rechecks before writing. Arrangement sources do not occupy legacy
+`Project.assets` slots. Review names are labels; public requests never supply
+extraction paths.
+
+Public guests can finish an editing workflow in one session. ZIP review and
+selected import use the existing independent command/admission budget: 120 per
+session, 480 per IP/hour and 1,920 globally/hour. Heavy arrangement jobs default
+to 16 starts per session, 32 per IP/hour and 128 globally/hour; operators can
+configure `--guest-jobs-per-session`, `--guest-jobs-per-ip-hour` and
+`--guest-jobs-per-hour`. Suggestions, WAV/MP3 exports, project Save and project
+Open (including explicit local-to-server migration) count as heavy starts.
+Capability limits advertise both budgets. CPU, concurrency, disk, source and
+time limits remain enforced. HTTP quota errors retain specific safe codes such
+as `guest_job_limit`, with `Retry-After`; record expiry never resets rate quotas.
+
+Job history retains at most 32 records. Admission expires the oldest completed,
+failed or cancelled records only after cleanup has finished. Active, unfinished
+and unreaped jobs remain protected. The most recent 128 expired IDs return
+`410 arrangement_job_expired` to their owner; unknown or older discarded IDs
+return 404. Foreign owners receive 404. Expiring a record does not delete its
+artifact or promoted source cache. The separate artifact-count and storage
+limits still apply.
+
+On November 16, 2026, actual private native/HTTP checks passed scoped suggestions,
+six exports with independent decoding, canonical project hashes, atomic Open
+with restored Undo, corrupt-Open preservation, cancellation/reaping and foreign
+ownership. Focused backend tests cover 164 successive cheap job admissions and
+active/unreaped retention.
+The first-byte regression reproduced 3.0 seconds of startup buffering before the
+probe fix and measured 0.141 seconds afterward; the same continuous MP3 stream
+retained the measured 1.995 gain ratio. Five-rate impulse tests retained priming
+within one preview frame. A synthetic 317,739,756-byte ZIP passed actual upload,
+paired review, explicit WAV/MP3 selection, atomic unequal-duration import,
+selected-member checksums, Undo/Redo, cancellation, unsafe-path/changed-CRC
+rejection and contained cleanup. An owner-authorized real 303,565,857-byte Suno
+ZIP also passed server review of 11 parts/22 versions and one selected WAV
+import, actual frame playback and Undo/Redo; both supplied originals retained
+their hashes. That probe does not qualify decoding all 11 parts. Browser remote
+acceptance is still pending. Actual Windows and Linux HTTP/native probes also
+completed ZIP admission, scoped suggestion/edit, WAV/MP3 delivery, canonical
+Save/Open, another tweak/suggestion/export and Main v2 mastering using one
+ordinary guest token and no owner workflow requests. They used seven heavy-job
+starts and five admission/command starts, including project Open and the three
+Main import/master/export commands. The actual large Suno ZIP was separately
+admitted as a guest with both original hashes retained. These checks do not
+qualify physical-device latency
+or listening.
+
+Native probes copy both CLI and worker to private fixture directories and record
+their hashes before launching. They never hold Windows' mutable build images
+open during other agents' builds. Existing server/mastering and aligned-bank
+APIs remain unchanged. No service restart or production rollout has occurred.

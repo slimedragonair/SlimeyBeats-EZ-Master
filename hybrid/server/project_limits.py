@@ -3,6 +3,8 @@
 from pathlib import Path
 
 from .config import MIB, PROFILES, native_executable
+from .guest_policy import public_limits as guest_public_limits
+from .arrangement_preview_formats import PREVIEW_CONTAINERS
 
 MAX_UPLOADS = 512
 MAX_ASSETS = 512
@@ -10,6 +12,8 @@ MAX_ARTIFACTS = 32
 MAX_STEMS = 128
 MAX_STORAGE_FILES = 4096
 MAX_BANK_PCM_BYTES = 4 * 1024**3
+MAX_ARRANGEMENT_ARCHIVE_BYTES = 1024**3
+MAX_ARRANGEMENT_IMPORT_METADATA_BYTES = 8 * MIB
 WAVEFORM_BINS = 1024
 CHUNK_BYTES = MIB
 FORMATS = ("wav24", "wav16", "wav32f", "flac24", "flac16", "mp3")
@@ -77,6 +81,12 @@ def capabilities(config):
     return {"api_version": 2, "available": available,
             "arrangement": {"available": config.v2_arrangement_enabled and config.studio_cli is not None,
                             "metadata_commands": True, "playback": config.v2_arrangement_enabled and available, "max_resident_sessions": 1,
+                            "import_zip": config.v2_arrangement_enabled and config.studio_cli is not None,
+                            "archive_admission_uses_heavy_quota": False,
+                            "preview_containers": list(PREVIEW_CONTAINERS) if config.v2_arrangement_enabled and available else [],
+                            "max_archive_bytes": min(config.v2_max_upload_bytes, MAX_ARRANGEMENT_ARCHIVE_BYTES),
+                            "max_archive_entry_bytes": 512 * MIB,
+                            "max_import_metadata_bytes": MAX_ARRANGEMENT_IMPORT_METADATA_BYTES,
                             "max_snapshot_bytes": 33 * MIB, "max_metadata_request_bytes": 16 * MIB},
             "operations": [op for op in OPERATIONS if op != "separate" or separation] if available else [],
             "formats": list(FORMATS), "input_formats": list(INPUT_FORMATS),
@@ -93,5 +103,5 @@ def capabilities(config):
                        "max_storage_files": MAX_STORAGE_FILES, "max_bank_decoded_bytes": MAX_BANK_PCM_BYTES,
                        "waveform_bins": WAVEFORM_BINS, "commands_per_hour": 120,
                        "preview_kbps": config.v2_preview_kbps, "max_projects_per_guest": 2,
-                       "separation_max_decoded_bytes": 512 * MIB},
+                       "separation_max_decoded_bytes": 512 * MIB, **guest_public_limits(config)},
             "privacy": {"temporary_storage": True, "retention_seconds": config.v2_retention_seconds}}

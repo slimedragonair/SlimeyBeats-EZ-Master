@@ -6,7 +6,7 @@ from urllib.parse import parse_qs
 from .client_identity import client_key
 from .errors import ApiError
 from .project_commands import submit
-from .project_limits import CHUNK_BYTES, capabilities
+from .project_limits import CHUNK_BYTES, capabilities, MAX_ARRANGEMENT_IMPORT_METADATA_BYTES
 from .project_media import stream_media
 
 PROJECT = re.compile(r"/v2/projects/([a-f0-9]{32})(?:/(.*))?\Z")
@@ -55,7 +55,7 @@ def dispatch(handler, parsed, principal):
         raise ApiError(400, "query_not_allowed")
     if action == 'arrangement/jobs' and method == 'POST':
         from .arrangement_jobs import submit as submit_arrangement
-        result = submit_arrangement(store,project_id,handler.body(65536,json_body=True),principal,
+        result = submit_arrangement(store,project_id,handler.body(MAX_ARRANGEMENT_IMPORT_METADATA_BYTES,json_body=True),principal,
                                     client_key(handler) if not principal.is_owner else None)
         handler.json_response(202,result)
         return

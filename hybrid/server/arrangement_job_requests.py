@@ -1,21 +1,26 @@
 """Allowlisted heavy operations; opaque selections never carry filesystem paths."""
+import json
+
 from .errors import ApiError
 from .project_requests import identifier
-from .project_limits import FORMATS
+from .project_limits import FORMATS, MAX_ARRANGEMENT_IMPORT_METADATA_BYTES
 from .profile_blends import builtin_blend
+from .arrangement_ids import entity_id
 
 OPERATIONS = {
     'suggest_eq': {'target', 'exclude_eq_id', 'profile'},
     'export': {'format', 'sample_rate', 'dither'},
     'save_project': set(),
     'open_project': {'upload_id'},
+    'review_archive': {'upload_id'},
+    'commit_import': {'review_id', 'selection'},
 }
 
 
 def request(value, snapshot):
-    if not isinstance(value, dict) or value.get('operation') not in OPERATIONS:
+    operation = value.get('operation') if isinstance(value, dict) else None
+    if not isinstance(operation, str) or operation not in OPERATIONS:
         raise ApiError(400, 'invalid_arrangement_job')
-    operation = value['operation']
     if set(value) - (OPERATIONS[operation] | {'operation', 'epoch', 'expected_revision'}):
         raise ApiError(400, 'invalid_arrangement_job_fields')
     identifier(value.get('epoch'))
@@ -32,7 +37,7 @@ def request(value, snapshot):
         scope = target['scope']
         kind = scope.get('kind')
         fields = {'mix': {'kind'}, 'lane': {'kind', 'lane_id'}, 'clip': {'kind', 'clip_id'}}
-        if kind not in fields or set(scope) != fields[kind]:
+        if not isinstance(kind, str) or kind not in fields or set(scope) != fields[kind]:
             raise ApiError(400, 'invalid_arrangement_scope')
         for key in fields[kind] - {'kind'}:
             entity_id(scope[key])
@@ -41,7 +46,7 @@ def request(value, snapshot):
             if not isinstance(selected, dict) or set(selected) != {'start_frame', 'end_frame'} or any(
                     type(frame) is not int or not 0 <= frame <= 9007199254740991 for frame in selected.values()) or selected['start_frame'] >= selected['end_frame']:
                 raise ApiError(400, 'invalid_arrangement_range')
-        excluded = value.get('exclude_eq_id') or None
+        excluded = value.get('exclude_eq_id')
         if excluded is not None:
             entity_id(excluded)
             saved = next((effect for effect in snapshot['arrangement']['eq'] if effect['id'] == excluded), None)
@@ -58,15 +63,22 @@ def request(value, snapshot):
         if type(value.get('dither', False)) is not bool:
             raise ApiError(400, 'invalid_arrangement_dither')
         clean.update(format=value.get('format', 'wav24'), sample_rate=rate, dither=value.get('dither', False))
-    elif operation == 'open_project':
+    elif operation in ('open_project', 'review_archive'):
         identifier(value.get('upload_id'))
+    elif operation == 'commit_import':
+        identifier(value.get('review_id'))
+        choices = value.get('selection')
+        if not isinstance(choices, list) or not choices:
+            raise ApiError(400, 'invalid_arrangement_import_selection')
+        seen = set()
+        for choice in choices:
+            if not isinstance(choice, dict) or set(choice) != {'part_id', 'version_id'}:
+                raise ApiError(400, 'invalid_arrangement_import_selection')
+            identifier(choice['part_id'])
+            identifier(choice['version_id'])
+            if choice['part_id'] in seen:
+                raise ApiError(400, 'duplicate_arrangement_import_part')
+            seen.add(choice['part_id'])
+        if len(json.dumps(choices, separators=(',', ':')).encode('utf-8')) > MAX_ARRANGEMENT_IMPORT_METADATA_BYTES:
+            raise ApiError(413, 'arrangement_import_metadata_limit')
     return clean
-
-
-def entity_id(value):
-    try:
-        valid = isinstance(value, str) and 1 <= len(value.encode('utf-8')) <= 128 and not any(ord(char) < 32 or char in '/\\' for char in value)
-    except UnicodeError:
-        valid = False
-    if not valid:
-        raise ApiError(400, 'invalid_arrangement_entity_id')

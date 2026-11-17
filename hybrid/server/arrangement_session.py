@@ -8,6 +8,7 @@ from .arrangement_requests import parse
 from .errors import ApiError, ProcessingError
 from .project_limits import MAX_BANK_PCM_BYTES, processing_config
 from .studio_driver import safe_file
+from .arrangement_preview_formats import PREVIEW_CONTAINERS, PREVIEW_MIME
 
 
 class RemoteArrangement:
@@ -22,6 +23,7 @@ class RemoteArrangement:
         self.stream = None
         self.jobs = {}
         self.expired_jobs = {}
+        self.reviews = {}
         self.active_job = None
         self.cache_id = None
 
@@ -55,7 +57,8 @@ class RemoteArrangement:
         if value is not None:
             value['capabilities'] = {'metadata_commands': True, 'scoped_eq': True, 'waveforms': True,
                                      'playback': self.config.ffmpeg is not None, 'suggest_eq': True,
-                                     'export': True, 'project': True}
+                                     'export': True, 'project': True, 'import_zip': True,
+                                     'preview_containers': list(PREVIEW_CONTAINERS) if self.config.ffmpeg else []}
         return value
 
     def call(self, request, private_assets=None):
@@ -121,11 +124,13 @@ class RemoteArrangement:
                                    'side': request['side'], 'frame': request['start_frame']})
         self.accept(self.native.call({'operation': 'read'}))
         stream_id = secrets.token_hex(16)
+        container = request.get('preview_container', 'mp3')
         descriptor = {'stream_id': stream_id, 'stream_path': f'/v2/projects/{self.project.id}/arrangement/streams/{stream_id}',
             'identity': self.snapshot['preview']['identity'], 'prepared_revision': self.snapshot['revision'], 'epoch': self.snapshot['epoch'],
             'sample_rate': result['sample_rate'], 'channels': result['channels'], 'duration_frames': self.snapshot['preview']['frames'],
             'side_duration_frames': result['frames'], 'start_frame': result['position_frame'], 'side': request['side'],
-            'preview_sample_rate': PREVIEW_RATE, 'preview_priming_frames': PREVIEW_PRIMING_FRAMES}
+            'preview_sample_rate': PREVIEW_RATE, 'preview_priming_frames': PREVIEW_PRIMING_FRAMES,
+            'preview_container': container, 'preview_mime': PREVIEW_MIME[container]}
         self.stream = ArrangementStream(self, descriptor)
         return descriptor
 
@@ -168,6 +173,11 @@ def dispatch(store, project_id, request, principal):
             return state.public()
         elif state.busy or state.active_job is not None and request['operation'] != 'stop':
             raise ApiError(409, 'arrangement_command_in_progress')
+        if request['operation'] == 'discard_import':
+            if request['epoch'] != state.snapshot['epoch'] or request['expected_revision'] != state.snapshot['revision']:
+                raise ApiError(409, 'arrangement_revision_stale')
+            from .arrangement_archives import discard
+            return discard(state, request['review_id'])
         assets = None
         if request['operation'] == 'add_assets':
             assets = []

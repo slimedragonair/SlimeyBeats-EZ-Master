@@ -74,9 +74,12 @@ fn main() -> eframe::Result {
         return Ok(());
     }
     if args.studio_project_capabilities {
-        println!("{}", serde_json::json!({"format":"slimeybeats-desktop-project-capabilities",
+        println!(
+            "{}",
+            serde_json::json!({"format":"slimeybeats-desktop-project-capabilities",
             "version":1,"engine_version":env!("CARGO_PKG_VERSION"),"studio_project_versions":[1,2],
-            "arrangement_live_editing":true,"autoplay_on_project_open":false}));
+            "arrangement_live_editing":true,"autoplay_on_project_open":false})
+        );
         return Ok(());
     }
     let document = if let Some(path) = &args.session {

@@ -1,4 +1,5 @@
 //! Persistent normal-worker actor for server-side arrangement editing/playback.
+mod archive;
 mod fork;
 mod protocol;
 mod workspace;

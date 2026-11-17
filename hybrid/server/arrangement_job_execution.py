@@ -7,6 +7,9 @@ from .eq_suggestions import suggestion
 from .errors import ApiError, ProcessingError
 from .storage import directory_bytes
 from .studio_driver import safe_file
+from .arrangement_archives import review_result, consume, extraction_budget
+from .arrangement_job_adoption import adopt
+import secrets
 
 
 def execute(store, state, job):
@@ -29,22 +32,45 @@ def execute(store, state, job):
         with store.lock:
             job.state, job.progress = 'running', 0.05
         check()
-        with state.lock:
-            if state.stream is not None:
-                state.stream.close()
-                state.stream = None
-            available = project.max_disk_bytes - directory_bytes(project.directory, project.max_disk_bytes, project.max_storage_files)
-            transfer = state.native.call({'operation': 'fork_state', 'expected_revision': job.base_revision,
-                                          'output_id': job.id, 'max_metadata_bytes': max(0, available)})
+        transfer = None
+        if job.operation != 'review_archive':
+            with state.lock:
+                if state.stream is not None:
+                    state.stream.close()
+                    state.stream = None
+                available = project.max_disk_bytes - directory_bytes(project.directory, project.max_disk_bytes, project.max_storage_files)
+                transfer = state.native.call({'operation': 'fork_state', 'expected_revision': job.base_revision,
+                                              'output_id': job.id, 'max_metadata_bytes': max(0, available)})
         check()
         job.progress = 0.15
         job.native = ArrangementNative(state.config, project.directory)
         doc = job.base_snapshot['arrangement']
         call(state.creation_request(doc['sample_rate'], doc['channels'], job.epoch))
-        call({'operation': 'restore_fork', 'file': str(safe_file(transfer['file'], project.directory))})
+        if transfer is not None:
+            call({'operation': 'restore_fork', 'file': str(safe_file(transfer['file'], project.directory))})
         job.progress = 0.3
         request = job.request
-        if job.operation == 'suggest_eq':
+        if job.operation == 'review_archive':
+            result = review_result(store, state, job, call)
+        elif job.operation == 'commit_import':
+            selected = request['selected_files']
+            available = extraction_budget(project, [item['file'] for item in selected], extra_entries=1)
+            raw = call({'operation': 'extract_archive', 'file': str(job.upload_path), 'files': [item['file'] for item in selected],
+                        'output_id': job.id, 'max_total_bytes': max(0, available)})
+            if not isinstance(raw.get('files'), list) or len(raw['files']) != len(selected):
+                raise ProcessingError('Invalid selected archive output')
+            value = call({'operation': 'add_files', 'expected_revision': job.base_revision,
+                'assets': [{'id': secrets.token_hex(16), 'name': item['name'], 'file': str(safe_file(file, job.stage / 'selected-sources'))}
+                           for item, file in zip(selected, raw['files'])]})
+            # Mark the actor adopted before cleanup can fail: it now owns the
+            # retained selected-source files and must never be reaped as shadow.
+            try:
+                result = adopt(store, state, job, value, check)
+            finally:
+                promoted = state.native is job.native
+            with store.lock:
+                consume(state, job.review.id)
+        elif job.operation == 'suggest_eq':
             raw = call({'operation': 'suggest_eq', 'expected_revision': job.base_revision, 'target': request['target'],
                         'exclude_eq_id': request['exclude_eq_id'], 'profile': request['profile']})
             duration_frames = max([job.base_snapshot['preview']['frames'], *[asset['frames'] for asset in job.base_snapshot['assets']]])
@@ -71,22 +97,10 @@ def execute(store, state, job):
             # Cache immutable ZIP sources in the shadow before publishing it.
             call({'operation': 'fork_state', 'expected_revision': value['revision'],
                   'output_id': request['cache_id'], 'max_metadata_bytes': 97 * 1024**2})
-            with state.lock, store.lock:
-                check()
-                if state.snapshot['epoch'] != job.epoch or state.snapshot['revision'] != job.base_revision:
-                    raise ProcessingError('Arrangement changed before project adoption')
-                previous = state.native
-                state.native = job.native
-                previous_cache = state.cache_id
-                state.cache_id = request['cache_id']
-                state.source_asset_ids.clear()
-                state.accept(value)
-                job.committed, job.keep_stage, promoted = True, True, True
-                result = {'snapshot': state.public()}
-                job.result = result
-            previous.close()
-            if previous_cache is not None:
-                remove_owned(project,project.directory / ('arrangement-job-' + previous_cache),'arrangement-job-',previous_cache)
+            try:
+                result = adopt(store, state, job, value, check)
+            finally:
+                promoted = state.native is job.native
         with store.lock:
             if job.cancel.is_set() and not job.committed:
                 raise ProcessingError('Arrangement job cancelled')
@@ -105,7 +119,7 @@ def execute(store, state, job):
         try:
             if job.native is not None and not promoted:
                 job.native.close()
-        except ProcessingError:
+        except (ProcessingError, OSError):
             job.unreaped=True
             job.state,job.error_code='failed','arrangement_cleanup_pending'
         try:
@@ -115,7 +129,7 @@ def execute(store, state, job):
                 remove_owned(project, project.directory / 'arrangement-output' / job.id, '', job.id)
             if job.operation == 'open_project' and not promoted and not job.unreaped:
                 remove_owned(project,project.directory / ('arrangement-job-' + job.request['cache_id']),'arrangement-job-',job.request['cache_id'])
-        except ProcessingError:
+        except (ProcessingError, OSError):
             job.state,job.error_code='failed','arrangement_cleanup_pending'
         with store.jobs.changed:
             if not job.unreaped and store.jobs.arrangement_active == (project.id, job.id):

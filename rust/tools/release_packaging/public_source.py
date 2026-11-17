@@ -104,6 +104,12 @@ def copy_public_source(repository, destination):
         for path in sorted((repository / directory).rglob('*')):
             if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                 copy(path.relative_to(repository))
+    for name in ('native_fixture.py', 'verify_arrangement_worker.py',
+                 'verify_arrangement_stream.py', 'verify_arrangement_http.py',
+                 'verify_arrangement_jobs.py', 'verify_arrangement_encoder.py',
+                 'verify_arrangement_archives.py', 'verify_arrangement_archive_input.py',
+                 'verify_arrangement_guest.py', 'verify_arrangement_many_sources.py'):
+        copy(Path('hybrid/tools') / name)
     for path in sorted((repository / '.github').rglob('*')):
         if path.is_file():
             copy(path.relative_to(repository))

@@ -1,6 +1,8 @@
 """Small public metadata contract; shared Rust validates nested edits/scopes."""
 from .errors import ApiError
 from .project_requests import identifier
+from .arrangement_ids import entity_id
+from .arrangement_preview_formats import PREVIEW_CONTAINERS
 
 FIELDS = {
     'create': {'sample_rate', 'channels'},
@@ -11,15 +13,16 @@ FIELDS = {
     'history': {'redo'},
     'waveform': {'asset_id', 'range', 'bins'},
     'eq_response': {'effect'},
-    'prepare': {'side', 'start_frame'},
+    'prepare': {'side', 'start_frame', 'preview_container'},
     'stop': {'stream_id'},
+    'discard_import': {'review_id'},
 }
 
 
 def parse(value):
-    if not isinstance(value, dict) or value.get('operation') not in FIELDS:
+    operation = value.get('operation') if isinstance(value, dict) else None
+    if not isinstance(operation, str) or operation not in FIELDS:
         raise ApiError(400, 'invalid_arrangement_operation')
-    operation = value['operation']
     allowed = FIELDS[operation] | {'operation'}
     if operation not in ('create', 'read'):
         allowed |= {'epoch', 'expected_revision'}
@@ -60,7 +63,7 @@ def parse(value):
         if type(value.get('redo', False)) is not bool:
             raise ApiError(400, 'invalid_arrangement_history')
     elif operation == 'waveform':
-        identifier(value.get('asset_id'))
+        entity_id(value.get('asset_id'))
         if type(value.get('bins')) is not int or not 1 <= value['bins'] <= 16384 or not isinstance(value.get('range'), dict):
             raise ApiError(400, 'invalid_arrangement_waveform')
     elif operation == 'eq_response' and not isinstance(value.get('effect'), dict):
@@ -68,6 +71,10 @@ def parse(value):
     elif operation == 'prepare':
         if value.get('side') not in ('before', 'after') or type(value.get('start_frame')) is not int or not 0 <= value['start_frame'] <= 9007199254740991:
             raise ApiError(400, 'invalid_arrangement_prepare')
+        if value.get('preview_container', 'mp3') not in PREVIEW_CONTAINERS:
+            raise ApiError(400, 'invalid_arrangement_preview_container')
     elif operation == 'stop':
         identifier(value.get('stream_id'))
+    elif operation == 'discard_import':
+        identifier(value.get('review_id'))
     return dict(value)

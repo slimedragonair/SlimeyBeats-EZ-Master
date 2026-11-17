@@ -30,6 +30,15 @@ pub enum Command {
         limits: Limits,
     },
     Read,
+    InspectArchive {
+        file: PathBuf,
+    },
+    ExtractArchive {
+        file: PathBuf,
+        files: Vec<mastercraft::studio::stem_import_plan::ImportFile>,
+        output_id: String,
+        max_total_bytes: u64,
+    },
     AddAssets {
         expected_revision: u64,
         assets: Vec<Asset>,

@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 import struct
 import sys
+import time
 import wave
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +40,11 @@ def verify(worker, ffmpeg):
         status, _, state = client.request('POST', path, {'operation': 'create', 'sample_rate': 8000, 'channels': 2})
         assert status == 200, (status, state)
         epoch = state['epoch']
+        time.sleep(.3)
+        for side in ('after', 'before'):
+            status, _, empty = client.request('POST', path, {'operation': 'prepare', 'epoch': epoch,
+                        'expected_revision': 0, 'side': side, 'start_frame': 0})
+            assert status == 200 and empty['side_duration_frames'] == empty['start_frame'] == 0, (status, empty)
         status, _, state = client.request('POST', path, {'operation': 'add_assets', 'epoch': epoch, 'expected_revision': 0, 'audio_ids': original_ids})
         assert status == 200 and state['revision'] == 1, (status, state)
         assert sorted(asset['frames'] for asset in state['assets']) == [12000, 16000]
@@ -73,8 +79,8 @@ def verify(worker, ffmpeg):
             assert set(original_ids) <= set(private.assets)
         status, _, result = client.request('DELETE', f'/v2/projects/{project["id"]}')
         assert status == 200 and result['deleted'] and actor.process.poll() is not None
-        return {'passed': True, 'scope': 'authenticated metadata HTTP and actual persistent native PCM; compressed preview still pending',
-                'checks': ['real imported source IDs', 'different durations and repeated labels', 'metadata-only batch/no render',
+        return {'passed': True, 'scope': 'authenticated metadata HTTP and actual persistent native PCM; compressed preview is a separate probe',
+                'checks': ['delayed empty project preparation survives HTTP thread exit', 'real imported source IDs', 'different durations and repeated labels', 'metadata-only batch/no render',
                     'same native process after edit', 'HTTP gain changes actual native frame PCM', 'stale/schema/path preservation',
                     'foreign principal rejected', 'owned source retention', 'delete reaps actor before storage cleanup']}
 

@@ -12,6 +12,7 @@ import time
 
 from .errors import ApiError
 from .principals import Principal
+from .guest_policy import COMMANDS_PER_SESSION
 
 MAX_SESSIONS = 64
 MAX_RATE_ENTRIES = 256
@@ -19,9 +20,6 @@ SESSION_WINDOW_SECONDS = 600
 SESSIONS_PER_IP = 4
 SESSIONS_PER_WINDOW = 64
 JOB_WINDOW_SECONDS = 3600
-JOBS_PER_IP = 8
-JOBS_PER_SESSION = 3
-JOBS_PER_WINDOW = 32
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 
 
@@ -66,17 +64,17 @@ class GuestRegistry:
         with self.lock:
             self._purge(self.monotonic())
 
-    def _consume(self, operation, client_key, per_ip, total_limit, seconds, now):
+    def _consume(self, operation, client_key, per_ip, total_limit, seconds, now, coded=False):
         key = (operation, client_key)
         local = self._rates.get(key)
         total = self._totals.get(operation)
         if local is not None and local.count >= per_ip:
-            raise limited("Guest request rate limit reached", local.deadline, now)
+            raise limited('guest_' + operation + '_ip_limit' if coded else "Guest request rate limit reached", local.deadline, now)
         if total is not None and total.count >= total_limit:
-            raise limited("Public request rate limit reached", total.deadline, now)
+            raise limited('public_' + operation + '_limit' if coded else "Public request rate limit reached", total.deadline, now)
         # Never evict a live window: rotating addresses must not reset throttles.
         if local is None and len(self._rates) >= MAX_RATE_ENTRIES:
-            raise limited("Guest rate tracking capacity reached",
+            raise limited('guest_rate_capacity' if coded else "Guest rate tracking capacity reached",
                           min(item.deadline for item in self._rates.values()), now)
         if local is None:
             local = self._rates[key] = Window(now + seconds)
@@ -127,22 +125,23 @@ class GuestRegistry:
             with self.lock:
                 self._session(principal, self.monotonic())
 
-    def start_job(self, principal, client_key):
+    def start_job(self, principal, client_key, *, coded=False):
         with self.lock:
             now = self.monotonic()
             self._purge(now)
             session = self._session(principal, now)
-            if session.job_starts >= JOBS_PER_SESSION:
-                raise limited("Guest job rate limit reached", principal.deadline, now)
-            self._consume("job", client_key, JOBS_PER_IP, JOBS_PER_WINDOW, JOB_WINDOW_SECONDS, now)
+            if session.job_starts >= self.config.guest_jobs_per_session:
+                raise limited('guest_job_limit' if coded else "Guest job rate limit reached", principal.deadline, now)
+            self._consume("job", client_key, self.config.guest_jobs_per_ip_hour, self.config.guest_jobs_per_hour,
+                          JOB_WINDOW_SECONDS, now, coded=coded)
             session.job_starts += 1
 
-    def start_command(self, principal, client_key):
+    def start_command(self, principal, client_key, *, coded=False):
         with self.lock:
             now = self.monotonic()
             self._purge(now)
             session = self._session(principal, now)
-            if session.command_starts >= 120:
-                raise limited("command_quota", principal.deadline, now)
-            self._consume("command", client_key, 480, 1920, JOB_WINDOW_SECONDS, now)
+            if session.command_starts >= COMMANDS_PER_SESSION:
+                raise limited('guest_admission_limit' if coded else "command_quota", principal.deadline, now)
+            self._consume("command", client_key, 480, 1920, JOB_WINDOW_SECONDS, now, coded=coded)
             session.command_starts += 1

@@ -79,10 +79,16 @@ def main():
             libc = ctypes.CDLL(None, use_errno=True)
             if libc.prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
                 raise OSError("Cannot own orphaned descendants")
-            if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
-                raise OSError("Cannot protect orphan worker")
-            if os.getppid() != parent:
-                return 125
+            if forward_stdin:
+                # PDEATHSIG follows the creating thread. Persistent actors must
+                # survive HTTP/job thread exit and follow the backend process.
+                from parent_lifetime import watch_parent_process
+                watch_parent_process(parent)
+            else:
+                if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
+                    raise OSError("Cannot protect orphan worker")
+                if os.getppid() != parent:
+                    return 125
     result = subprocess.run(command, shell=False, stdin=None if forward_stdin else subprocess.DEVNULL)
     if sys.platform.startswith("linux"):
         from process_tree import kill_children

@@ -8,20 +8,9 @@ import time
 from .arrangement_native import spawn_owned
 from .errors import ProcessingError
 from .processes import terminate_and_reap
+from .arrangement_preview_formats import PREVIEW_RATE, PREVIEW_PRIMING_FRAMES, encoder_arguments
 
-PREVIEW_RATE = 48000
-PREVIEW_PRIMING_FRAMES = 1105
 MAX_ENCODE_AHEAD_SECONDS = 0.15
-
-
-def encoder_arguments(config, descriptor):
-    # Raw PCM geometry is explicit. FFmpeg's default input analysis otherwise
-    # retains seconds of live frames before emitting the first MP3 packet.
-    return [config.ffmpeg, '-nostdin', '-hide_banner', '-loglevel', 'error',
-        '-f', 'f32le', '-ar', descriptor['sample_rate'], '-ac', descriptor['channels'],
-        '-probesize', '32', '-analyzeduration', '1', '-i', 'pipe:0',
-        '-ar', PREVIEW_RATE, '-c:a', 'libmp3lame', '-b:a', f'{config.v2_preview_kbps}k',
-        '-write_xing', '0', '-id3v2_version', '0', '-flush_packets', '1', '-f', 'mp3', 'pipe:1']
 
 
 class ArrangementStream:
