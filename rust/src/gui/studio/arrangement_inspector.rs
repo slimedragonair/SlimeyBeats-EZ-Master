@@ -1,5 +1,5 @@
 //! Selected-track and clip fields, including an exact alternative to canvas dragging.
-use super::arrangement_state::ArrangementEditor;
+use super::arrangement_state::{ArrangementEditor, Inspector};
 use crate::{
     gui::{crystal_button, crystal_slider::CrystalSlider, theme},
     studio::arrangement::Edit,
@@ -25,6 +25,9 @@ pub(super) fn show(editor: &mut ArrangementEditor, ui: &mut egui::Ui, playhead: 
         .as_deref()
         .and_then(|id| document.clip(id).ok())
         .cloned();
+    if editor.inspector == Inspector::Clip {
+        return super::arrangement_clip_controls::show(editor, ui, playhead, rate, clip);
+    }
     if let Some(lane) = lane {
         theme::eyebrow(ui, "SELECTED TRACK");
         if editor
@@ -135,8 +138,10 @@ pub(super) fn show(editor: &mut ArrangementEditor, ui: &mut egui::Ui, playhead: 
         if response.drag_stopped() || (response.changed() && !response.dragged()) {
             editor.commit_draft()?;
         }
+        if ui.add(crystal_button::secondary("Delete track")).on_hover_text("Remove this track even when it is empty. Undo restores its clips and effects; source files stay unchanged.").clicked() {
+            editor.apply(Edit::RemoveLane { lane_id: lane.id })?;
+            return Ok(());
+        }
     }
-    ui.separator();
-    super::arrangement_clip_controls::show(editor, ui, playhead, rate, clip)?;
     Ok(())
 }

@@ -48,8 +48,15 @@ pub(super) fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) 
                 studio.error = Some(error.to_string());
             }
         }
-        if studio.bank.is_some() || studio.source.is_some() {
-            ui.menu_button("More sources…", |ui| {
+        {
+            ui.menu_button("Track actions", |ui| {
+                if ui.add_enabled(studio.arrangement.editor.history.is_some(), egui::Button::new("Add empty track"))
+                    .on_disabled_hover_text("Add audio first so the new track uses the project's sample rate and channels.").clicked() {
+                    if let Err(error) = super::arrangement_track_actions::add_empty(&mut studio.arrangement.editor) {
+                        studio.error = Some(error.to_string());
+                    }
+                    ui.close();
+                }
                 if studio.bank.is_some()
                     && ui
                         .button("Copy imported stems")

@@ -98,9 +98,16 @@ def verify(browser, base, width, args, result, source):
         page.locator('#s-playback-details > summary').click()
         page.locator('#s-volume').fill('0.35'); page.locator('#s-seek').fill('2.7')
         page.locator('#s-play').click(); expect(page.locator('#s-play')).to_have_text('Pause')
-        page.evaluate('()=>arrangementAudit.attach()'); page.evaluate('()=>arrangementAudit.reset()')
-        page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=10000)
-        live = page.evaluate('()=>arrangementAudit.measure()'); page.locator('#s-stop').click()
+        live = None
+        if getattr(args, 'capture_live', True):
+            page.evaluate('()=>arrangementAudit.attach()'); page.evaluate('()=>arrangementAudit.reset()')
+            page.wait_for_function('()=>arrangementAudit.frames>=18000', timeout=10000)
+            live = page.evaluate('()=>arrangementAudit.measure()')
+        else:
+            # Hosted sites have no private observer module. Keep that pass to
+            # real transport progress and saved PCM, with no live-PCM claim.
+            page.wait_for_function("()=>Number(document.querySelector('#s-seek').value)>2.95", timeout=10000)
+        page.locator('#s-stop').click()
         a('file-actions').locator('summary').click() if not a('file-actions').evaluate('el=>el.open') else None
         a('audio-format').select_option('wav32f')
         with page.expect_download(timeout=30000) as pending:
@@ -113,11 +120,15 @@ def verify(browser, base, width, args, result, source):
         amplitude = lambda first: 2 * abs(np.sum(pcm[first:first+9600, 0] * np.exp(-2j*np.pi*440*np.arange(9600)/rate))) / 9600
         clear, reduced = amplitude(100800), amplitude(134400)
         assert abs(reduced / clear - 10 ** (-6/20)) < .005
-        assert abs(live['first'] / reduced - .35) < .025, (live, reduced)
+        if live is not None:
+            assert abs(live['first'] / reduced - .35) < .025, (live, reduced)
         assert row['downloads'] == ['Studio-arrangement.zip', 'Studio-arrangement.wav']
         assert not row['errors'], row
-        row['measurements'] = {'export_unfiltered_amplitude': clear, 'export_scoped_amplitude': reduced, 'live_scoped_amplitude': live['first']}
-        row['checks'].append('explicit float WAV has exact duration and scoped EQ; actual live output matches with listening volume excluded from saved PCM')
+        row['measurements'] = {'export_unfiltered_amplitude': clear, 'export_scoped_amplitude': reduced,
+                               'live_scoped_amplitude': live['first'] if live else None}
+        row['live_pcm_qualified'] = live is not None
+        row['checks'].append('explicit float WAV has exact duration and scoped EQ; actual live output matches with listening volume excluded from saved PCM'
+                             if live else 'real playback clock advances; explicit Float32 WAV independently verifies exact duration, silence and scoped EQ; live PCM is not captured in this hosted pass')
         a('eq-plot').scroll_into_view_if_needed(); diagnostics.capture(args.out / f'{width}-restored.png')
         row['passed'] = True
     except Exception as error:

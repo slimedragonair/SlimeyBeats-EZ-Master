@@ -16,6 +16,8 @@ def main():
     parser.add_argument('--gui', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--layout-only', action='store_true', help='Capture layouts; skip the abrupt restart test')
+    parser.add_argument('--eq-layout', action='store_true', help='Inspect the existing scoped EQ in layout captures')
+    parser.add_argument('--inspector-scroll', type=int, help='Set a private inspector scroll offset for layout captures')
     args = parser.parse_args()
     require(not args.out.exists(), 'Use a new private evidence directory')
     args.out.mkdir(parents=True)
@@ -25,10 +27,14 @@ def main():
     verifier = Verifier(args.gui.resolve(), args.out)
     records = []
     for size in [(1100, 720), (1480, 940)]:
-        record = verifier.run(f'tracks-{size[0]}', ['--studio-session', project, '--view', 'tracks'], size)
+        record = verifier.run(f'tracks-{"eq-" if args.eq_layout else ""}{size[0]}',
+                              ['--studio-session', project, '--view', 'tracks',
+                               *(['--capture-arrangement-eq'] if args.eq_layout else []),
+                               *(['--capture-settings-scroll', str(args.inspector_scroll)] if args.inspector_scroll is not None else [])], size)
         state = record['state']
         require((state['arrangement_tracks'], state['arrangement_clips'], state['arrangement_effects']) == (4, 4, 1), 'Capture did not load the complete canonical project')
         require(state['playback_ready'], 'Track player was not prepared')
+        require(state['arrangement_eq_open'] == args.eq_layout, 'Wrong inspector pane in capture')
         records.append(record)
     if not args.layout_only:
         crashed = verifier.run('tracks-before-crash', ['--studio-session', project, '--view', 'tracks',

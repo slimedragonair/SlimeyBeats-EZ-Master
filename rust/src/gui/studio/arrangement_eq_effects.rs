@@ -1,4 +1,5 @@
 //! Inspect and revisit applied effects, including source sections hidden by a trim.
+use super::arrangement_state::Inspector;
 use super::arrangement_state::{ArrangementEditor, EqTarget};
 use crate::{
     gui::theme,
@@ -19,7 +20,7 @@ pub(super) fn show(editor: &mut ArrangementEditor, ui: &mut egui::Ui) -> Result<
     egui::CollapsingHeader::new(format!("Applied EQ · {} effects", effects.len()))
         .id_salt("arrangement-applied-eq").show(ui, |ui| {
             for effect in effects {
-                let description = editor.document().map(|document| description(document, &effect)).unwrap_or_default();
+                let description = editor.document().map(|document| description(document, &effect, &editor.asset_names)).unwrap_or_default();
                 let editable = editor.document().and_then(|document| project_range(document, &effect)).is_some();
                 ui.push_id(&effect.id, |ui| {
                     ui.label(description);
@@ -46,7 +47,11 @@ pub(super) fn show(editor: &mut ArrangementEditor, ui: &mut egui::Ui) -> Result<
     Ok(())
 }
 
-fn description(document: &Arrangement, effect: &ScopedEq) -> String {
+fn description(
+    document: &Arrangement,
+    effect: &ScopedEq,
+    names: &std::collections::BTreeMap<String, String>,
+) -> String {
     let target = match &effect.scope {
         EqScope::Mix {} => "Song".to_owned(),
         EqScope::Lane { lane_id } => document
@@ -55,7 +60,15 @@ fn description(document: &Arrangement, effect: &ScopedEq) -> String {
             .unwrap_or_else(|_| lane_id.clone()),
         EqScope::Clip { clip_id } => document
             .clip(clip_id)
-            .map(|clip| format!("Clip: {}", clip.name.as_deref().unwrap_or(clip_id)))
+            .map(|clip| {
+                format!(
+                    "Clip: {}",
+                    clip.name
+                        .as_ref()
+                        .or_else(|| names.get(&clip.source_id))
+                        .map_or("Audio clip", String::as_str)
+                )
+            })
             .unwrap_or_else(|_| clip_id.clone()),
     };
     let interval = effect
@@ -164,7 +177,7 @@ pub(super) fn select(editor: &mut ArrangementEditor, effect: &ScopedEq) -> Resul
     editor.selection = Some(range);
     editor.eq_id = Some(effect.id.clone());
     editor.refresh_eq();
-    editor.eq_inspector = true;
+    editor.inspector = Inspector::Eq;
     Ok(())
 }
 
@@ -227,6 +240,6 @@ pub(super) fn markers(
             ui.make_persistent_id(("arrangement-eq-marker", lane_id, &effect.id)),
             egui::Sense::hover(),
         )
-        .on_hover_text(description(document, effect));
+        .on_hover_text(description(document, effect, &editor.asset_names));
     }
 }

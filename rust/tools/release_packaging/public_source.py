@@ -19,10 +19,14 @@ GUIDES = (
     'ARRANGEMENT_CORE.md', 'ARRANGEMENT_TRANSPORT.md', 'ARRANGEMENT_NATIVE_AUDIO.md', 'WEB_ARRANGEMENT_UI.md',
     'ARRANGEMENT_NATIVE_UI.md',
     'ARRANGEMENT_RECOVERY.md',
+    'NATIVE_STUDIO_NAVIGATION.md',
 )
 # Keep screenshots explicit: only reviewed public captures belong in the source
 # package, never an arbitrary image or private report added to the checkout.
 DOCUMENTATION_IMAGES = (
+    'arrangement-desktop.png', 'arrangement-compact.png',
+    'arrangement-eq-desktop.png', 'arrangement-eq-compact.png',
+    'arrangement-eq-scrolled-desktop.png', 'arrangement-eq-scrolled-compact.png',
     'welcome.png', 'manual-eq.png', 'manual-eq-detail.png',
     'linux-manual-eq.png', 'linux-compact-eq.png', 'linux-compact-controls.png',
     'web-preview.png', 'web-phone-eq.png', 'studio-stems.png', 'studio-repair.png',

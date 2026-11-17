@@ -91,8 +91,12 @@ class PublicDocumentationPackagingTests(unittest.TestCase):
         'ARRANGEMENT_CORE.md', 'ARRANGEMENT_TRANSPORT.md', 'ARRANGEMENT_NATIVE_AUDIO.md', 'WEB_ARRANGEMENT_UI.md',
         'ARRANGEMENT_NATIVE_UI.md',
         'ARRANGEMENT_RECOVERY.md',
+        'NATIVE_STUDIO_NAVIGATION.md',
     )
     NEW_IMAGES = (
+        'arrangement-desktop.png', 'arrangement-compact.png',
+        'arrangement-eq-desktop.png', 'arrangement-eq-compact.png',
+        'arrangement-eq-scrolled-desktop.png', 'arrangement-eq-scrolled-compact.png',
         'stem-editor-timeline.png', 'stem-editor-compact.png', 'stem-editor-selection.jpg',
         'web-stem-editor-phone.png', 'web-stem-editor-tools.png', 'doctor-desktop.png',
         'doctor-web-findings.png', 'doctor-web-repair.png', 'web-session-downloads.png',

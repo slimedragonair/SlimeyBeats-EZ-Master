@@ -35,9 +35,19 @@ browser use the same edit and scoped-EQ model. See [core](ARRANGEMENT_CORE.md),
 uses the current recipe. They are exclusive. Use an individual effect's bypass
 for an EQ-only comparison. Listening volume is independent of delivery gain.
 
-Compact windows group the two snapshot actions under **Send mix…**. **More
-sources…** adds an already loaded mix or aligned stem bank. Import, Undo/Redo,
+Select a waveform clip to open **Clip** timing, trims, level and fades. Select
+a track name for **Track** controls; **EQ** has its own target inspector. These
+three tabs keep the selected object's controls near the top of the sidebar.
+
+Compact windows group the two snapshot actions under **Send mix…**. **Track
+actions** adds an empty track after import, or copies an already loaded mix or
+aligned stem bank. Import, Undo/Redo,
 timeline controls and the separate delivery dock remain directly reachable.
+
+Dropped files and `--view tracks` use the independent-track review. Space plays
+the prepared timeline without requiring a legacy preview. [Studio pane
+ownership](NATIVE_STUDIO_NAVIGATION.md) pauses and restores the correct audio
+when switching tools; it preserves pending edits and never layers both players.
 
 ## Files and responsibilities
 
@@ -47,7 +57,8 @@ timeline controls and the separate delivery dock remain directly reachable.
   lanes, gestures and cached separate-channel source waveforms.
 - `arrangement_inspector`, `arrangement_clip_controls`, `arrangement_eq_*`:
   editable controls, applied effects and proposed/current filter responses.
-- `arrangement_actions`, `arrangement_loading`, `arrangement_events`:
+- `arrangement_import_actions`, `arrangement_preview_actions`,
+  `arrangement_project_actions`, `arrangement_loading`, `arrangement_events`:
   cancellable background actions and revision-checked admission.
 - `arrangement_runtime`, `arrangement_workspace`, `arrangement_transport`:
   workspace ownership, layout and audio-player synchronization.
@@ -76,3 +87,26 @@ attachments and committed current/undo/redo history. Later layout-only captures
 qualify the compact toolbar separately; they do not repeat the crash test.
 Audio tests use synthetic PCM. Physical-device listening and manual acceptance
 remain unqualified. This is not a claim of complete Audacity/DAW parity.
+
+
+## Reviewed interface captures
+
+![Native track editor with source-backed clips and focused properties](images/arrangement-desktop.png)
+
+[Full-size editor](images/arrangement-desktop.png) · [Compact editor](images/arrangement-compact.png).
+Click a clip for timing and source bounds; Track and EQ have separate inspectors.
+
+![Selected song section and the current EQ frequency response](images/arrangement-eq-desktop.png)
+
+[Full-size section EQ](images/arrangement-eq-desktop.png) · [Compact target controls](images/arrangement-eq-compact.png).
+The target summary specifies song time; the plot labels frequency and EQ gain in dB.
+
+<img src="images/arrangement-eq-scrolled-compact.png" width="680" alt="Compact editor scrolled to its labeled EQ curve while the active section and export dock remain visible">
+
+[Full-size compact EQ curve](images/arrangement-eq-scrolled-compact.png) · [Wide curve and gain control](images/arrangement-eq-scrolled-desktop.png).
+The target summary and delivery dock stay visible when the inspector scrolls.
+These actual Windows renderer images use generated CC0 test signals at logical
+1100×720 and 1480×940 with 125% DPI. An independent screenshot review verified
+readable controls, repaired lane EQ buttons and labeled curve axes. Separate
+widget tests verify field/curve reachability and pinned target/export geometry.
+Screenshots do not qualify physical playback or manual interaction acceptance.

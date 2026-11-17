@@ -93,21 +93,7 @@ pub(super) fn show(
             editor.refresh_eq();
         }
     }
-    let description = match base {
-        0 => "Whole song".to_owned(),
-        1 => editor
-            .selected_lane
-            .as_deref()
-            .and_then(|id| editor.document()?.lane(id).ok())
-            .map(|lane| format!("Track: {}", lane.name))
-            .unwrap_or_else(|| "Select a track".into()),
-        _ => editor
-            .selected_clip
-            .as_deref()
-            .map(|id| format!("Clip: {id}"))
-            .unwrap_or_else(|| "Select a clip".into()),
-    };
-    ui.label(egui::RichText::new(description).color(theme::BONE));
+    ui.label(egui::RichText::new(target_label(editor)).color(theme::BONE));
     if let Err(error) = editor.eq_target_spec() {
         ui.colored_label(theme::BONE, error.to_string());
         return Ok(None);
@@ -247,4 +233,50 @@ pub(super) fn show(
     }
     ui.small("Clip, track and whole-song effects combine. Use Bypass and Undo while comparing.");
     Ok(action)
+}
+
+/// Keep the active object and song-time selection visible without exposing internal IDs.
+pub(super) fn target_label(editor: &ArrangementEditor) -> String {
+    let Some(document) = editor.document() else {
+        return "Add audio to choose an EQ target".into();
+    };
+    let (base, ranged) = match editor.eq_target {
+        EqTarget::Mix => (0, false),
+        EqTarget::MixRange => (0, true),
+        EqTarget::Lane => (1, false),
+        EqTarget::LaneRange => (1, true),
+        EqTarget::Clip => (2, false),
+        EqTarget::ClipRange => (2, true),
+    };
+    let mut label = match base {
+        0 => if ranged { "Song section" } else { "Whole song" }.to_owned(),
+        1 => editor
+            .selected_lane
+            .as_deref()
+            .and_then(|id| document.lane(id).ok())
+            .map(|lane| format!("Track: {}", lane.name))
+            .unwrap_or_else(|| "Select a track".into()),
+        _ => editor
+            .selected_clip
+            .as_deref()
+            .and_then(|id| document.clip(id).ok())
+            .map(|clip| {
+                format!(
+                    "Clip: {}",
+                    clip.name
+                        .as_ref()
+                        .or_else(|| editor.asset_names.get(&clip.source_id))
+                        .map_or("Audio clip", String::as_str)
+                )
+            })
+            .unwrap_or_else(|| "Select a clip".into()),
+    };
+    if ranged && let Some(range) = editor.selection {
+        label.push_str(&format!(
+            " · {:.3}–{:.3} s in song",
+            range.start_frame as f64 / document.sample_rate as f64,
+            range.end_frame as f64 / document.sample_rate as f64
+        ));
+    }
+    label
 }

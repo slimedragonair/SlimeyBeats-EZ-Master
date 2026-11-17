@@ -32,6 +32,14 @@ pub(super) enum EqTarget {
     ClipRange,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) enum Inspector {
+    #[default]
+    Clip,
+    Track,
+    Eq,
+}
+
 pub(super) struct ArrangementEditor {
     pub history: Option<ArrangementHistory>,
     pub assets: AssetLibrary,
@@ -42,7 +50,7 @@ pub(super) struct ArrangementEditor {
     pub view_start: f64,
     pub view_end: f64,
     pub move_tool: bool,
-    pub eq_inspector: bool,
+    pub inspector: Inspector,
     pub eq_target: EqTarget,
     pub eq_bands: Vec<EqBand>,
     pub eq_output_db: f64,
@@ -71,7 +79,7 @@ impl Default for ArrangementEditor {
             view_start: 0.,
             view_end: 30.,
             move_tool: false,
-            eq_inspector: false,
+            inspector: Inspector::Clip,
             eq_target: EqTarget::Mix,
             eq_bands: default_eq(),
             eq_output_db: 0.,
@@ -130,7 +138,7 @@ impl ArrangementEditor {
             view_start: self.view_start,
             view_end: self.view_end,
             move_tool: self.move_tool,
-            eq_inspector: self.eq_inspector,
+            inspector: self.inspector,
             eq_target: self.eq_target,
             eq_bands: self.eq_bands.clone(),
             eq_output_db: self.eq_output_db,
@@ -245,6 +253,7 @@ impl ArrangementEditor {
         if let Some((lane, clip)) = last_selection {
             self.selected_lane = Some(lane);
             self.selected_clip = Some(clip);
+            self.inspector = Inspector::Clip;
         }
         self.epoch += 1;
         self.fit();
@@ -269,6 +278,9 @@ impl ArrangementEditor {
         };
         self.selected_lane = Some(lane.id.clone());
         self.selected_clip = Some(id.into());
+        if self.inspector != Inspector::Eq {
+            self.inspector = Inspector::Clip;
+        }
         self.selection = Some(selection);
         self.refresh_eq();
         Ok(())
@@ -294,6 +306,9 @@ impl ArrangementEditor {
                 })
             };
         self.selected_lane = Some(id.into());
+        if self.inspector != Inspector::Eq {
+            self.inspector = Inspector::Track;
+        }
         self.selected_clip = clip_id;
         self.selection = selection;
         self.refresh_eq();

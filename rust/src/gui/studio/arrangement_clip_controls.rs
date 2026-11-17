@@ -212,12 +212,5 @@ pub(super) fn show(
         Ok(())
     })
     .inner?;
-    if ui
-        .add(crystal_button::secondary("Delete track"))
-        .on_hover_text("Remove the selected track and its clips. Undo restores them.")
-        .clicked()
-    {
-        editor.apply(Edit::RemoveLane { lane_id })?;
-    }
     Ok(())
 }

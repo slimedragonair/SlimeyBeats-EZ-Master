@@ -89,34 +89,7 @@ impl MasterCraftApp {
                     .map(|f| f.path().to_path_buf())
                     .collect::<Vec<_>>()
             });
-            if !files.is_empty() {
-                let archives = files
-                    .iter()
-                    .filter(|path| {
-                        path.extension()
-                            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
-                    })
-                    .count();
-                if archives > 0 {
-                    self.activate_workspace(3);
-                    if files.len() == 1 {
-                        self.studio.prepare_stem_archive(files[0].clone(), &ctx);
-                    } else {
-                        self.studio.error = Some(
-                            "Drop one stem ZIP at a time, or choose multiple loose audio stems."
-                                .into(),
-                        );
-                    }
-                } else if self.tab == 3 && files.len() > 1 {
-                    self.studio.prepare_stem_files(files, &ctx);
-                } else if self.tab == 3 {
-                    if let Some(path) = files.into_iter().next() {
-                        self.studio.load(path, &ctx);
-                    }
-                } else {
-                    self.add_paths(files);
-                }
-            }
+            self.route_file_drop(files, &ctx);
         }
         let plain_space = ctx.input_mut(|input| {
             // egui 0.37 ignores extra Alt in logical shortcut matching, and
@@ -139,7 +112,11 @@ impl MasterCraftApp {
         {
             self.enforce_playback_owner();
             if self.tab == 3 {
-                if self.studio.current.is_some() {
+                if (self.studio.page == super::studio::state::Page::Tracks
+                    && self.studio.player.has_live_arrangement())
+                    || (self.studio.page != super::studio::state::Page::Tracks
+                        && self.studio.current.is_some())
+                {
                     self.studio.player.toggle();
                 }
             } else if self.current().is_some() {
@@ -250,6 +227,7 @@ impl MasterCraftApp {
                 arrangement_tracks: self.studio.arrangement_counts().0,
                 arrangement_clips: self.studio.arrangement_counts().1,
                 arrangement_effects: self.studio.arrangement_counts().2,
+                arrangement_eq_open: self.studio.arrangement_eq_open(),
                 recovery_saved: self.recovery.last_saved.is_some(),
                 recovery_enabled: self.recovery.preferences.enabled,
                 recovery_error: self.recovery.error.clone(),

@@ -1,4 +1,5 @@
 //! Multitrack center and selected clip/EQ inspector, retaining the app's native theme.
+use super::arrangement_state::Inspector;
 use super::{arrangement_eq_controls, arrangement_timeline, state::Studio};
 use crate::gui::{crystal_button, mastering_controls::format_label};
 use eframe::egui;
@@ -108,47 +109,75 @@ pub(super) fn sidebar(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Contex
             });
         });
     let enabled = !studio.busy();
+    let previous_inspector = studio.arrangement.editor.inspector;
     ui.horizontal_wrapped(|ui| {
-        ui.selectable_value(
-            &mut studio.arrangement.editor.eq_inspector,
-            false,
-            "Clip / track",
-        );
-        ui.selectable_value(&mut studio.arrangement.editor.eq_inspector, true, "EQ");
+        for (pane, label, tip) in [
+            (
+                Inspector::Clip,
+                "Clip",
+                "Timing, source trims, level and fades for the selected piece of audio.",
+            ),
+            (
+                Inspector::Track,
+                "Track",
+                "Name, level, balance, mute/solo and order for all clips on this track.",
+            ),
+            (
+                Inspector::Eq,
+                "EQ",
+                "Choose a whole mix, track, clip or selected time range before changing its EQ.",
+            ),
+        ] {
+            ui.selectable_value(&mut studio.arrangement.editor.inspector, pane, label)
+                .on_hover_text(tip);
+        }
     });
-    egui::ScrollArea::vertical()
+    if previous_inspector != studio.arrangement.editor.inspector
+        && let Err(error) = studio.arrangement.editor.commit_names()
+    {
+        studio.arrangement.editor.inspector = previous_inspector;
+        studio.error = Some(error.to_string());
+    }
+    if studio.arrangement.editor.inspector == Inspector::Eq {
+        let target = format!(
+            "EQ target: {}",
+            arrangement_eq_controls::target_label(&studio.arrangement.editor)
+        );
+        ui.add(egui::Label::new(egui::RichText::new(&target).small()).truncate())
+            .on_hover_text(&target);
+    }
+    let mut inspector_scroll = egui::ScrollArea::vertical()
         .id_salt("arrangement-inspector")
-        .auto_shrink([false, false])
-        .show(ui, |ui| {
-            ui.set_max_width((ui.available_width() - 1. / ui.pixels_per_point()).max(1.));
-            ui.add_enabled_ui(enabled, |ui| {
-                if studio
-                    .bulk_import
-                    .as_ref()
-                    .is_some_and(super::stem_bulk_import::Review::is_arrangement)
-                {
-                    super::stem_bulk_import::actions(studio, ui, ctx);
-                } else if studio.arrangement.editor.eq_inspector {
-                    match arrangement_eq_controls::show(
-                        &mut studio.arrangement.editor,
-                        ui,
-                        advanced,
-                    ) {
-                        Ok(Some(arrangement_eq_controls::Action::Suggest(target))) => {
-                            studio.suggest_arrangement_eq(target, ctx)
-                        }
-                        Ok(None) => {}
-                        Err(error) => studio.error = Some(error.to_string()),
+        .auto_shrink([false, false]);
+    if let Some(offset) = studio.arrangement.capture_inspector_scroll {
+        inspector_scroll = inspector_scroll.vertical_scroll_offset(offset);
+    }
+    inspector_scroll.show(ui, |ui| {
+        ui.set_max_width((ui.available_width() - 1. / ui.pixels_per_point()).max(1.));
+        ui.add_enabled_ui(enabled, |ui| {
+            if studio
+                .bulk_import
+                .as_ref()
+                .is_some_and(super::stem_bulk_import::Review::is_arrangement)
+            {
+                super::stem_bulk_import::actions(studio, ui, ctx);
+            } else if studio.arrangement.editor.inspector == Inspector::Eq {
+                match arrangement_eq_controls::show(&mut studio.arrangement.editor, ui, advanced) {
+                    Ok(Some(arrangement_eq_controls::Action::Suggest(target))) => {
+                        studio.suggest_arrangement_eq(target, ctx)
                     }
-                } else if let Err(error) = super::arrangement_inspector::show(
-                    &mut studio.arrangement.editor,
-                    ui,
-                    studio.player.seconds(),
-                ) {
-                    studio.error = Some(error.to_string());
+                    Ok(None) => {}
+                    Err(error) => studio.error = Some(error.to_string()),
                 }
-            });
+            } else if let Err(error) = super::arrangement_inspector::show(
+                &mut studio.arrangement.editor,
+                ui,
+                studio.player.seconds(),
+            ) {
+                studio.error = Some(error.to_string());
+            }
         });
+    });
 }
 
 fn sync(studio: &mut Studio, ctx: &egui::Context) {

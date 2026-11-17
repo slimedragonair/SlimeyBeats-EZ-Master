@@ -28,7 +28,7 @@ fn curve(bands: &[EqBand], gain: f64, rate: u32, trace: Rect, upper: f64) -> Vec
 }
 
 pub(super) fn show(editor: &ArrangementEditor, ui: &mut egui::Ui, rate: u32) {
-    ui.small("Selected target · EQ response");
+    ui.small("EQ response · gain / dB");
     ui.horizontal_wrapped(|ui| {
         ui.colored_label(theme::SLIME, "Current");
         if editor.eq_proposal.is_some() {
@@ -42,7 +42,7 @@ pub(super) fn show(editor: &ArrangementEditor, ui: &mut egui::Ui, rate: u32) {
     let painter = ui.painter().with_clip_rect(rect);
     painter.rect_filled(rect, 5., Color32::from_rgb(19, 15, 27));
     let trace = Rect::from_min_max(
-        rect.min + egui::vec2(5., 8.),
+        rect.min + egui::vec2(25., 8.),
         rect.max - egui::vec2(5., 23.),
     );
     let upper = 20_000_f64.min(rate as f64 * 0.49);
@@ -51,6 +51,17 @@ pub(super) fn show(editor: &ArrangementEditor, ui: &mut egui::Ui, rate: u32) {
         painter.line_segment(
             [Pos2::new(trace.left(), y), Pos2::new(trace.right(), y)],
             Stroke::new(0.7, theme::MUTED.gamma_multiply(0.35)),
+        );
+        painter.text(
+            Pos2::new(trace.left() - 3., y),
+            Align2::RIGHT_CENTER,
+            if db == 0. {
+                "0".into()
+            } else {
+                format!("{db:+.0}")
+            },
+            FontId::proportional(10.),
+            theme::MUTED,
         );
     }
     for frequency in [100., 1000., 10_000.] {

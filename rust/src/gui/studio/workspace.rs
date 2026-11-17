@@ -52,7 +52,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
                 )
                 .clicked()
             {
-                studio.page = page;
+                studio.activate_page(page, ctx);
                 studio.doctor.visible = false;
             }
         }
@@ -64,7 +64,7 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             .on_hover_text("Stem Doctor · scan the selected audio, inspect findings and preview supported repairs")
             .clicked()
         {
-            studio.page = Page::Repair;
+            studio.activate_page(Page::Repair, ctx);
             studio.doctor.visible = true;
         }
     };

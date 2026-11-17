@@ -134,6 +134,7 @@ pub(super) struct CaptureState {
     pub arrangement_tracks: usize,
     pub arrangement_clips: usize,
     pub arrangement_effects: usize,
+    pub arrangement_eq_open: bool,
 }
 
 pub(super) struct UiCapture {

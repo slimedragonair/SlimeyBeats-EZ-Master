@@ -1,4 +1,5 @@
 //! Native workspace state and worker-result admission; DSP and assets remain shared.
+use super::arrangement_state::Inspector;
 use super::{
     arrangement_gestures::Gesture,
     arrangement_state::ArrangementEditor,
@@ -30,8 +31,13 @@ pub(super) struct NativeArrangement {
     pub rendered_audio: Option<Arc<Audio>>,
     pub promote: bool,
     pub position: f64,
+    pub after: bool,
+    pub legacy_position: f64,
+    pub legacy_after: bool,
     pub profile: String,
     pub saved_epoch: Option<u64>,
+    pub capture_eq_on_load: bool,
+    pub capture_inspector_scroll: Option<f32>,
 }
 impl Default for NativeArrangement {
     fn default() -> Self {
@@ -50,8 +56,13 @@ impl Default for NativeArrangement {
             rendered_audio: None,
             promote: false,
             position: 0.,
+            after: true,
+            legacy_position: 0.,
+            legacy_after: true,
             profile: "neutral".into(),
             saved_epoch: None,
+            capture_eq_on_load: false,
+            capture_inspector_scroll: None,
         }
     }
 }
@@ -152,6 +163,19 @@ impl NativeArrangement {
 }
 
 impl super::state::Studio {
+    #[doc(hidden)]
+    pub fn capture_arrangement_inspector_at(&mut self, offset: f32) {
+        self.arrangement.capture_inspector_scroll = Some(offset.max(0.));
+    }
+    /// Renderer verification only; inspect a validated project without changing its recipe.
+    #[doc(hidden)]
+    pub fn capture_arrangement_eq_on_load(&mut self) {
+        self.arrangement.capture_eq_on_load = true;
+    }
+    pub(in crate::gui) fn arrangement_eq_open(&self) -> bool {
+        self.page == super::state::Page::Tracks
+            && (self.arrangement.editor.inspector == Inspector::Eq)
+    }
     pub(in crate::gui) fn arrangement_counts(&self) -> (usize, usize, usize) {
         self.arrangement
             .editor

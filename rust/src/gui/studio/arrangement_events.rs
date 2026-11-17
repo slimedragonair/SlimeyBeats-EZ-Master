@@ -1,4 +1,5 @@
 //! Publish only a current, fully prepared arrangement revision; stale work stays private.
+use super::arrangement_state::Inspector;
 use super::{
     arrangement_runtime::Change,
     state::{LoadedSource, Page, Revision, Studio, Target},
@@ -26,6 +27,7 @@ impl Studio {
                         "The timeline changed while importing. The current session was preserved."
                     );
                     let loaded = ready.loaded_project;
+                    self.remember_legacy_playback();
                     let playback = self
                         .player
                         .load_arrangement(ready.reference.clone(), ready.player);
@@ -54,6 +56,23 @@ impl Studio {
                     self.arrangement.saved_epoch = loaded.then_some(self.arrangement.editor.epoch);
                     self.bulk_import = None;
                     self.page = Page::Tracks;
+                    if std::mem::take(&mut self.arrangement.capture_eq_on_load) {
+                        let effect = self
+                            .arrangement
+                            .editor
+                            .document()
+                            .and_then(|document| document.eq.first())
+                            .cloned();
+                        if let Some(effect) = effect {
+                            super::arrangement_eq_effects::select(
+                                &mut self.arrangement.editor,
+                                &effect,
+                            )?;
+                        } else {
+                            self.arrangement.editor.inspector = Inspector::Eq;
+                            self.arrangement.editor.refresh_eq();
+                        }
+                    }
                     self.player.controls.after.store(true, Ordering::Relaxed);
                     self.player.controls.matched.store(false, Ordering::Relaxed);
                     if let Err(error) = playback {
@@ -73,10 +92,14 @@ impl Studio {
                         epoch == self.arrangement.editor.epoch && self.page == Page::Tracks,
                         "Playback preparation belongs to an older timeline or workspace"
                     );
+                    self.remember_legacy_playback();
                     self.player.load_arrangement(reference.clone(), *player)?;
                     self.arrangement.reference = Some(reference);
                     self.arrangement.sent_epoch = Some(epoch);
-                    self.player.controls.after.store(true, Ordering::Relaxed);
+                    self.player
+                        .controls
+                        .after
+                        .store(self.arrangement.after, Ordering::Relaxed);
                     self.player.controls.matched.store(false, Ordering::Relaxed);
                     self.player.seek(self.arrangement.position);
                     self.status = "Timeline listening ready. Press Play to audition.".into();

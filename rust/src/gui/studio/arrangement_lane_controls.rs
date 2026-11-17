@@ -1,4 +1,5 @@
 //! Two bounded header rows keep track selection, EQ, mute and solo visible.
+use super::arrangement_state::Inspector;
 use super::arrangement_state::{ArrangementEditor, EqTarget};
 use crate::studio::arrangement::Edit;
 use anyhow::{Context, Result};
@@ -24,6 +25,7 @@ pub(super) fn show(editor: &mut ArrangementEditor, ui: &mut egui::Ui, lane_id: &
             .clicked()
         {
             editor.select_lane(lane_id)?;
+            editor.inspector = Inspector::Track;
         }
         if ui
             .small_button("EQ")
@@ -32,7 +34,7 @@ pub(super) fn show(editor: &mut ArrangementEditor, ui: &mut egui::Ui, lane_id: &
         {
             editor.select_lane(lane_id)?;
             editor.eq_target = EqTarget::Lane;
-            editor.eq_inspector = true;
+            editor.inspector = Inspector::Eq;
             editor.refresh_eq();
         }
         Ok(())

@@ -34,6 +34,8 @@ struct Arguments {
     studio_four_stems: bool,
     #[arg(long, hide = true)]
     capture_ui: Option<PathBuf>,
+    #[arg(long, hide = true, requires_all = ["capture_ui", "studio_session"], conflicts_with = "capture_doctor")]
+    capture_arrangement_eq: bool,
     /// Load and scan synthetic diagnostic audio before capturing the Doctor page.
     #[arg(long, hide = true, requires_all = ["capture_ui", "recovery_data", "files"],
         conflicts_with_all = ["session", "studio_session", "auto_master", "studio_action", "capture_learning", "capture_restore_recovery", "capture_wait_recovery", "capture_stay_open", "capture_save_settings"])]
@@ -115,7 +117,9 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(move |cc| {
-            let queue_files = if studio_archive || (args.view == "stems" && studio_inputs.len() > 1)
+            let queue_files = if studio_archive
+                || args.view == "tracks"
+                || (args.view == "stems" && studio_inputs.len() > 1)
             {
                 vec![]
             } else {
@@ -155,6 +159,9 @@ fn main() -> eframe::Result {
             if let Some(project) = args.studio_session {
                 app.tab = 3;
                 app.studio.load_project(project, &cc.egui_ctx);
+                if args.capture_arrangement_eq {
+                    app.studio.capture_arrangement_eq_on_load();
+                }
             }
             if app.tab == 3 {
                 use mastercraft::gui::studio::state::{AutoAction, Page};
@@ -177,7 +184,10 @@ fn main() -> eframe::Result {
                     _ => AutoAction::Separate,
                 });
                 if let Some(path) = studio_source {
-                    if studio_archive {
+                    if app.studio.page == Page::Tracks {
+                        app.studio.auto_action = None;
+                        app.studio.prepare_track_files(studio_inputs, &cc.egui_ctx);
+                    } else if studio_archive {
                         app.studio.auto_action = None;
                         app.studio.prepare_stem_archive(path, &cc.egui_ctx);
                     } else if studio_inputs.len() > 1 && app.studio.page == Page::Stems {
@@ -207,6 +217,7 @@ fn main() -> eframe::Result {
             }
             if let Some(offset) = args.capture_settings_scroll {
                 app.capture_settings_at(offset as f32);
+                app.studio.capture_arrangement_inspector_at(offset as f32);
             }
             if let Some(offset) = args.capture_workspace_scroll {
                 app.capture_workspace_at(offset as f32);

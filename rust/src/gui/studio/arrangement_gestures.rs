@@ -1,5 +1,5 @@
 //! A pointer gesture previews metadata and commits one undo step on release.
-use super::arrangement_state::{ArrangementEditor, EqTarget};
+use super::arrangement_state::{ArrangementEditor, EqTarget, Inspector};
 use crate::studio::arrangement::{Clip, Edit, FrameRange};
 use anyhow::Result;
 use eframe::egui::{self, Pos2, Rect};
@@ -29,6 +29,7 @@ pub(super) struct SelectionSnapshot {
     range: Option<FrameRange>,
     target: EqTarget,
     effect: Option<String>,
+    inspector: Inspector,
 }
 impl SelectionSnapshot {
     pub fn capture(editor: &ArrangementEditor) -> Self {
@@ -38,6 +39,7 @@ impl SelectionSnapshot {
             range: editor.selection,
             target: editor.eq_target,
             effect: editor.eq_id.clone(),
+            inspector: editor.inspector,
         }
     }
     fn restore(self, editor: &mut ArrangementEditor) {
@@ -46,6 +48,7 @@ impl SelectionSnapshot {
         editor.selection = self.range;
         editor.eq_target = self.target;
         editor.eq_id = self.effect;
+        editor.inspector = self.inspector;
         editor.refresh_eq();
     }
 }

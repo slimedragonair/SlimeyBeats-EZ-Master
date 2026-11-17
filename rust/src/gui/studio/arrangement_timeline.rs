@@ -1,4 +1,5 @@
 //! Virtualized clip lanes with source-offset waveforms and independent move/select gestures.
+use super::arrangement_state::Inspector;
 use super::{
     arrangement_gestures::{self, Gesture, Kind, SelectionSnapshot},
     arrangement_state::{ArrangementEditor, EqTarget},
@@ -75,7 +76,7 @@ pub(super) fn show(
         }
         if ui.add(crystal_button::secondary("Mix EQ")).clicked() {
             editor.eq_target = EqTarget::Mix;
-            editor.eq_inspector = true;
+            editor.inspector = Inspector::Eq;
             editor.refresh_eq();
         }
     });
@@ -176,7 +177,7 @@ pub(super) fn show(
                         if excluded { theme::MUTED } else { Color32::from_rgb(208, 169, 239) });
                     let response = ui.interact(rect, ui.make_persistent_id(("arrangement-clip", &clip.id)), Sense::click_and_drag())
                         .on_hover_text(format!("{title}\nDrag title to move; edges trim; waveform selects a section. Right-click for clip actions."));
-                    if response.clicked() { editor.select_clip(&clip.id)?; editor.eq_inspector = false; }
+                    if response.clicked() { editor.select_clip(&clip.id)?; editor.inspector = Inspector::Clip; }
                     if response.drag_started() && let Some(pointer) = ui.input(|input| input.pointer.press_origin()) {
                         let previous_selection = SelectionSnapshot::capture(editor);
                         editor.select_clip(&clip.id)?;
@@ -191,7 +192,7 @@ pub(super) fn show(
                     response.context_menu(|ui| {
                         if ui.button("EQ this clip").clicked() {
                             menu_result = editor.select_clip(&clip.id);
-                            if menu_result.is_ok() { editor.eq_target = EqTarget::Clip; editor.eq_inspector = true; editor.refresh_eq(); }
+                            if menu_result.is_ok() { editor.eq_target = EqTarget::Clip; editor.inspector = Inspector::Eq; editor.refresh_eq(); }
                             ui.close();
                         }
                         if ui.button("Delete clip").clicked() {
