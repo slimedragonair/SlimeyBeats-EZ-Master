@@ -75,6 +75,11 @@ def verify(server, fixture, codecs):
             arrangement_help = json.dumps(client.call("get_help", {"topic": "arrangement"}))
             for term in ("SOURCE frames", "PROJECT frames", "exclude_eq_id", "immutable", "render_arrangement"):
                 assert term in arrangement_help, term
+            assert "BEFORE loading the next" in arrangement_help and "remain owned" in arrangement_help
+            scoped = client.call("get_help", {"topic": "arrangement"})["example_set_eq"]["arguments"]["edits"][0]["effect"]
+            assert len(scoped["bands"]) == 7 and scoped["bands"][-1]["freq"] == 10000 and scoped["bands"][-1]["gain"] == -6
+            assert scoped["range"] == {"start_frame": 48000, "end_frame": 96000}
+            assert "edit_arrangement" in client.call("get_help", {"topic": "eq"})["arrangement"]
             assert "do not connect" in client.call("get_help", {"topic": "hybrid"})["local_companion"]
             # Some hosts consume text content instead of structuredContent.
             raw = client.request("tools/call", {"name": "get_help", "arguments": {}})["result"]

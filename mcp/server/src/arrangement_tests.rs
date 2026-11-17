@@ -201,3 +201,36 @@ fn fresh_discovery_advertises_arrangement_without_the_old_global_exclusion() {
     );
     assert_eq!(caps["arrangement"]["typed_metadata_edits"], true);
 }
+
+#[test]
+fn arrangement_help_has_a_typed_complete_scoped_eq_and_sequential_source_loop() {
+    let help = crate::arrangement_help::get();
+    let example: crate::arrangement_arguments::EditArrangement =
+        serde_json::from_value(help["example_set_eq"]["arguments"].clone()).unwrap();
+    let mastercraft::studio::arrangement::Edit::SetEq { effect } = &example.edits[0] else {
+        panic!("Expected an actual scoped EQ edit");
+    };
+    assert_eq!(effect.bands.len(), 7);
+    assert_eq!(effect.bands[6].freq, 10000.0);
+    assert_eq!(effect.bands[6].gain, -6.0);
+    assert!(effect.bands[..6].iter().all(|band| band.gain == 0.0));
+    assert_eq!(effect.range.unwrap().start_frame, 48000);
+    assert_eq!(effect.range.unwrap().end_frame, 96000);
+    let guidance = help.to_string();
+    for term in [
+        "BEFORE loading the next",
+        "remain owned",
+        "144000",
+        "192000",
+        "EXACT same scope and range",
+        "no master_preview",
+    ] {
+        assert!(guidance.contains(term), "Missing {term}");
+    }
+    assert!(
+        crate::help::get(crate::help::Topic::Eq)["arrangement"]
+            .as_str()
+            .unwrap()
+            .contains("edit_arrangement")
+    );
+}

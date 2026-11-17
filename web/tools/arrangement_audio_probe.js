@@ -1,10 +1,32 @@
 async () => {
     const assert = (condition, message) => { if (!condition) throw new Error(message); };
-    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
     const OriginalNode = AudioWorkletNode;
-    let sink, context, chunks = [];
+    const options = globalThis.arrangementAudioProbeOptions || {};
+    const diagnostics = globalThis.arrangementAudioProbeDiagnostics = {
+        phase: "setup", waits: [], context_states: [], sink_messages: {}, errors: [], capture_blocks: 0,
+    };
+    let sink, context, capture, source, pending, header, nextWindow = 0;
+    const snapshot = () => ({ state: context?.state, clock: context?.currentTime,
+        rate: context?.sampleRate, playing: source?.playing, side: source?.side,
+        position_frame: source?.positionFrame(), sink_frame: diagnostics.sink_frame,
+        capture_blocks: diagnostics.capture_blocks, capture_status: diagnostics.capture_status });
+    function failure(message) {
+        diagnostics.errors.push(message);
+        pending?.finish(new Error(message));
+    }
     globalThis.AudioWorkletNode = class extends OriginalNode {
-        constructor(ctx, name, options) { super(ctx, name, options); if (name === "arrangement-sink") { sink = this; context = ctx; } }
+        constructor(ctx, name, settings) {
+            super(ctx, name, settings);
+            if (name === "arrangement-sink") {
+                sink = this; context = ctx;
+                ctx.addEventListener("statechange", () => diagnostics.context_states.push({ state: ctx.state, clock: ctx.currentTime }));
+                this.addEventListener("processorerror", () => failure("Arrangement sink processor failed"));
+                this.port.addEventListener("message", ({ data }) => {
+                    diagnostics.sink_messages[data.kind] = (diagnostics.sink_messages[data.kind] || 0) + 1;
+                    diagnostics.sink_frame = data.frame;
+                });
+            }
+        }
     };
     const { createArrangementAdapter } = await import("./arrangement-adapter.js");
     const changes = [], adapter = createArrangementAdapter({ onChange: value => changes.push(value.revision) });
@@ -18,17 +40,55 @@ async () => {
         for (let i = 0; i < frames; i++) view.setInt16(44 + i * 2, Math.round(32767 * amplitude * Math.sin(2 * Math.PI * frequency * i / rate)), true);
         return bytes;
     }
-    async function rms() {
-        chunks = []; await sleep(260);
-        const values = chunks.flatMap(chunk => Array.from(chunk));
-        assert(values.length > 4096, "Actual AudioWorklet PCM capture is missing");
-        assert(values.every(Number.isFinite), "Nonfinite worklet output");
-        return Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
+    function receive({ data }) {
+        if (!(data instanceof Float32Array)) {
+            diagnostics.capture_status = data;
+            if (data.kind === "pcm") header = data;
+            return;
+        }
+        diagnostics.capture_blocks++;
+        if (!pending || header?.window !== pending.id) return;
+        if (header.first_frame < pending.firstFrame) return;
+        if (header.rate !== context.sampleRate || header.channels !== 2 ||
+            data.length !== (header.end_frame - header.first_frame) * 2 ||
+            (pending.lastFrame !== null && pending.lastFrame !== header.first_frame)) {
+            failure("Invalid or discontinuous actual worklet capture geometry"); return;
+        }
+        if (!data.every(Number.isFinite)) { failure("Nonfinite worklet output"); return; }
+        pending.lastFrame = header.end_frame;
+        pending.chunks.push(data); pending.samples += data.length;
+        // Three complete 4096-frame blocks, independent of host scheduling.
+        if (pending.samples >= 3 * 8192) pending.finish();
+    }
+    async function rms(label) {
+        diagnostics.phase = label;
+        assert(!diagnostics.errors.length, diagnostics.errors.join("; "));
+        const id = ++nextWindow, start = performance.now(), clock = context.currentTime;
+        const firstFrame = Math.ceil(clock * context.sampleRate) + Math.ceil(context.sampleRate * 0.2);
+        const detail = { label, start: snapshot(), not_before_frame: firstFrame };
+        diagnostics.waits.push(detail);
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => pending?.finish(new Error(
+                `Actual AudioWorklet PCM capture is missing before bounded deadline: ${JSON.stringify(snapshot())}`
+            )), options.pcmTimeoutMs || 10000);
+            pending = { id, firstFrame, lastFrame: null, chunks: [], samples: 0,
+                finish(error) {
+                    clearTimeout(timer);
+                    const completed = pending; pending = null;
+                    detail.wall_ms = performance.now() - start; detail.end = snapshot();
+                    detail.samples = completed.samples; detail.last_frame = completed.lastFrame;
+                    if (error) { detail.error = error.message; reject(error); return; }
+                    const values = completed.chunks.flatMap(chunk => Array.from(chunk));
+                    detail.rms = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
+                    resolve(detail.rms);
+                } };
+            capture.port.postMessage({ kind: "measure", id, notBeforeFrame: firstFrame });
+        });
     }
     try {
         let state = await adapter.read();
         assert(state.defaults.bands.length === 7, "Shared EQ defaults missing");
-        const source = await adapter.previewSource({ expectedRevision: 0 });
+        source = await adapter.previewSource({ expectedRevision: 0 });
         assert(source.duration_frames === 0 && !source.playing, "Empty real transport did not prepare");
         const review = await adapter.reviewImport([
             new File([wav(48000, 48000 * 12, 220, 0.1)], "Repeated.wav"),
@@ -63,25 +123,34 @@ async () => {
         assert(stale, "Stale metadata transaction was accepted");
         await source.play();
         await context.audioWorklet.addModule("./arrangement_audio_capture.js");
-        const capture = new OriginalNode(context, "arrangement-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
-        capture.port.onmessage = ({ data }) => chunks.push(data);
+        capture = new OriginalNode(context, "arrangement-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+        capture.port.onmessage = receive;
+        capture.port.onmessageerror = () => failure("Arrangement capture message failed");
+        capture.addEventListener("processorerror", () => failure("Arrangement capture processor failed"));
         sink.connect(capture); capture.connect(context.destination);
-        await sleep(180); const baseline = await rms();
+        const baseline = await rms("baseline");
         assert(baseline > 0.06 && baseline < 0.08, `Incorrect real PCM level ${baseline}`);
-        const beforeFrame = source.positionFrame();
+        const beforeFrame = source.positionFrame(), beforeSinkFrame = diagnostics.sink_frame;
+        const beforeResets = diagnostics.sink_messages.reset;
         state = await adapter.edit({ kind: "set_lane", lane_id: lane.id, gain_db: -6 }, { expectedRevision: state.revision });
         await adapter.previewSource({ expectedRevision: state.revision });
-        assert(source.playing && source.positionFrame() >= beforeFrame, "Live gain restarted or paused playback");
-        await sleep(200); const quiet = await rms();
+        assert(source.playing, "Live gain paused playback");
+        const quiet = await rms("live_gain");
+        // UI positions extrapolate between worklet clock messages and can be
+        // corrected backwards by a quantum. Observe a full fresh PCM window and
+        // require the actual sink to advance without any queue/seek reset.
+        assert(source.playing && source.positionFrame() >= beforeFrame &&
+            diagnostics.sink_frame >= beforeSinkFrame && diagnostics.sink_messages.reset === beforeResets,
+            "Live gain restarted or paused playback");
         assert(quiet / baseline > 0.47 && quiet / baseline < 0.54, `Live core gain ratio ${quiet / baseline}`);
         const identity = source.identity, duration = source.duration_frames;
         await source.choose("before"); assert(source.playing, "Running A/B did not preserve running state");
         assert(source.identity === identity && source.duration_frames === duration, "A/B changed B revision identity/layout");
-        await sleep(200); const before = await rms();
+        const before = await rms("before");
         assert(before / baseline > 0.95 && before / baseline < 1.05, "A is not before last edit");
         source.pause(); await source.choose("after"); assert(!source.playing, "Paused A/B autostarted");
         await source.seekFrame(48000); assert(source.positionFrame() === 48000, "Exact frame seek failed");
-        await source.play(); source.stop(); await sleep(180); const silence = await rms();
+        await source.play(); source.stop(); const silence = await rms("stop");
         assert(silence === 0 && !source.playing && source.positionFrame() === 0, "Stop did not stay silent");
         const after = await adapter.assetWav(sourceId);
         assert(original.length === after.length && original.every((byte, i) => byte === after[i]), "Source PCM changed after live editing");
@@ -140,5 +209,8 @@ async () => {
             baseline_rms: baseline, live_gain_ratio: quiet / baseline, before_ratio: before / baseline, stop_rms: silence, metadata_events: changes.length, zip_single_source: true, zip_unsafe_rejected: true,
             project_roundtrip: true, project_fresh_worker: true, project_corrupt_preserved: true, project_restored_undo: true,
             mp3_verified_delivery: true, mp3_rms: mp3Rms, mp3_frames: decodedMp3.length };
-    } finally { adapter.clear(); globalThis.AudioWorkletNode = OriginalNode; }
+    } finally {
+        diagnostics.final = snapshot();
+        capture?.disconnect(); adapter.clear(); globalThis.AudioWorkletNode = OriginalNode;
+    }
 }

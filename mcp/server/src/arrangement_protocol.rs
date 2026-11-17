@@ -20,9 +20,10 @@ impl Companion {
         + Send
         + 'static,
     ) -> Result<Json<Value>, String> {
-        let selected = (|| -> anyhow::Result<_> {
-            Ok(self.engine.lock()?.arrangements.selected(&id, revision)?)
-        })();
+        let selected = self
+            .engine
+            .lock()
+            .and_then(|store| store.arrangements.selected(&id, revision));
         let session = match selected {
             Ok(value) => value,
             Err(error) => return self.response(Err(error)),
