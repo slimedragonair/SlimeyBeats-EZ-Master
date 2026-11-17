@@ -56,6 +56,7 @@ async () => {
         }
         if (!data.every(Number.isFinite)) { failure("Nonfinite worklet output"); return; }
         pending.lastFrame = header.end_frame;
+        pending.blocks.push({ ...header });
         pending.chunks.push(data); pending.samples += data.length;
         // Three complete 4096-frame blocks, independent of host scheduling.
         if (pending.samples >= 3 * 8192) pending.finish();
@@ -71,14 +72,26 @@ async () => {
             const timer = setTimeout(() => pending?.finish(new Error(
                 `Actual AudioWorklet PCM capture is missing before bounded deadline: ${JSON.stringify(snapshot())}`
             )), options.pcmTimeoutMs || 10000);
-            pending = { id, firstFrame, lastFrame: null, chunks: [], samples: 0,
+            pending = { id, firstFrame, lastFrame: null, blocks: [], chunks: [], samples: 0,
                 finish(error) {
                     clearTimeout(timer);
                     const completed = pending; pending = null;
                     detail.wall_ms = performance.now() - start; detail.end = snapshot();
                     detail.samples = completed.samples; detail.last_frame = completed.lastFrame;
-                    if (error) { detail.error = error.message; reject(error); return; }
                     const values = completed.chunks.flatMap(chunk => Array.from(chunk));
+                    detail.raw_pcm = values;
+                    detail.blocks = completed.blocks;
+                    detail.zero_runs = [];
+                    let zeroStart = null;
+                    for (let frame = 0; frame <= values.length / 2; frame++) {
+                        const silent = frame < values.length / 2 && values[frame * 2] === 0 && values[frame * 2 + 1] === 0;
+                        if (silent && zeroStart === null) zeroStart = frame;
+                        if (!silent && zeroStart !== null) {
+                            if (frame - zeroStart > 1) detail.zero_runs.push({ offset_frame: zeroStart, frames: frame - zeroStart });
+                            zeroStart = null;
+                        }
+                    }
+                    if (error) { detail.error = error.message; reject(error); return; }
                     detail.rms = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
                     resolve(detail.rms);
                 } };

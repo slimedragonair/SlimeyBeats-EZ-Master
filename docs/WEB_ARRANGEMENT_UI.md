@@ -195,6 +195,16 @@ nonzero exit is expected. Failure reports retain context-clock, capture-window
 and sink diagnostics. These results do not establish that the failed hosted CI
 job has passed; that requires a run containing the updated probe.
 
+The later `cf11c55` CI run recorded a WebKit gain ratio of 0.573886, outside
+the unchanged 0.47–0.54 assertion, after a low baseline measurement. A focused
+WebKit rerun passed at 0.501236 with Stop RMS zero; this does not explain the
+CI failure. The probe now saves raw Float32 PCM, block geometry and zero-run
+diagnostics so another failure can be inspected without guessing from RMS.
+The separate browser workflow also timed out downloading a restored stem ZIP
+in Firefox. Its unchanged focused and full Firefox recovery reruns passed
+16 groups on the final gated build. No cause or product fix is claimed for
+either intermittent failure; subsequent CI results remain separate evidence.
+
 ## Local editor files
 
 These files implement and validate the local interface. Adapter, WASM, shared
