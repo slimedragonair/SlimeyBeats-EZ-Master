@@ -136,7 +136,7 @@ jobs:
   # Preserve the required-check name. Fail on any failed/cancelled/skipped shard.
   browser:
     needs: [scope, build, browser-shards]
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.arrangement == 'true')
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.arrangement != 'false')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:

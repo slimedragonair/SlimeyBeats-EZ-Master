@@ -143,7 +143,7 @@ jobs:
       - scope
       - build
       - shards
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.web == 'true')
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.web != 'false')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

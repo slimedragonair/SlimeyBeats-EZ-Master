@@ -48,6 +48,16 @@ class ShardTests(unittest.TestCase):
                 self.assertEqual(cmd[cmd.index('--cli')+1], 'rust/target/release/slimeybeats-ez-master-cli')
                 self.assertEqual(cmd[cmd.index('--worker')+1], 'rust/target/release/slimeybeats_hybrid_worker')
 
+    def test_aggregate_only_skips_an_explicit_successful_out_of_scope_result(self):
+        root = Path(__file__).resolve().parents[2]
+        for filename, scope in [('web.yml', 'web'), ('arrangement.yml', 'arrangement')]:
+            workflow = (root/'.github/workflows'/filename).read_text()
+            self.assertIn(f"if: always() && (needs.scope.result != 'success' || needs.scope.outputs.{scope} != 'false')", workflow)
+            for result in ['success', 'failure', 'cancelled', 'skipped']:
+                for output in ['true', 'false', '', 'unexpected']:
+                    should_run = result != 'success' or output != 'false'
+                    self.assertEqual(not should_run, result == 'success' and output == 'false')
+
     def test_native_stream_runs_on_its_original_default_engine(self):
         root = Path(__file__).resolve().parents[2]
         workflow = (root/'.github/workflows/arrangement.yml').read_text()
