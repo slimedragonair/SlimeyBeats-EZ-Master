@@ -147,3 +147,22 @@ test("arrangement capacity preserves safe code and bounded retry timing without 
         });
     }
 });
+
+
+test("maintenance gate preserves 503 and safe retry guidance", async () => {
+    let connected = false;
+    const client = new ServerClient({ pageUrl, fetchImpl: async () => {
+        if (!connected) { connected = true; return new Response(JSON.stringify(CAPS), { headers: { "Content-Type": "application/json" } }); }
+        return new Response(JSON.stringify({ error: "maintenance_draining", detail: "PRIVATE-TOKEN" }), {status: 503, headers: {"Content-Type": "application/json", "Retry-After": "60"}});
+    }});
+    await client.connect("https://api.slimedragon.net", "owner-token");
+    await assert.rejects(client.remoteRequest("/v2/projects", {method: "POST", body: {}}), error => {
+        assert.equal(error.status, 503);
+        assert.equal(error.code, "maintenance_draining");
+        assert.equal(error.serverQuota, false);
+        assert.equal(error.retryAfterSeconds, 60);
+        assert.match(error.message, /maintenance/);
+        assert.doesNotMatch(error.message, /PRIVATE-TOKEN/);
+        return true;
+    });
+});
