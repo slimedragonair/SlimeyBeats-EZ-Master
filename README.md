@@ -10,33 +10,21 @@
 
 **Local song mastering. Real-time EQ. Your music stays yours.**
 
-**[Open Hybrid Studio v2](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/):** the main web app includes optional server processing; publication follows its successful browser workflow. With **Server processing** selected, normal imports upload the **original file**; Analyze, Master, supported heavy Studio tools and full-resolution exports run on the server. A/B, live EQ and faders use compressed listening streams (**192 kbps MP3 by default**). Source admission is **one hour / 2 GiB encoded and decoded per input**, subject to working-memory/disk quotas; neural separation retains **512 MiB decoded PCM**. Projects last at most **one hour**: download an export/session ZIP before leaving; local recovery does not save streamed projects. Local mode and desktop MCP remain local. [Workflow and limits](docs/HYBRID_STUDIO.md) · [Validation and device gaps](docs/HYBRID_V2_VALIDATION.md) · [v2 protocol](docs/HYBRID_REMOTE_PROTOCOL.md) · [Measured speed](hybrid/deploy/remote-tools/BENCHMARK.md). The web app and Hotfix5 installer remain separate releases.
+[**Try the example in your browser**](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [**Download for Windows (x64, Hotfix5 Preview)**](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix5-Setup.exe)
 
-![Server processing in the normal editor, with separate Master and Export controls and the larger server admission limits](docs/images/hybrid-server-master.png)
+Master a mix, compare it with the original at matched loudness, and adjust EQ while you listen. **Master** prepares a preview; **Export** saves it when you're ready. The web and desktop apps share the same Rust audio engine.
 
-Actual 1440 × 1050 browser capture using a generated four-second stereo fixture and an owned native HTTP backend. This illustrates the shared workflow; physical-phone and maximum-size qualification remain separate from the [recorded checks](docs/HYBRID_V2_VALIDATION.md).
+## Get started
 
-**Validated on the public preview:** an **18-minute, 48 kHz stereo MP3** completed import, Analyze, Master, streamed playback and full WAV/MP3/session ZIP downloads through the real server. Chromium, Firefox and Linux WebKit also passed the native-backed editor workflows and local-to-server migration. [Exact tests, measured timings and physical-device gaps](docs/HYBRID_V2_VALIDATION.md).
+1. **Analyze.** In the web app, click **Try the example track** or **Add audio file**, then click **Analyze** to see your mix's loudness, peaks and tonal balance.
+2. **Master.** Choose a tonal profile and loudness mode, then click **Master track**. Compare **A · Original** with **B · Master** and tweak **Manual EQ** while listening.
+3. **Export.** Choose WAV or MP3 under **Export quality**, then click the matching **Export WAV** or **Export MP3** button.
 
-SlimeyBeats-EZ-Master is a Rust mastering app with a Windows desktop release, Linux source support, and a private browser preview. Analyze a mix, prepare a master, compare it at matched loudness, adjust the EQ while listening, and export when you are ready.
+Browser processing is local by default. If you turn on **Server processing**, importing a track uploads the original; flipping the switch alone sends no audio. The desktop app processes locally.
 
-**Windows x64 · Linux source · Browser preview · MIT licensed · Local processing by default**
+[Windows setup](#windows-setup-and-preferences) · [Example audio and credits](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source (including Linux)](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
 
-[Download desktop preview — Hotfix5](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix5-Setup.exe) · [Open web app — WAV & MP3](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/) · [Get started](#get-started) · [Example audio](#try-the-example-track) · [User guide](docs/USER_GUIDE.md) · [Build from source](docs/BUILDING.md) · [Your music rights](OUTPUT_OWNERSHIP.md) · [Questions and ideas](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/discussions)
-
-**Hotfix5 Windows installer - November 17, 2026:** build **2026111701** packages the multitrack editor, scoped EQ, high-frequency EQ suggestions and 33-tool compact MCP companion (58 legacy routes available explicitly). [Setup and all downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) | [Qualification and limits](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX5-VALIDATION.json). Release asset cleanup retains the Hotfix5 installer and the two updater recovery ZIPs (`mcp_bridge` and `vst3_host`). Older installers and portable/source/standalone MCP ZIP attachments were removed; historical tags, checksums and validation records remain. The recovery ZIPs are components, not complete portable or standalone MCP distributions. Existing desktop installations must be updated separately.
-
-**Historical Hotfix4 desktop refresh — November 15, 2026:** desktop **0.5.0-beta.3**, build revision **2026111501**, brings the shared live-EQ preparation improvements, stem timeline, precise time edits, loop auditioning and **Stem Doctor** into the refreshed Windows package. Its optional **0.2.0-beta.3 MCP companion has 45 tools**. MCP discovery connections no longer create empty temporary folders in the export destination; scratch is allocated when processing needs it. [Historical release scope](docs/HOTFIX4.md) · [Release QA report — HOTFIX4-VALIDATION.json](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json). The report records final test results and installer scope separately from these bundled guides.
-
-**Web update — November 15:** the main web app includes local **320 kbps MP3 export**, session ZIPs, portable EQ presets, stem timeline/time edits and **Stem Doctor** issue scans with optional repair previews. Open the web app above; no installation or audio upload is needed. To save MP3, prepare a master, choose **MP3 · 320 kbps** under **Export quality**, then **Export MP3**. In Studio, choose MP3 under **Export format**, then **Export current preview**. [Browser guide](docs/WEB.md) · [Export details](docs/WEB_EXPORTS.md).
-
-**Studio Preview 0.5.0-beta.3** includes the guided desktop interface, Studio, the **0.2.0-beta.3 MCP companion** and the isolated VST3 worker. Import aligned stems from multiple files or a Suno/stem ZIP with **no fixed imported-part count**, rebalance parts, clean a voice, repair a region and save projects. Optional local separation produces two/four stems. Browser Studio **0.3.0-beta.3** shares Rust DSP for imported-stem editing. Preview installs separately from stable. [Release notes and downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) · [Studio guide](docs/STUDIO.md).
-
-**Included from Hotfix3 — recovery and reviewed support reports:** desktop autosave protects loaded mixes, Studio previews and pending controls with local restore points. Inspect a copy before restoring; current work is backed up separately. **Help → Report a problem** generates an exact local preview before reviewed Copy/Save, without automatically collecting audio, names, paths or raw logs. Browser audio recovery is **opt-in**, within separate storage limits. The historical Hotfix3 companion exposed **42 tools**, including reviewed support-report preparation/save. [Recovery, privacy, storage and tested scope](docs/RECOVERY_AND_REPORTING.md).
-
-**Hotfix2 — easier updates and first-use setup:** open **Help → Updates & tools** to check/download a newer build. Codec, stem-engine and missing native-helper setup continue the action that needs them, with progress and Cancel. Install this build once to gain the updater; future hotfixes are detected by build revision without changing the displayed app version. The Hotfix2 companion added optional-tool status/setup; Hotfix3 also adds reviewed support reports, for **42 tools**. [Workflow, privacy and platform limits](docs/UPDATES_AND_OPTIONAL_TOOLS.md).
-
-The earlier mastering-only [stable v0.4.2](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.4.2) remains in source history; its installer was removed. It does not include Studio, MCP or the new tour. The hosted browser updates from `main` after its checks pass. Desktop remains the flagship for neural extraction, native effects and larger projects.
+## Studio and editing highlights
 
 **Live stem editing is included:** stem gain, mute, solo and balance update during playback. Editing selects B automatically; Before and the live mix are separate listening choices. Studio also prevents a hidden mastering player from sounding underneath it. **Update mix preview** prepares the current balance for saving or further effects; it is no longer needed just to hear fader changes. [Live monitoring and save workflow](docs/STEM_LIVE_MONITORING.md). The current installer filename includes **Hotfix5**; the app version stays 0.5.0-beta.3.
 
@@ -132,20 +120,6 @@ Use the [Hotfix5 Windows installer](https://github.com/slimedragonair/SlimeyBeat
 - **Edit parts and recordings (Studio Preview).** Rebalance stems, clean a voice, repair a selected time/frequency region, undo, compare and export separately. Desktop supports local neural extraction and compatible VST3 effects; local browser editing has its own limits. The [v2 server preview](docs/HYBRID_STUDIO.md) offloads supported heavy Studio tools and optional two/four-stem separation when advertised. VST3 and desktop MCP remain local. [Local Studio workflows](docs/STUDIO.md).
 - **Connect an AI assistant (desktop preview).** The optional local MCP companion exposes analysis, mastering previews, editable EQ and explicit exports through the desktop Rust engine. Open a prepared session in the desktop app to listen and refine it. [Setup, tools and privacy](docs/MCP.md).
 
-
-
-## Get started
-
-1. Download [Hotfix5 Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix5-Setup.exe) for Windows x64. [Qualification and limits](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX5-VALIDATION.json). Prebuilt portable ZIPs are no longer attached; see [source builds](docs/BUILDING.md#get-the-source) for alternatives.
-2. Run Setup. It installs for your current Windows account without requiring administrator access, separately from stable.
-3. Take or skip the optional tour, then add or drop a mono/stereo audio file.
-4. Click **Analyze** at the top right. Choose a profile and loudness mode, then **Master track** or **Master queue**.
-5. Compare, adjust Manual EQ or re-master. Expand **Export settings** to choose formats and a folder, then **Export selected master**.
-
-WAV input and output work immediately, without Python or FFmpeg. The desktop GUI prepares verified codecs when compressed formats or sample-rate conversion need them, reusing working system tools and preserving PATH. See [installation and codec setup](docs/INSTALLATION.md).
-
-**Remembered preferences (desktop beta.3):** mastering settings, separate master/Studio export destinations and formats, listening volume, level matching and the two/four-stem choice survive normal restarts. Changes save automatically; **Save settings** saves both preference files immediately. Hotfix3 adds separate local recovery for loaded audio, queues and pending controls; only completed recovery points survive an interruption. Use **Save project** and exports for lasting Studio work. [What is remembered and where](docs/USER_GUIDE.md#remembering-desktop-settings) · [Recovery choices and limits](docs/RECOVERY_AND_REPORTING.md). Older packages retain their own behavior.
-
 ## Studio Preview
 
 Import aligned stems or mix tracks with **Choose stem files…** or **Choose Suno / stem ZIP…**. There is no fixed nine-part import limit; practical capacity depends on hardware, decoded audio and working memory. On desktop, dropping a ZIP anywhere opens Studio review; dropping several audio files in Studio also prepares a review. Confirm the parts and encoding in the center workspace, then click **Import selected stems**. Leave an original/full mix out when importing its constituent stems. Alternatively, separate a mix into vocals/instrumental or four stems with the optional local model. Rebalance, clean or repair, compare and undo before saving. Imported parts must have identical decoded sample rate, channel count and frame count. This is an aligned mixer: removing the count limit does not add a free timeline, beat matching or new resampling controls. **To master** (**Use for mastering** in wider layouts) sends the prepared mix into the mastering workflow; Export remains separate.
@@ -193,6 +167,18 @@ The **MIT license** lets anyone use, study, change, redistribute and sell the pr
 
 The installer does not bundle FFmpeg, Python, a DAW, advertising or a cloud mastering service. [Local browser mode](docs/WEB.md) processes audio with Rust/WebAssembly, including real-time EQ and WAV/MP3 export. The separate [v2 hybrid preview](docs/HYBRID_STUDIO.md) adds optional server processing; see the [deployed preview validation](docs/HYBRID_V2_VALIDATION.md). Responsive layouts and desktop-browser benchmarks do not qualify physical iPhone/Android playback or memory. Native Android/iOS apps are future work.
 
+### Windows setup and preferences
+
+1. Download [Hotfix5 Studio Preview Setup.exe](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/SlimeyBeats-EZ-Master-0.5.0-beta.3-Hotfix5-Setup.exe) for Windows x64. The installer is unsigned, so Windows may show an unknown-publisher prompt. Setup installs for your current account without administrator access, separately from stable.
+2. Take or skip the optional tour, then add or drop a mono/stereo file. Click **Analyze**, choose a profile and loudness mode, then click **Master track** or **Master queue**.
+3. Compare, adjust Manual EQ or re-master. Expand **Export settings** to choose formats and a folder, then click **Export selected master**.
+
+WAV input and output work without Python or FFmpeg. The desktop GUI prepares verified codecs when compressed formats or sample-rate conversion need them, reusing working system tools and preserving PATH. See [installation and codec setup](docs/INSTALLATION.md) or [build from source](docs/BUILDING.md#get-the-source).
+
+**Remembered preferences (desktop beta.3):** mastering settings, separate master/Studio export destinations and formats, listening volume, level matching and the two/four-stem choice survive normal restarts. Changes save automatically; **Save settings** saves both preference files immediately. Hotfix3 adds separate local recovery for loaded audio, queues and pending controls; only completed recovery points survive an interruption. Use **Save project** and exports for lasting Studio work. [What is remembered and where](docs/USER_GUIDE.md#remembering-desktop-settings) · [Recovery choices and limits](docs/RECOVERY_AND_REPORTING.md). Older packages retain their own behavior.
+
+### Linux source builds
+
 Linux source builds have passed Ubuntu 24.04 x86_64 CI and a separate maintainer-reported Linux-server check. On that server, **all 79 tests and lint checks passed**, mastering and all six export formats were verified, and the GUI passed launch, audio import, mastering and EQ-control checks. Desktop and application-menu launchers were installed. **No application source changes were needed.** See the [Linux validation guide](docs/LINUX.md#additional-linux-server-check).
 
 The server reported **Dummy Output**, with no headphones or speakers connected, so audible hardware playback remains unverified. The file-picker portal was not verified either. The Windows installer channels remain Windows-only; this earlier server check qualifies its named Linux source build and desktop workflow.
@@ -219,9 +205,35 @@ The browser screenshot above uses generated test audio in the current app. [Open
 
 In local mode, audio and measurements stay in tab memory unless downloaded or saved through opt-in local recovery, which has explicit disable/delete controls and separate size limits. The v2 server preview uploads original/reference files during import and runs supported heavy work remotely. Temporary projects and guest access expire within one hour; local recovery does not download full streamed projects or store credentials. Export or save a session ZIP before leaving; a ZIP is not a permanent server account or full source/reference/history backup. Closing the tab forgets access and does not confirm server deletion. Input codecs, playback and memory still depend on the browser/device. Native Android/iOS packages are not included.
 
+### Optional server processing (Hybrid Studio v2)
+
+With **Server processing** selected, Analyze, Master, supported heavy Studio tools and full-resolution exports run on the server. A/B, live EQ and faders use compressed listening streams (**192 kbps MP3 by default**). Source admission is **one hour / 2 GiB encoded and decoded per input**, subject to working-memory/disk quotas; neural separation retains its **512 MiB decoded PCM** cap. Local mode and desktop MCP remain local. [Workflow and limits](docs/HYBRID_STUDIO.md) · [Validation and device gaps](docs/HYBRID_V2_VALIDATION.md) · [v2 protocol](docs/HYBRID_REMOTE_PROTOCOL.md) · [Measured speed](hybrid/deploy/remote-tools/BENCHMARK.md).
+
+![Server processing in the normal editor, with separate Master and Export controls and the larger server admission limits](docs/images/hybrid-server-master.png)
+
+Actual 1440 × 1050 browser capture using a generated four-second stereo fixture and an owned native HTTP backend. Physical-phone and maximum-size qualification remain separate from the [recorded checks](docs/HYBRID_V2_VALIDATION.md).
+
+**Validated on the public preview:** an **18-minute, 48 kHz stereo MP3** completed import, Analyze, Master, streamed playback and full WAV/MP3/session ZIP downloads through the real server. Chromium, Firefox and Linux WebKit also passed the native-backed editor workflows and local-to-server migration. [Exact tests, measured timings and physical-device gaps](docs/HYBRID_V2_VALIDATION.md).
+
 <img src="docs/images/hybrid-shared-editor-phone.png" width="270" alt="Top server switch with a received master in the ordinary editor, separate Re-master and Export controls, and A/B playback">
 
 **Historical hybrid capture:** this Linux WebKit image shows the earlier Master-only bridge with synthetic audio and an owned native API fixture. It does not establish deployment or device acceptance for full v2 offload. [Current-work preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/) · [v2 source workflow, limits and verification boundary](docs/HYBRID_STUDIO.md).
+
+## Releases and build status
+
+The web app and Windows installer ship separately. The hosted app updates from `main` after its checks pass; opening it does not update an installed desktop copy.
+
+**Hotfix5 Windows installer, November 17, 2026:** Studio Preview **0.5.0-beta.3**, build **2026111701**, packages the multitrack editor, scoped EQ, high-frequency EQ suggestions, isolated VST3 worker and **0.2.0-beta.3 MCP companion** (33 compact tools, 58 legacy routes available explicitly). [Setup and all downloads](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.5.0-beta.3) · [Qualification and limits](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX5-VALIDATION.json). The release retains the Hotfix5 installer and two updater recovery ZIPs (`mcp_bridge` and `vst3_host`). Older installers and portable/source/standalone MCP ZIP attachments were removed; historical tags, checksums and validation records remain. The recovery ZIPs are components, not complete portable or standalone MCP distributions.
+
+**Active testing branch: [`current-work`](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/tree/current-work).** [Open its live mobile preview](https://slimedragonair.github.io/SlimeyBeats-EZ-Master/current-work/), check the displayed build ID, and expand **Build details** for the workflow. The preview has separate local recovery and preferences. [Preview workflow and limits](docs/MOBILE_PREVIEW.md) · [What GitHub checks run for each change](docs/CI_CHECK_SCOPES.md).
+
+### Earlier updates
+
+- **Hotfix4, November 15, 2026 (build 2026111501):** shared live-EQ improvements, stem timeline, time edits, loop auditioning and Stem Doctor. The optional MCP companion had 45 tools; it stopped creating export scratch folders during discovery. [Release scope](docs/HOTFIX4.md) · [Validation](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/download/v0.5.0-beta.3/HOTFIX4-VALIDATION.json).
+- **November 15 web update:** local MP3 export, session ZIPs, portable EQ presets, stem time edits and Stem Doctor. To save MP3, choose **MP3 · 320 kbps** under **Export quality**, then click **Export MP3**. In Studio, choose MP3 under **Export format**, then click **Export current preview**. [Browser guide](docs/WEB.md) · [Export details](docs/WEB_EXPORTS.md).
+- **Hotfix3:** local restore points and **Help → Report a problem**, which previews the support text before Copy/Save and does not automatically collect audio, names, paths or raw logs. Browser audio recovery is opt-in. The Hotfix3 MCP companion had 42 tools. [Recovery, privacy and tested scope](docs/RECOVERY_AND_REPORTING.md).
+- **Hotfix2:** **Help → Updates & tools** introduced updates by build revision without changing the displayed version. Optional codec, stem-engine and native-helper setup could resume the action that needed it. [Workflow, privacy and limits](docs/UPDATES_AND_OPTIONAL_TOOLS.md).
+- **Stable [v0.4.2](https://github.com/slimedragonair/SlimeyBeats-EZ-Master/releases/tag/v0.4.2):** the earlier mastering-only release remains in source history; its installer was removed. It does not include Studio, MCP or the tour.
 
 ## Evidence and limits
 
