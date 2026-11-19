@@ -9,6 +9,22 @@ button, label, select, summary { overflow-wrap: normal; word-break: normal; hyph
 .workspace-disclosure { flex-shrink: 0; margin: 0 0 12px; min-width: 0; }
 .workspace-disclosure > summary { display: none; }
 .workspace-disclosure .tabs, .workspace-disclosure .control-visibility { margin-bottom: 0; }
+.mobile-master-settings {
+    display: grid;
+    /* Keep room for long selected values and the native dropdown arrow. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin: -8px 0 16px;
+    min-width: 0;
+}
+.studio-mode .mobile-master-settings { display: none; }
+.mobile-master-settings .master-select { min-width: 0; }
+.mobile-master-settings label { display: flex; align-items: center; gap: 5px; min-height: 28px; color: var(--muted); font-size: .875rem; }
+.mobile-master-settings select { display: block; width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; }
+
+@media (max-width: 680px) {
+    body.master-loaded #steps { display: none; }
+}
 .band-picker { grid-template-columns: repeat(auto-fit, minmax(min(100%, 4rem), 1fr)); }
 .edit-fader label { flex-wrap: wrap; max-width: 100%; min-width: 0; }
 .edit-visual h3, .edit-save h3 { font-size: 1.1875rem; }

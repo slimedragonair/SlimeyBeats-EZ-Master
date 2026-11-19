@@ -19,6 +19,7 @@ import { wireLearning } from "./learning.js";
 import { wireViewportLayout } from "./viewport-layout.js";
 import { wireJobFeedback } from "./job-feedback.js";
 import { wireWorkspaceNavigation } from "./workspace-navigation.js";
+import { wireMasteringQuickControls } from "./mastering-quick-controls.js";
 import { connectRecovery, changedRecovery } from "./recovery-bridge.js";
 import { masterRecoverySize, captureMasterRecovery, prepareMasterRecovery, restoreMasterFields } from "./master-recovery.js";
 import { rebindMasterSignature } from "./master-recovery-identity.js";
@@ -56,6 +57,7 @@ const player = createPlayerRouter(syncControls, (error) => {
     status(error.message, true);
 });
 const plots = new Plots(player);
+const setQuickControlsTrackLoaded = wireMasteringQuickControls();
 const dspProgress = (value, text) => {
     $("progress").value = value;
     status(text);
@@ -131,6 +133,7 @@ function syncControls() {
         mastered = Boolean(player.master),
         stale = mastered && masterKey !== masterSignature();
     document.body.classList.toggle("master-loaded", loaded);
+    setQuickControlsTrackLoaded(loaded);
     for (const id of ["add", "demo", "reference", "clear"])
         $(id).disabled = locked || !ready;
     $("analyze").disabled = document.body.classList.contains("studio-mode")

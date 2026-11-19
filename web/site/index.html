@@ -193,6 +193,7 @@
                             ↥ Export WAV
                         </button>
                     </div>
+                    <div id="mobile-master-settings" class="mobile-master-settings" role="group" aria-label="Quick mastering settings" hidden></div>
                     <div id="overview" class="page">
                         <div id="welcome" class="hero">
                             <img
@@ -405,16 +406,14 @@
                         </button>
                     </div>
                     <div class="eyebrow divider">Mastering direction ✦</div>
-                    <label for="profile"
-                        >Tonal profile
-                        <button
-                            class="help"
-                            data-help="profile"
-                            aria-label="Help with Tonal profile"
-                        >
-                            ?
-                        </button></label
-                    ><select id="profile" disabled></select>
+                    <div id="profile-slot">
+                        <div id="quick-profile" class="master-select">
+                            <label for="profile">Tonal profile
+                                <button class="help" data-help="profile" aria-label="Help with Tonal profile">?</button>
+                            </label>
+                            <select id="profile" disabled></select>
+                        </div>
+                    </div>
                     <details data-advanced>
                         <summary>Blend two profiles</summary>
                         <label for="blend-profile">Second profile</label
@@ -525,14 +524,18 @@
                     </p>
                     </div>
                     <div class="eyebrow divider">Export quality</div>
-                    <label class="sr-only" for="format">Export format</label
-                    ><select id="format">
-                        <option value="wav24">WAV · 24-bit PCM</option>
-                        <option value="wav16">WAV · 16-bit PCM</option>
-                        <option value="wav32f">
-                            WAV · 32-bit float
-                        </option><option value="mp3">MP3 · 320 kbps</option></select
-                    ><label class="check" data-advanced
+                    <div id="format-slot">
+                        <div id="quick-format" class="master-select">
+                            <label for="format">Export format</label>
+                            <select id="format">
+                                <option value="wav24">WAV · 24-bit PCM</option>
+                                <option value="wav16">WAV · 16-bit PCM</option>
+                                <option value="wav32f">WAV · 32-bit float</option>
+                                <option value="mp3">MP3 · 320 kbps</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="check" data-advanced
                         ><input id="dither" type="checkbox" checked /> Dither
                         integer exports
                         <button

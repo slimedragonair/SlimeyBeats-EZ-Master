@@ -26,6 +26,8 @@ The default **local browser mode** uses the project's Rust mastering engine, com
 
 The hosted site follows the protected `main` branch after its browser workflow passes. A source merge and a completed Pages deployment are separate events. See the [merge validation and availability record](MERGE_VALIDATION.md).
 
+In the development preview, loading a mix on a narrow screen moves **Tonal profile** and **Export format** directly below **Master** and **Export**, and hides the first-use steps. The same controls return to the side panel when the screen widens, with their selections intact. Loudness and advanced settings still live in the mastering settings panel.
+
 Changing an automatic mastering setting marks the preview as needing **Re-master** and disables export until it is applied. Choosing a new reference also invalidates the master, even if the file has the same name. EQ edits do not require re-mastering. Listening volume and Level match never change the exported samples. Local cancellation stops the processing worker and restores the original; create a new master after cancellation. Server cancellation requests that the staged job stop while keeping committed audio; see the [server workflow](HYBRID_STUDIO.md).
 
 ## Formats and practical limits

@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import sync_playwright, expect
 from browser_capture import BrowserDiagnostics
+from mobile_mastering_checks import verify_mobile_mastering_controls
 from tutorial_spotlight_checks import (verify_loaded_tutorial_spotlight, verify_tutorial_navigation_restoration,
                                        verify_tutorial_pane_restoration, verify_tutorial_spotlights)
 from verify_studio_browser import fixture
@@ -915,6 +916,9 @@ def run(args):
         if audio_supported:
             verify_loaded_tutorial_spotlight(browser, base)
             result['checks'].append('Loaded example: actual A/B controls stay highlighted on resize; Escape preserves the session')
+            for width, height in [(320, 568), (390, 844)]:
+                verify_mobile_mastering_controls(browser, base, width, height)
+            result['checks'].append('Mobile mastering: profile and format sit by Master/Export and keep their values and focus across resize; clear restores first-use tips')
             verify_pending_feedback(browser, base, args, result)
         assert all(request['method'] == 'GET' and request['body_bytes'] == 0 and request['url'].startswith(base) for request in result['requests'])
         runtime = [urlparse(request['url']) for request in result['requests'] if Path(urlparse(request['url']).path).suffix in {'.js', '.css', '.wasm'}]
