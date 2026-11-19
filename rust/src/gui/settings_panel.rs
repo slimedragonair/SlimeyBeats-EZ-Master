@@ -13,7 +13,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
     let direction_changed = app.mastering_direction_changed();
     ui.add_enabled_ui(!app.busy && !app.tracks.is_empty(), |ui| {
         let has_master = app.current().is_some_and(|(_, r)| r.after.is_some());
-        if ui
+        let master = ui
             .add_sized(
                 [ui.available_width(), 42.],
                 theme::primary(match (has_master, app.tracks.len()) {
@@ -28,21 +28,31 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
                 help::REMASTER
             } else {
                 help::MASTER
-            })
-            .clicked()
-        {
+            });
+        super::tour_spotlight::record(
+            ui,
+            super::tour_spotlight::Target::Master,
+            "Master / Re-master",
+            &master,
+        );
+        if master.clicked() {
             app.start(false, ctx);
         }
-        if ui
+        let export = ui
             .add_enabled(
                 has_master && !direction_changed,
                 crystal_button::secondary("Export selected master")
                     .icon(Icon::Export)
                     .min_size(egui::vec2(ui.available_width(), 36.)),
             )
-            .on_hover_text(help::EXPORT)
-            .clicked()
-        {
+            .on_hover_text(help::EXPORT);
+        super::tour_spotlight::record(
+            ui,
+            super::tour_spotlight::Target::Export,
+            "Export selected master",
+            &export,
+        );
+        if export.clicked() {
             app.export_revision(ctx);
         }
         ui.label(

@@ -87,7 +87,10 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context) {
     ui.label("Combine aligned parts. No model needed.");
     if studio.bulk_import.is_none() {
         ui.horizontal_wrapped(|ui| {
-        if ui.add(crystal_button::secondary("Choose stem files…")).on_hover_text("Select multiple aligned files. Matching WAV/MP3 names count as one part; review the format before import.").clicked()
+        let choose = ui.add(crystal_button::secondary("Choose stem files…")).on_hover_text("Select multiple aligned files. Matching WAV/MP3 names count as one part; review the format before import.");
+        use crate::gui::tour_spotlight::{Target, record};
+        record(ui, Target::StemFiles, "Choose stem files…", &choose);
+        if choose.clicked()
             && let Some(paths) = rfd::FileDialog::new().add_filter("Audio stems", crate::audio::EXTENSIONS).pick_files() { studio.prepare_stem_files(paths, ctx); }
         if ui.add(crystal_button::secondary("Choose Suno / stem ZIP…")).on_hover_text("Read a ZIP locally. Only selected WAV/MP3 files are unpacked into private temporary files. No upload or model download.").clicked()
             && let Some(path) = rfd::FileDialog::new().add_filter("Stem ZIP", &["zip"]).pick_file() { studio.prepare_stem_archive(path, ctx); }

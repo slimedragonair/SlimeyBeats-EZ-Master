@@ -4,6 +4,164 @@ use super::{
 };
 use eframe::egui;
 
+fn spotlight(output: &egui::FullOutput) -> Option<egui::Rect> {
+    output.shapes.iter().find_map(|item| match &item.shape {
+        egui::Shape::Rect(shape)
+            if shape.stroke.color == egui::Color32::from_rgb(103, 255, 221) =>
+        {
+            Some(shape.rect)
+        }
+        _ => None,
+    })
+}
+
+#[test]
+fn tour_walks_each_live_control_and_back_at_compact_size() {
+    let ctx = egui::Context::default();
+    theme::apply(&ctx);
+    let mut app = test_fixture::app(&ctx);
+    app.tab = 0;
+    app.experience.start_tour();
+    let viewport = egui::vec2(1100., 720.);
+    let mut output = settled(&ctx, &mut app, viewport);
+    for (index, (tab, label)) in [
+        (0, "Add audio files"),
+        (0, "Analyze"),
+        (0, "Master track"),
+        (0, "B · Master"),
+        (1, "Suggest EQ"),
+        (0, "Export selected master"),
+        (3, "Stems"),
+        (3, "Help"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(app.tab, tab, "unexpected workspace for {label}");
+        let target = text_rect(&output, label).unwrap_or_else(|| panic!("hidden target: {label}"));
+        let ring = spotlight(&output).unwrap_or_else(|| panic!("missing spotlight for {label}"));
+        assert!(
+            ring.contains_rect(target),
+            "{label}: {target:?} outside {ring:?}"
+        );
+        let title = text_rect(&output, &guide().steps[index].title).unwrap();
+        assert!(!ring.intersects(title));
+        if index < 7 {
+            output = click(&ctx, &mut app, viewport, &output, "Next");
+        }
+    }
+    output = click(&ctx, &mut app, viewport, &output, "Back");
+    let stems = text_rect(&output, "Stems").unwrap();
+    assert!(spotlight(&output).unwrap().contains_rect(stems));
+    let output = click(&ctx, &mut app, viewport, &output, "Leave tutorial");
+    assert!(spotlight(&output).is_none());
+    assert!(!app.busy && !app.studio.busy() && app.tracks.is_empty());
+}
+
+#[test]
+fn tour_points_to_live_add_audio_button_without_covering_it() {
+    let ctx = egui::Context::default();
+    theme::apply(&ctx);
+    let mut app = test_fixture::app(&ctx);
+    app.tab = 0;
+    app.experience.start_tour();
+    let output = settled(&ctx, &mut app, egui::vec2(1100., 720.));
+    let button = text_rect(&output, "Add audio files").expect("live Add audio button");
+    let ring = spotlight(&output);
+    assert!(
+        ring.is_some_and(|rect| rect.contains_rect(button)),
+        "No teal spotlight around the live Add audio button"
+    );
+    let title = text_rect(&output, &guide().steps[0].title).expect("tour explanation");
+    assert!(!ring.unwrap().intersects(title));
+}
+
+#[test]
+fn tour_keeps_playing_workspace_and_falls_back_to_its_navigation_tab() {
+    use std::sync::atomic::Ordering::Relaxed;
+    let ctx = egui::Context::default();
+    theme::apply(&ctx);
+    let mut app = test_fixture::mastered(&ctx);
+    app.tab = 0;
+    let viewport = egui::vec2(1480., 940.);
+    settled(&ctx, &mut app, viewport);
+    app.player.seek(0.08);
+    app.player.toggle();
+    app.experience.start_tour();
+    app.experience.preferences.tutorial_step = 6;
+    let output = settled(&ctx, &mut app, viewport);
+    assert_eq!(app.tab, 0);
+    assert!(app.player.controls.playing.load(Relaxed));
+    assert!(!app.studio.player.controls.playing.load(Relaxed));
+    assert_eq!(app.player.seconds(), 0.08);
+    assert!(
+        spotlight(&output)
+            .unwrap()
+            .contains_rect(text_rect(&output, "Studio").unwrap())
+    );
+    frame(
+        &ctx,
+        &mut app,
+        viewport,
+        vec![egui::Event::Key {
+            key: egui::Key::Escape,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }],
+    );
+    let output = settled(&ctx, &mut app, viewport);
+    assert!(spotlight(&output).is_none());
+    assert!(app.player.controls.playing.load(Relaxed));
+}
+
+#[test]
+fn tour_pulse_changes_only_glow_and_settles_to_a_static_outline() {
+    for animate in [true, false] {
+        let ctx = egui::Context::default();
+        theme::apply(&ctx);
+        if !animate {
+            ctx.all_styles_mut(|style| style.animation_time = 0.);
+        }
+        let mut app = test_fixture::app(&ctx);
+        app.experience.start_tour();
+        let viewport = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1100., 720.));
+        let mut sample = |time: f64| {
+            let mut output = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(viewport),
+                    time: Some(time),
+                    ..Default::default()
+                },
+                |ui| app.render_frame(ui),
+            );
+            output.textures_delta.clear();
+            let outline = spotlight(&output).unwrap();
+            let outer = output
+                .shapes
+                .iter()
+                .find_map(|item| match &item.shape {
+                    egui::Shape::Rect(shape)
+                        if shape.rect == outline.expand(6.) && shape.stroke.width == 2. =>
+                    {
+                        Some(shape.stroke.color)
+                    }
+                    _ => None,
+                })
+                .expect("outer glow");
+            (outline, outer)
+        };
+        let _ = sample(1.);
+        let start = sample(1.);
+        let peak = sample(1.625);
+        let end = sample(2.5);
+        assert_eq!(start, end);
+        assert_eq!(start.0, peak.0);
+        assert_eq!(peak.1 != end.1, animate);
+    }
+}
+
 #[test]
 fn native_accessibility_tree_names_the_welcome_dialog_and_its_choices() {
     let folder = tempfile::tempdir().unwrap();

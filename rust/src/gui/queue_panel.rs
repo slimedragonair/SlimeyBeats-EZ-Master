@@ -82,7 +82,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
 
 fn queue_actions(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
     ui.add_enabled_ui(!app.busy, |ui| {
-        if ui
+        let add = ui
             .add(
                 crystal_button::primary("Add audio files")
                     .icon(Icon::Add)
@@ -91,9 +91,14 @@ fn queue_actions(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
             )
             .on_hover_text(
                 "Add audio files to the session queue. You can also drop files onto the window.",
-            )
-            .clicked()
-        {
+            );
+        super::tour_spotlight::record(
+            ui,
+            super::tour_spotlight::Target::Add,
+            "Add audio files",
+            &add,
+        );
+        if add.clicked() {
             app.pick_files();
         }
         if !app.tracks.is_empty() {

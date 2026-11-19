@@ -45,13 +45,15 @@ pub fn show(studio: &mut Studio, ui: &mut egui::Ui, ctx: &egui::Context, advance
             ),
             (Page::Plugins, "Plugins"),
         ] {
-            if ui
-                .add(
-                    crystal_button::secondary(name)
-                        .selected(studio.page == page && !super::doctor_controls::active(studio)),
-                )
-                .clicked()
-            {
+            let response = ui.add(
+                crystal_button::secondary(name)
+                    .selected(studio.page == page && !super::doctor_controls::active(studio)),
+            );
+            if page == Page::Stems {
+                use crate::gui::tour_spotlight::{Target, record};
+                record(ui, Target::StemsTab, name, &response);
+            }
+            if response.clicked() {
                 studio.activate_page(page, ctx);
                 studio.doctor.visible = false;
             }

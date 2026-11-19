@@ -60,15 +60,20 @@ pub(super) fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, compact: bool) {
             } else {
                 label
             };
-            if ui
-                .add(button(
-                    label,
-                    icons.then_some(icon),
-                    app.tab == tab,
-                    compact,
-                ))
-                .clicked()
-            {
+            let response = ui.add(button(
+                label,
+                icons.then_some(icon),
+                app.tab == tab,
+                compact,
+            ));
+            use super::tour_spotlight::{Target, record};
+            match tab {
+                0 => record(ui, Target::OverviewTab, "Overview tab", &response),
+                1 => record(ui, Target::EqTab, "Manual EQ tab", &response),
+                3 => record(ui, Target::StudioTab, "Studio tab", &response),
+                _ => {}
+            }
+            if response.clicked() {
                 app.activate_workspace(tab);
             }
         }

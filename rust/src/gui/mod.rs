@@ -64,6 +64,7 @@ mod support_report_view;
 mod test_fixture;
 mod theme;
 mod tool_setup;
+mod tour_spotlight;
 mod update_launch;
 mod update_state;
 mod update_view;

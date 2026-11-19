@@ -124,6 +124,7 @@ impl MasterCraftApp {
             }
         }
         let root = ui.available_rect_before_wrap();
+        super::tour_spotlight::prepare(self, &ctx);
         ui.painter().rect_filled(root, 0., theme::CANVAS);
         let mut inset = ui.new_child(egui::UiBuilder::new().max_rect(root.shrink2(OUTER_INSET)));
         let ui = &mut inset;
@@ -341,6 +342,12 @@ impl MasterCraftApp {
                                         .min_size(vec2(140., 42.)),
                                 )
                                 .on_hover_text(help::ANALYZE);
+                            super::tour_spotlight::record(
+                                ui,
+                                super::tour_spotlight::Target::Analyze,
+                                "Analyze",
+                                &analyze,
+                            );
                             if analyze.clicked() {
                                 if self.tab == 3 {
                                     self.studio.analyze(ctx);

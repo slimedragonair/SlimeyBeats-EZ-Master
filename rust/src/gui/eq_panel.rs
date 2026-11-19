@@ -11,7 +11,9 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egui::Context) {
         .unwrap_or(48000);
     ui.add_enabled_ui(!app.busy,|ui|{
         ui.horizontal_wrapped(|ui|{
-            if ui.add_enabled(result.is_some(),crystal_button::secondary("Suggest EQ")).on_hover_text("Propose small tone changes using the profile. Compare before applying: this is a deterministic rule-based starting point. Uses the automatic master if available, otherwise the original. Limits are per band; overlapping bands can add together. The bone-colored proposal leaves your current EQ unchanged until applied.").clicked(){app.suggest_eq(ctx);}
+            let suggest = ui.add_enabled(result.is_some(),crystal_button::secondary("Suggest EQ")).on_hover_text("Propose small tone changes using the profile. Compare before applying: this is a deterministic rule-based starting point. Uses the automatic master if available, otherwise the original. Limits are per band; overlapping bands can add together. The bone-colored proposal leaves your current EQ unchanged until applied.");
+            super::tour_spotlight::record(ui, super::tour_spotlight::Target::Eq, "Suggest EQ", &suggest);
+            if suggest.clicked() { app.suggest_eq(ctx); }
             let tip=app.suggestion_note.as_deref().unwrap_or("Apply the proposed bands, then adjust any control. EQ changes are audible immediately during playback. No audio is exported.");
             if let Some(suggested) = &app.suggested_eq && ui.add(crystal_button::primary("Apply curve")).on_hover_text(tip).clicked(){app.settings.manual_eq=suggested.clone();app.eq_dirty=true;}
             ui.menu_button("Presets",|ui|preset_menu(app,ui));

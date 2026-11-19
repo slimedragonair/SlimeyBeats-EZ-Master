@@ -2,7 +2,7 @@ use super::{
     app::MasterCraftApp,
     crystal_button,
     guide_content::guide,
-    theme,
+    theme, tour_spotlight,
     user_experience::{HelpPage, UserExperience},
 };
 use eframe::egui::{self, Id, RichText, vec2};
@@ -12,8 +12,7 @@ pub(super) fn show(app: &mut MasterCraftApp, ctx: &egui::Context) {
     app.experience.mcp.poll();
     if app.experience.welcome_open {
         welcome(&mut app.experience, ctx);
-    }
-    if app.experience.tour_open {
+    } else if app.experience.tour_open {
         tour(app, ctx);
     }
     if app.experience.help_page.is_some() {
@@ -95,6 +94,7 @@ fn welcome(experience: &mut UserExperience, ctx: &egui::Context) {
     experience.request_dialog_focus = false;
     if action == Some(true) {
         experience.start_tour();
+        ctx.request_repaint();
     } else if action == Some(false) || response.should_close() {
         experience.finish_tour(false);
     }
@@ -102,55 +102,100 @@ fn welcome(experience: &mut UserExperience, ctx: &egui::Context) {
 
 fn tour(app: &mut MasterCraftApp, ctx: &egui::Context) {
     let steps = &guide().steps;
-    let index = app
-        .experience
-        .preferences
-        .tutorial_step
-        .min(steps.len() - 1);
+    let index = tour_spotlight::step_index(app);
     let step = &steps[index];
+    let id = Id::unique("guided-tour");
+    let name = format!("Quick tour: {}", step.title);
+    let screen = ctx.content_rect();
+    let cue = tour_spotlight::cue(app, ctx, &step.id);
+    let (anchor, offset, room) = tour_spotlight::card_position(screen, cue);
+    let area = egui::Modal::default_area(id)
+        .anchor(anchor, offset)
+        .fade_in(false)
+        .accessible_name(&name)
+        .role(egui::accesskit::Role::Dialog);
+    tour_spotlight::paint(&ctx.layer_painter(area.layer()), screen, cue, index);
     let mut action = None;
-    let response = dialog(Id::unique("guided-tour"), &format!("Quick tour: {}", step.title), ctx).show(ctx, |ui| {
-        ui.set_width(dialog_width(ctx).min(620.));
-        ui.horizontal(|ui| {
-            theme::eyebrow(ui, "QUICK TOUR");
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.label(format!("{} of {}", index + 1, steps.len())); });
+    let response = dialog(id, &name, ctx)
+        .area(area)
+        .backdrop_color(egui::Color32::TRANSPARENT)
+        .show(ctx, |ui| {
+            ui.set_width(dialog_width(ctx).min(560.));
+            ui.horizontal(|ui| {
+                theme::eyebrow(ui, "QUICK TOUR");
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label(format!("{} of {}", index + 1, steps.len()));
+                });
+            });
+            ui.add(
+                egui::ProgressBar::new((index + 1) as f32 / steps.len() as f32)
+                    .desired_width(ui.available_width()),
+            );
+            ui.add_space(6.);
+            egui::ScrollArea::vertical()
+                .id_salt(("tour-explanation", index))
+                .max_height((room - 162.).max(48.))
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
+                    ui.label(theme::display(&step.title, 25.));
+                    if let Some(cue) = cue {
+                        let suffix = if cue.enabled { "" } else { " (currently unavailable)" };
+                        ui.label(
+                            RichText::new(format!("Look for: {}{suffix}", cue.label))
+                                .color(theme::SLIME),
+                        );
+                    }
+                    ui.label(&step.body);
+                    ui.collapsing("Learn a little more", |ui| {
+                        ui.label(&step.detail);
+                    });
+                });
+            ui.add_space(7.);
+            ui.horizontal_wrapped(|ui| {
+                if ui.add_enabled(index > 0, crystal_button::secondary("Back")).clicked() {
+                    action = Some(TourAction::Back);
+                }
+                let next = ui.add(crystal_button::primary(if index + 1 == steps.len() {
+                    "Finish tour"
+                } else {
+                    "Next"
+                }).min_size(vec2(108., 38.)));
+                if app.experience.request_dialog_focus {
+                    next.request_focus();
+                }
+                if next.clicked() {
+                    action = Some(TourAction::Next);
+                }
+                if ui.add(crystal_button::secondary("See this screen"))
+                    .on_hover_text(concat!(
+                        "Pause the tour to use the workspace controls. Switching workspaces may ",
+                        "pause playback. Nothing is processed or exported. Use Continue tour to return."
+                    )).clicked()
+                {
+                    action = Some(TourAction::Show);
+                }
+                if ui.add(crystal_button::secondary("Leave tutorial")).clicked() {
+                    action = Some(TourAction::Leave);
+                }
+            });
         });
-        ui.add(egui::ProgressBar::new((index + 1) as f32 / steps.len() as f32).desired_width(ui.available_width()));
-        ui.add_space(10.);
-        ui.label(theme::display(&step.title, 25.));
-        ui.add_space(8.);
-        ui.label(&step.body);
-        ui.add_space(8.);
-        ui.collapsing("Learn a little more", |ui| { ui.label(&step.detail); });
-        ui.add_space(10.);
-        if ui.add(crystal_button::secondary("See this screen")).on_hover_text("Pause the tour and show the relevant workspace. Nothing is processed or exported. Use Continue tour in the bottom bar to return.").clicked() { action = Some(TourAction::Show); }
-        ui.add_space(10.);
-        ui.horizontal_wrapped(|ui| {
-            if ui.add_enabled(index > 0, crystal_button::secondary("Back")).clicked() { action = Some(TourAction::Back); }
-            let next = ui.add(crystal_button::primary(if index + 1 == steps.len() { "Finish tour" } else { "Next" }).min_size(vec2(108., 38.)));
-            if app.experience.request_dialog_focus { next.request_focus(); }
-            if next.clicked() { action = Some(TourAction::Next); }
-            if ui.add(crystal_button::secondary("Leave tutorial")).clicked() { action = Some(TourAction::Leave); }
-        });
-    });
     app.experience.request_dialog_focus = false;
     match action {
         Some(TourAction::Back) => {
             app.experience.preferences.tutorial_step = index - 1;
             app.experience.persist(true, false);
+            ctx.request_repaint();
         }
         Some(TourAction::Next) if index + 1 < steps.len() => {
             app.experience.preferences.tutorial_step = index + 1;
             app.experience.persist(true, false);
+            ctx.request_repaint();
         }
         Some(TourAction::Next) => app.experience.finish_tour(true),
         Some(TourAction::Show) => {
-            let tab = match step.desktop_target.as_str() {
-                "eq" => 1,
-                "stems" => 3,
-                _ => 0,
-            };
-            app.activate_workspace(tab);
+            if step.id != "help" {
+                app.activate_workspace(tour_spotlight::workspace(&step.desktop_target));
+            }
             app.experience.pause_tour();
         }
         Some(TourAction::Leave) => app.experience.finish_tour(false),
@@ -186,6 +231,7 @@ pub(super) fn help_button(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egu
                 .min_size(vec2(92., 34.)),
         )
         .on_hover_text("Quick start, tutorial, terms and AI assistant setup · F1");
+    tour_spotlight::record(ui, tour_spotlight::Target::Help, "Help", &response);
     if response.clicked() {
         response.request_focus();
         app.experience.open_help(HelpPage::Start, ctx);
@@ -236,5 +282,6 @@ pub(super) fn help_button(app: &mut MasterCraftApp, ui: &mut egui::Ui, ctx: &egu
             .clicked()
     {
         app.experience.resume_tour();
+        ctx.request_repaint();
     }
 }

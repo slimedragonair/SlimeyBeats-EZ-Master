@@ -28,7 +28,7 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                 app.player.stop();
             }
             let after = app.player.controls.after.load(Ordering::Relaxed);
-            if ui
+            let a = ui
                 .add(
                     crystal_button::secondary(if app.tab == 1 {
                         "A · Pre EQ"
@@ -37,13 +37,12 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                     })
                     .selected(!after),
                 )
-                .on_hover_text(if app.tab == 1 { help::AB_EQ } else { help::AB })
-                .clicked()
-            {
+                .on_hover_text(if app.tab == 1 { help::AB_EQ } else { help::AB });
+            if a.clicked() {
                 app.player.controls.after.store(false, Ordering::Relaxed);
             }
             let has_after = app.current().is_some_and(|(_, r)| r.after.is_some());
-            if ui
+            let b = ui
                 .add_enabled(
                     has_after,
                     crystal_button::secondary(if app.tab == 1 {
@@ -53,13 +52,19 @@ pub fn show(app: &mut MasterCraftApp, ui: &mut egui::Ui) {
                     })
                     .selected(after),
                 )
-                .on_hover_text(if app.tab == 1 { help::AB_EQ } else { help::AB })
-                .clicked()
-            {
+                .on_hover_text(if app.tab == 1 { help::AB_EQ } else { help::AB });
+            if b.clicked() {
                 app.player.controls.after.store(true, Ordering::Relaxed);
             }
             ui.checkbox(&mut app.match_levels, "Loudness match")
                 .on_hover_text(help::LEVEL_MATCH);
+            super::tour_spotlight::record_rect(
+                ui,
+                super::tour_spotlight::Target::Compare,
+                "A/B comparison",
+                a.rect.union(b.rect),
+                b.enabled(),
+            );
             volume_slider(ui, &mut app.volume).on_hover_text(help::VOLUME);
             clock_label(
                 ui,
