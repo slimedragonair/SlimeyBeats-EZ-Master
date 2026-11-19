@@ -73,6 +73,10 @@
                 </div>
             </header>
             <a class="skip-link" href="#workspace-controls">Skip to studio controls</a>
+            <div id="mobile-analysis-feedback" class="mobile-result-feedback" hidden>
+                <strong>Analysis ready</strong>
+                <button id="view-mobile-analysis" class="quiet" aria-controls="measurements">View analysis</button>
+            </div>
             <section id="preview-banner" class="preview-banner" aria-labelledby="preview-label" hidden>
                 <div class="preview-summary">
                     <strong id="preview-label">current-work preview</strong>
@@ -155,7 +159,7 @@
                             <span class="eyebrow" id="session-state"
                                 >Your next master starts here</span
                             >
-                            <h1 id="track-title">Shape your sound.</h1>
+                            <h1 id="track-title" tabindex="-1">Shape your sound.</h1>
                         </div>
                     </div>
                     <details id="page-navigation" class="workspace-disclosure" open>
@@ -194,6 +198,13 @@
                         </button>
                     </div>
                     <div id="mobile-master-settings" class="mobile-master-settings" role="group" aria-label="Quick mastering settings" hidden></div>
+                    <div id="mobile-master-feedback" class="mobile-result-feedback" hidden>
+                        <div id="mobile-master-message">
+                            <strong id="mobile-master-state">Master ready</strong>
+                            <span id="mobile-master-hint">Use Play and B to compare.</span>
+                        </div>
+                        <button id="view-mobile-master" class="quiet" aria-controls="output-section">View master results</button>
+                    </div>
                     <div id="overview" class="page">
                         <div id="welcome" class="hero">
                             <img
@@ -219,17 +230,18 @@
                         </div>
                         <div id="measurements" hidden>
                             <div class="section-heading">
-                                <h2>Source analysis</h2>
+                                <h2 id="input-results-heading" tabindex="-1">Source analysis</h2>
                                 <span class="small">Measured, not guessed</span>
                             </div>
                             <div class="metrics" id="input-metrics"></div>
                             <div id="output-section" hidden>
                                 <div class="section-heading">
-                                    <h2>Master preview</h2>
-                                    <span class="small teal"
+                                    <h2 id="output-results-heading" tabindex="-1">Master preview</h2>
+                                    <span id="output-results-state" class="small teal"
                                         >Ready to audition</span
                                     >
                                 </div>
+                                <p class="small">Measured when the preview was prepared. Live EQ and the saved file can differ.</p>
                                 <div class="metrics" id="output-metrics"></div>
                             </div>
                             <div class="insight" id="insight"></div>

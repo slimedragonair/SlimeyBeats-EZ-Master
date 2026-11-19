@@ -20,6 +20,7 @@ import { wireViewportLayout } from "./viewport-layout.js";
 import { wireJobFeedback } from "./job-feedback.js";
 import { wireWorkspaceNavigation } from "./workspace-navigation.js";
 import { wireMasteringQuickControls } from "./mastering-quick-controls.js";
+import { wireMasteringFeedback } from "./mastering-feedback.js";
 import { connectRecovery, changedRecovery } from "./recovery-bridge.js";
 import { masterRecoverySize, captureMasterRecovery, prepareMasterRecovery, restoreMasterFields } from "./master-recovery.js";
 import { rebindMasterSignature } from "./master-recovery-identity.js";
@@ -34,10 +35,12 @@ import { wireEqSuggestions } from "./eq-suggestions.js";
 let settings,
     defaults,
     busy = false,
+    jobKind = "",
     restoring = false,
     ready = false,
     currentFile,
     analysis,
+    analyzedExplicitly = false,
     report,
     referenceFile,
     masterBaseline,
@@ -58,6 +61,7 @@ const player = createPlayerRouter(syncControls, (error) => {
 });
 const plots = new Plots(player);
 const setQuickControlsTrackLoaded = wireMasteringQuickControls();
+const syncMasteringFeedback = wireMasteringFeedback();
 const dspProgress = (value, text) => {
     $("progress").value = value;
     status(text);
@@ -134,6 +138,10 @@ function syncControls() {
         stale = mastered && masterKey !== masterSignature();
     document.body.classList.toggle("master-loaded", loaded);
     setQuickControlsTrackLoaded(loaded);
+    syncMasteringFeedback({
+        analyzed: loaded && Boolean(analysis) && (!mastered || analyzedExplicitly),
+        mastered, stale, refining: busy && jobKind === "master",
+    });
     for (const id of ["add", "demo", "reference", "clear"])
         $(id).disabled = locked || !ready;
     $("analyze").disabled = document.body.classList.contains("studio-mode")
@@ -194,10 +202,11 @@ function syncControls() {
     jobFeedback?.refresh();
     serverProcessing.renderMainControls({ locked, remoteSource: player.isRemote, localLimits: player.local.importLimits });
 }
-async function job(action) {
+async function job(action, kind = "") {
     if (busy || restoring) return;
     const current = ++jobRevision;
     busy = true;
+    jobKind = kind;
     changedRecovery();
     $("progress").value = 0;
     syncControls();
@@ -212,6 +221,7 @@ async function job(action) {
     } finally {
         if (current === jobRevision) {
             busy = false;
+            jobKind = "";
             syncControls();
             changedRecovery();
         }
@@ -317,6 +327,7 @@ async function loadFile(file) {
             $("reference-name").textContent = "Optional. Borrow a finished track’s tonal direction.";
         }
         analysis = null;
+        analyzedExplicitly = false;
         currentFile = file;
         plots.setAudio(buffer);
         $("welcome").hidden = true;
@@ -361,6 +372,7 @@ async function analyze() {
         ensureCurrent();
         if (source !== trackRevision) return;
         analysis = result;
+        analyzedExplicitly = true;
         $("steps").hidden = true;
         metrics("input-metrics", result);
         $("measurements").hidden = false;
@@ -408,6 +420,7 @@ async function master() {
         );
         report = result.report;
         analysis = report.input;
+        analyzedExplicitly = false;
         if (remote && !player.isRemote) {
             player.useRemote(true); player.setOriginal(remoteMastering.original); plots.setAudio(player.original);
             $("filemeta").textContent = `${time(Math.round(player.original.duration))} · server · ${player.original.sampleRate.toLocaleString()} Hz`;
@@ -442,7 +455,7 @@ async function master() {
         status(
             `Master ready${remote ? " · processed on server" : ""}. Play B, tweak EQ, then Export WAV or MP3.${remote ? " Full-resolution audio stays on the server; download a session ZIP to keep your work." : ""}`,
         );
-    });
+    }, "master");
 }
 async function exportAudio(bundle = false) {
     if (busy || restoring) return;
@@ -465,7 +478,7 @@ async function exportAudio(bundle = false) {
             status("Rendering and verifying the full-resolution export on the server…");
             const result = await remoteMastering.export(snapshot, selected, bundle, name);
             ensureSnapshot();
-            if (result) { report = result; report.file = currentFile.name; reportView(report); metrics("output-metrics", report.output); }
+            if (result) { report = result; report.file = currentFile.name; reportView(report); }
             status("Server download started. Your phone saves the file without decoding the full song.");
             return;
         }
@@ -500,7 +513,6 @@ async function exportAudio(bundle = false) {
         report = result.report;
         report.file = currentFile.name;
         reportView(report);
-        metrics("output-metrics", report.output);
         const stem = currentFile.name
             .replace(/\.[^.]+$/, "")
             .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
@@ -752,6 +764,7 @@ $("clear").onclick = async () => {
     clearMaster();
     plots.setAudio(null);
     analysis = null;
+    analyzedExplicitly = false;
     currentFile = null;
     referenceFile = null;
     settings.reference = null;
@@ -813,7 +826,7 @@ connectRecovery({
                     ++trackRevision; ++referenceRevision; ++jobRevision;
                     settings = staged.settings; referenceFile = staged.reference;
                     currentFile = { name: typeof value.name === "string" ? value.name.slice(0, 200) : "Recovered mix.wav" };
-                    clearMaster(); player.setOriginal(staged.source); analysis = null;
+                    clearMaster(); player.setOriginal(staged.source); analysis = null; analyzedExplicitly = false;
                     restoreMasterFields(settings, value.format);
                     if (staged.preview) {
                         report = staged.result.report; analysis = report.input;
