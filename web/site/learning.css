@@ -91,6 +91,47 @@ dialog {
 #learning-body summary { cursor: pointer; min-height: 44px; padding: 10px 0; }
 #learning-body details p { margin: 8px 0; }
 
+/* The modal keeps focus; this non-interactive layer cuts a window out of its dimming. */
+#tutorial-spotlight {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    border: 2px solid #adffe2;
+    border-radius: 10px;
+    box-shadow: 0 0 0 150vmax #080511cf, 0 0 14px #78f2cda6, inset 0 0 10px #78f2cd35;
+}
+#tutorial-spotlight::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 2px solid #adffe2;
+    border-radius: inherit;
+    opacity: 0;
+}
+#tutorial-spotlight:not([hidden])::after { animation: tutorial-pulse 1.25s ease-out 2; }
+@keyframes tutorial-pulse {
+    from { opacity: .86; scale: 1; }
+    to { opacity: 0; scale: 1.09; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #tutorial-spotlight:not([hidden])::after { animation: none; }
+}
+#learning-dialog.tutorial-card {
+    position: fixed;
+    inset: auto 0 max(8px, env(safe-area-inset-bottom));
+    max-width: 540px;
+    max-height: calc(var(--tutorial-card-room) - 8px);
+    margin: 0 auto;
+}
+#learning-dialog.tutorial-card-top { inset: max(8px, env(safe-area-inset-top)) 0 auto; }
+#learning-dialog.tutorial-card::backdrop { background: transparent; backdrop-filter: none; }
+.tutorial-card .learning-heading { padding-block: 6px; }
+.tutorial-card .learning-actions { padding-block: 6px; }
+.tutorial-card #learning-title { font-size: 1.4rem; margin: 5px 0 6px; }
+#learning-dialog.tutorial-card p { margin: 0 0 8px; line-height: 1.45; }
+#learning-dialog .tutorial-cue { color: var(--teal); font-weight: 650; }
+.tutorial-card .learning-content { padding-bottom: 6px; }
+
 @media (max-width: 680px) {
     .help-dock {
         left: 0;

@@ -1,6 +1,7 @@
 import { wireDialogFocus } from "./dialog-focus.js";
 import { TOPICS, action, textElement, renderTopic, BROWSER_PRIVACY_NOTE } from "./learning-content.js";
 import { revealLearningElement, revealHelpTopics } from "./learning-navigation.js";
+import { wireTutorialSpotlight } from "./tutorial-spotlight.js";
 
 const $ = (id) => document.getElementById(id);
 const PLACES = { overview: "Mastering · Overview", eq: "Manual EQ", "studio-tools": "Studio" };
@@ -18,6 +19,7 @@ async function fetchGuide() {
 
 export function wireLearning(preferences) {
     const dialog = $("learning-dialog"), modal = wireDialogFocus(dialog);
+    const spotlight = wireTutorialSpotlight(dialog);
     const body = $("learning-body"), actions = $("learning-actions"), nav = $("learning-nav");
     let guide, loading, mode = "help", step = 0, openedManually = false;
 
@@ -54,8 +56,9 @@ export function wireLearning(preferences) {
         }
     });
     dialog.addEventListener("cancel", (event) => { event.preventDefault(); dismiss(); });
+    dialog.addEventListener("close", () => spotlight.clear());
     dialog.addEventListener("click", (event) => {
-        if (event.target !== dialog) return;
+        if (event.target !== dialog || mode === "tour") return;
         const r = dialog.getBoundingClientRect();
         if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dismiss();
     });
@@ -66,8 +69,10 @@ export function wireLearning(preferences) {
         preferences.tutorialChoice("started", step);
         const item = guide.steps[step];
         frame(item.title, item.body, `Guided tutorial · ${step + 1} of ${guide.steps.length}`);
-        body.append(textElement("p", `Where to find it: ${PLACES[item.web_target]}`, "learning-callout"),
-            textElement("p", item.detail), textElement("p", BROWSER_PRIVACY_NOTE, "learning-privacy"));
+        const cue = textElement("p", `Where to find it: ${PLACES[item.web_target]}`, "tutorial-cue");
+        const details = document.createElement("details");
+        details.append(textElement("summary", "Learn a little more"), textElement("p", item.detail));
+        body.append(cue, details);
         const previous = action("Back", "tutorial-back", () => tutorial(step - 1));
         previous.disabled = step === 0;
         actions.append(previous, action("End tour", "tutorial-dismiss", dismiss));
@@ -78,12 +83,13 @@ export function wireLearning(preferences) {
             mode = "help";
             dialog.close();
         }, true));
+        spotlight.show(item.id, cue);
     }
     function welcome() {
         mode = "welcome";
         frame(guide.welcome.title, guide.welcome.body, "Welcome");
         body.append(textElement("p", BROWSER_PRIVACY_NOTE, "learning-callout"),
-            textElement("p", "Start with Basic controls. Find this tour and plain-language help in the bottom-right corner whenever you need them."));
+            textElement("p", "Follow the glow to find each control. Use Next to keep going; the tour won't activate anything for you. You can replay it from Help."));
         actions.append(action("No thanks", "tutorial-decline", dismiss),
             action("Start tour", "tutorial-start", () => tutorial(), true));
         $("tutorial-start").setAttribute("aria-label", "Start guided tutorial");

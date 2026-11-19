@@ -10,6 +10,8 @@ from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import sync_playwright, expect
 from browser_capture import BrowserDiagnostics
+from tutorial_spotlight_checks import (verify_loaded_tutorial_spotlight, verify_tutorial_navigation_restoration,
+                                       verify_tutorial_pane_restoration, verify_tutorial_spotlights)
 from verify_studio_browser import fixture
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -905,7 +907,15 @@ def run(args):
         verify_terminal_storage_failures(browser, base, args, result)
         verify_review_layouts(browser, base, args, result, audio_supported)
         verify_help_reachability(browser, base, args, result)
-        if audio_supported:verify_pending_feedback(browser, base, args, result)
+        verify_tutorial_spotlights(browser, base)
+        result['checks'].append('Eight tutorial spotlights stay clear of the explanation on desktop and touch layouts; reduced motion and cleanup pass')
+        verify_tutorial_navigation_restoration(browser, base)
+        verify_tutorial_pane_restoration(browser, base)
+        result['checks'].append('Tour exit restores workspace tabs after resize and the desktop pane scroll position')
+        if audio_supported:
+            verify_loaded_tutorial_spotlight(browser, base)
+            result['checks'].append('Loaded example: actual A/B controls stay highlighted on resize; Escape preserves the session')
+            verify_pending_feedback(browser, base, args, result)
         assert all(request['method'] == 'GET' and request['body_bytes'] == 0 and request['url'].startswith(base) for request in result['requests'])
         runtime = [urlparse(request['url']) for request in result['requests'] if Path(urlparse(request['url']).path).suffix in {'.js', '.css', '.wasm'}]
         versions = {tuple(parse_qs(url.query).get('v', [])) for url in runtime}

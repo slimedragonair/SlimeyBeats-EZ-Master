@@ -25,7 +25,9 @@ A new interface profile gets an optional eight-step introduction:
 7. Explore Studio for stems, cleanup and repair.
 8. Find Help and continue exploring.
 
-Advancing the tour never loads audio, runs processing, downloads a model or exports a file. On desktop, **See this screen** pauses the tour and opens the relevant workspace. **Tour** / **Continue tour** in the bottom bar returns to it. Browser steps tell you where to find each task.
+Advancing the tour never loads audio, runs processing, downloads a model or exports a file. On desktop, **See this screen** pauses the tour and opens the relevant workspace. **Tour** / **Continue tour** in the bottom bar returns to it.
+
+In the browser development preview, each step draws a bright outline around the relevant control and places the explanation above or below it. The outline pulses twice, then stays still; reduced-motion settings skip the pulse. If a control is unavailable, the tour shows where to start instead. Use **Back** and **Next** at your own pace. Highlighted controls are shown, not activated.
 
 Finishing, declining the offer or dismissing the offer/tutorial saves that choice immediately, without waiting for **Save settings** or normal exit. It suppresses later automatic offers when storage succeeds. Replay remains available through Help and does not re-enable an automatic offer. An unfinished first browser tour can be continued from Help after reload.
 
@@ -66,6 +68,7 @@ Steps, glossary and MCP copy share one source: [`rust/assets/learning-guide.json
 | Native mode/tutorial state and storage | [`user_experience.rs`](../rust/src/gui/user_experience.rs), [`interface_preferences.rs`](../rust/src/gui/interface_preferences.rs), [`tutorial_history.rs`](../rust/src/gui/tutorial_history.rs), [`preference_store.rs`](../rust/src/gui/preference_store.rs); paths in [`paths.rs`](../rust/src/paths.rs) |
 | Native guidance and connection example | [`learning_ui.rs`](../rust/src/gui/learning_ui.rs), [`help_center.rs`](../rust/src/gui/help_center.rs), [`guide_content.rs`](../rust/src/gui/guide_content.rs), [`mcp_setup.rs`](../rust/src/gui/mcp_setup.rs) |
 | Browser choices, visibility and dialogs | [`ui-preferences.js`](../web/site/ui-preferences.js), [`control-visibility.js`](../web/site/control-visibility.js), [`learning.js`](../web/site/learning.js), [`learning-content.js`](../web/site/learning-content.js), [`dialog-focus.js`](../web/site/dialog-focus.js) |
+| Browser tutorial targets and spotlight layout | [`tutorial-spotlight.js`](../web/site/tutorial-spotlight.js) maps shared step IDs to the actual controls; [`learning.css`](../web/site/learning.css) draws the outline and keeps the coach card clear. |
 | Shared-copy web packaging | [`web/tools/build.py`](../web/tools/build.py) |
 
 Keep preference writes separate from audio operations, retain terminal tutorial choices across stale windows/tabs, and keep MCP setup explicit. The [UI validation record](UX_VALIDATION.md) preserves the reviewed candidates, scores and physical-device limits separately from release packaging checks.
