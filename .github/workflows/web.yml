@@ -25,7 +25,7 @@ jobs:
       bundle_sha256: ${{ steps.seal.outputs.bundle_sha256 }}
       build_attempt: ${{ steps.seal.outputs.build_attempt }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Rust and WebAssembly
         run: |
           rustup default stable
@@ -95,7 +95,7 @@ jobs:
           - studio
           - learning
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           artifact-ids: ${{ needs.build.outputs.artifact_id }}
@@ -156,7 +156,7 @@ jobs:
           test "$SCOPE" = success
           test "$BUILD" = success
           test "$SHARDS" = success
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: github.ref == 'refs/heads/main'
       - uses: actions/download-artifact@v8
         with:

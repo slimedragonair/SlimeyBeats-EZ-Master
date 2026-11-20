@@ -21,7 +21,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up stable Rust
         run: |
           rustup default stable
@@ -93,7 +93,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Linux build and validation dependencies
         if: ${{ needs.scope.outputs.native == 'true' || needs.scope.outputs.plugins == 'true' }}
         run: |
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Check changed documentation and companion packaging contracts
         run: |
           python3 -m unittest discover -s rust/tools -p 'test_documentation*.py'
